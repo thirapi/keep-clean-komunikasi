@@ -1,3 +1,4 @@
+import { IRoleRepository } from "../../repositories/role.repository.interface";
 import { IUserRepository } from "../../repositories/user.repository.interface";
 import { IPasswordService } from "../../services/password.service.interface";
 import { AuthenticationError } from "@/lib/entities/errors/common";
@@ -6,7 +7,8 @@ import { createId } from '@paralleldrive/cuid2';
 export class SignUpUseCase {
     constructor(
         private userRepository: IUserRepository,
-        private passwordService: IPasswordService
+        private passwordService: IPasswordService,
+        private roleRepository: IRoleRepository
     ) { }
 
     async execute(username: string, password: string): Promise<void> {
@@ -15,6 +17,12 @@ export class SignUpUseCase {
 
         if (findUser) {
             throw new AuthenticationError("Username already used!")
+        }
+
+        const userRole = await this.roleRepository.getRoleByName("user");
+
+        if (!userRole) {
+            throw new AuthenticationError("Default role 'User' tidak ditemukan");
         }
 
         const hashPassword = await this.passwordService.hashPassword(password)
@@ -26,5 +34,9 @@ export class SignUpUseCase {
             username,
             password: hashPassword,
         })
+
+
+        await this.roleRepository.assignRoleToUser(id, userRole.id);
+
     }
 }

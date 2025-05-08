@@ -1,0 +1,143 @@
+[
+    {
+      "id": "123e4567",
+      "full_name": "John Doe",
+      "email": "john.doe@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "234f5678",
+      "full_name": "Jane Smith",
+      "email": "jane.smith@example.com",
+      "status": "INACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "345g6789",
+      "full_name": "Alice Johnson",
+      "email": "alice.johnson@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "456h7890",
+      "full_name": "Bob Brown",
+      "email": "bob.brown@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "567i8901",
+      "full_name": "Charlie Davis",
+      "email": "charlie.davis@example.com",
+      "status": "INACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "678j9012",
+      "full_name": "Diana Evans",
+      "email": "diana.evans@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "789k0123",
+      "full_name": "Ethan Harris",
+      "email": "ethan.harris@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "890l1234",
+      "full_name": "Fiona Clark",
+      "email": "fiona.clark@example.com",
+      "status": "INACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "901m2345",
+      "full_name": "George Lewis",
+      "email": "george.lewis@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "012n3456",
+      "full_name": "Hannah Walker",
+      "email": "hannah.walker@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "112o4567",
+      "full_name": "Ian Robinson",
+      "email": "ian.robinson@example.com",
+      "status": "INACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "223p5678",
+      "full_name": "Jack Wilson",
+      "email": "jack.wilson@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "334q6789",
+      "full_name": "Kelly Martinez",
+      "email": "kelly.martinez@example.com",
+      "status": "INACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "445r7890",
+      "full_name": "Leo Scott",
+      "email": "leo.scott@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "556s8901",
+      "full_name": "Mia Thompson",
+      "email": "mia.thompson@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "667t9012",
+      "full_name": "Noah White",
+      "email": "noah.white@example.com",
+      "status": "INACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "778u0123",
+      "full_name": "Olivia Hall",
+      "email": "olivia.hall@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "889v1234",
+      "full_name": "Paul Adams",
+      "email": "paul.adams@example.com",
+      "status": "INACTIVE",
+      "role": "ADMIN"
+    },
+    {
+      "id": "990w2345",
+      "full_name": "Quinn Baker",
+      "email": "quinn.baker@example.com",
+      "status": "ACTIVE",
+      "role": "STAFF"
+    },
+    {
+      "id": "101x3456",
+      "full_name": "Rachel Perez",
+      "email": "rachel.perez@example.com",
+      "status": "ACTIVE",
+      "role": "ADMIN"
+    }
+  ]
+  

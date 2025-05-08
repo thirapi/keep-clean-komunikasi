@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   AudioWaveform,
   BookOpen,
@@ -16,19 +16,19 @@ import {
   Briefcase,
   Home,
   Users,
-  User
-} from "lucide-react"
+  User,
+} from "lucide-react";
 
-import { NavMain } from "./nav-main"
-import { NavUser } from "./nav-user"
-import { NavBrand } from "./nav-brand"
+import { NavMain } from "./nav-main";
+import { NavUser } from "./nav-user";
+import { NavBrand } from "./nav-brand";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // This is sample data.
 const data = {
@@ -158,7 +158,7 @@ const data = {
       icon: Map,
     },
   ],
-}
+};
 
 const groups = [
   {
@@ -182,7 +182,7 @@ const groups = [
     icon: Briefcase,
     onClick: () => console.log("Go to Projects"),
   },
-]
+];
 
 const users = [
   {
@@ -206,35 +206,46 @@ const users = [
     icon: User,
     onClick: () => console.log("Go to Projects"),
   },
-]
+];
 
 const brand = {
-  name: "Komunikasi", logo: Fingerprint, description: "webchat sederhana" 
-}
+  name: "Komunikasi",
+  logo: Fingerprint,
+  description: "webchat sederhana",
+};
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: {
-      name: string;
-      initial: string;
-      email: string;
-      avatar: string;
+    name: string;
+    initial: string;
+    role: string;
+    email: string;
+    avatar: string;
   };
+  checkRole: {
+    id: string;
+    username: string;
+    roles: {
+      id: string;
+      name: string;
+    }[];
+  } | null;
 }
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, checkRole, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <NavBrand brand={brand} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain groups={groups} type="Groups"/>
-        <NavMain groups={users} type="Users"/>
+        <NavMain groups={groups} type="Groups" />
+        <NavMain groups={users} type="Users" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser user={user} checkRole={checkRole}/>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

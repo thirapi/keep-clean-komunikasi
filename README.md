@@ -1,5 +1,8 @@
 # keep-clean-komunikasi
 
+## hal hal penting!
+diagram db [ERD](https://dbdiagram.io/d/komunikasi-67f935074f7afba184451999)
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
