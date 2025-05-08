@@ -20,6 +20,7 @@ model User {
   password   String
   messages   Message[]
   sessions   Session[]
+  userRoles  UserRole[]
   rooms      Room[]   
   createdAt  DateTime @default(now())
 }
@@ -56,4 +57,41 @@ model Session {
   userId     String
   user       User     @relation(fields: [userId], references: [id])
   expiresAt  DateTime
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime     @default(now())
+}
+
+model Permission {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime     @default(now())
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String
+
+  @@unique([userId, roleId]) // agar tidak ada duplikasi role untuk user yang sama
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         Role       @relation(fields: [roleId], references: [id])
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId String
+
+  @@unique([roleId, permissionId]) // agar tidak ada duplikasi permission untuk role yang sama
 }

@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 type Brand = {
   name: string
@@ -29,6 +30,7 @@ export function NavBrand({ brand }: { brand: Brand }) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
+            <Link href="/app">
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
@@ -43,6 +45,7 @@ export function NavBrand({ brand }: { brand: Brand }) {
                 <span className="truncate text-xs dark:text-slate-500">{brand.description}</span>
               </div>
             </SidebarMenuButton>
+            </Link>
       </SidebarMenuItem>
     </SidebarMenu>
   )

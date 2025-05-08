@@ -1,16 +1,20 @@
 import { SignUpUseCase } from "@/lib/application/use-cases/users/sign-up.use-case";
 import { InputParsedError } from "@/lib/entities/errors/common";
 import { SignUpUserDTO } from "@/lib/entities/models/user.model";
+import { RoleRepository } from "@/lib/infrastructure/repositories/role.repository";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
 import { z } from "zod";
 
 const userRepository = new UserRepository();
 const passwordService = new PasswordService();
+const roleRepository = new RoleRepository();
 
 const signUpUseCase = new SignUpUseCase(
     userRepository,
-    passwordService
+    passwordService,
+    roleRepository
+
 )
 
 export const formSchema = z

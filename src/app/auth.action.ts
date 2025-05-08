@@ -11,6 +11,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { signOutController } from "@/lib/interface-adapters/controllers/sign-out.controller";
+import { getUserWithRolesController } from "@/lib/interface-adapters/controllers/roles/get-user-role.controller";
 
 
 
@@ -144,19 +145,33 @@ export const getUserSession = cache(async (): Promise<SessionDTO | null> => {
 
 export const sidaBarUserInfo = async () => {
     let session = await getUserSession();
+    
+    const userData = await getUserWithRolesController(session);
 
-    if (session && session.user) {
+    const getRolesAsString = (roles: { id: string; name: string }[]): string => {
+    return roles.map(role => role.name).join(", ");
+};
+
+    if (session && userData) {
         return {
-            name: session.user.username,
+            name: userData.username,
+            role: getRolesAsString(userData.roles),
             email: "komunikasi.vercel.app",
             avatar: "/avatars/shadcn.jpg",
         };
     } else {
         return {
             name: "error",
+            role: "",
             email: "",
             avatar: "/avatars/shadcn.jpg",
         };
     }
 };
 
+export const getUserWithRolesFromSession = async () => {
+    const session = await getUserSession(); 
+    const userWithRoles = await getUserWithRolesController(session);
+
+    return userWithRoles;
+}
