@@ -30,7 +30,7 @@ export function NavBrand({ brand }: { brand: Brand }) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-            <Link href="/app">
+            <Link href="/channels/default">
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"

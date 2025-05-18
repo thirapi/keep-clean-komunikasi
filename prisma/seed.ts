@@ -18,6 +18,7 @@ async function main() {
   }
 
   const roles = [
+    { name: "super_admin", description: "Super Administrator with all access" },
     { name: "admin", description: "Administrator with full access" },
     { name: "moderator", description: "Moderator with limited access" },
     { name: "user", description: "Regular user" },
