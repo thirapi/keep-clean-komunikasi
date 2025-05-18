@@ -6,11 +6,7 @@ import {
 } from "@/lib/entities/models/message.model";
 
 export class MessageRepository implements IMessageRepository {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = new PrismaClient();
-  }
+  constructor(private prisma: PrismaClient) {}
 
   async createMessage(
     userId: string,

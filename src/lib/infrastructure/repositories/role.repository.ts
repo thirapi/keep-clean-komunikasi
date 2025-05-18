@@ -3,17 +3,14 @@ import { IRoleRepository } from "@/lib/application/repositories/role.repository.
 import { RoleFullRecord, RoleRecord } from "@/lib/entities/models/role.model";
 
 export class RoleRepository implements IRoleRepository {
-  private prisma: PrismaClient;
+  constructor(private prisma: PrismaClient) {}
 
-  constructor() {
-    this.prisma = new PrismaClient();
-  }
   async deleteRole(roleId: string): Promise<void> {
     try {
       await this.prisma.rolePermission.deleteMany({
         where: { roleId },
       });
-  
+
       await this.prisma.role.delete({
         where: { id: roleId },
       });

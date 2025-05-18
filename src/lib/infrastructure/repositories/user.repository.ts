@@ -3,18 +3,11 @@ import { IUserRepository } from "@/lib/application/repositories/user.repository.
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { Prisma } from "@prisma/client";
-import { connect } from "http2";
-import { create } from "lodash";
 
 export class UserRepository implements IUserRepository {
-  private prisma: PrismaClient;
+  constructor(private prisma: PrismaClient) {}
 
-  constructor() {
-    this.prisma = new PrismaClient();
-  }
-  async findByUsernameWithRoles(
-    username: string
-  ): Promise<{
+  async findByUsernameWithRoles(username: string): Promise<{
     id: string;
     username: string;
     roles: { id: string; name: string }[];
@@ -42,9 +35,7 @@ export class UserRepository implements IUserRepository {
     };
   }
 
-  async findByIdWithRoles(
-    id: string
-  ): Promise<{
+  async findByIdWithRoles(id: string): Promise<{
     id: string;
     username: string;
     password: string;
