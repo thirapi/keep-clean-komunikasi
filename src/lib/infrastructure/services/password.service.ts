@@ -2,7 +2,7 @@ import { IPasswordService } from "@/lib/application/services/password.service.in
 import { compareSync, genSaltSync, hashSync } from "bcrypt-ts";
 
 export class PasswordService implements IPasswordService {
-    comparePassword(plainPassword: string, hashedPassword: string): Boolean {
+    comparePassword(plainPassword: string, hashedPassword: string): boolean {
         return compareSync(plainPassword, hashedPassword);
     }
 

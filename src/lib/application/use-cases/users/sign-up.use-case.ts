@@ -13,7 +13,7 @@ export class SignUpUseCase {
 
     async execute(username: string, password: string): Promise<void> {
 
-        let findUser = await this.userRepository.findByUsername(username)
+        const findUser = await this.userRepository.findByUsername(username)
 
         if (findUser) {
             throw new AuthenticationError("Username already used!")

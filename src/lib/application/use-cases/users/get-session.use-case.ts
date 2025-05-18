@@ -4,7 +4,7 @@ import { AuthenticationService } from "@/lib/infrastructure/services/authenticat
 export class GetUserSessionUseCase {
     constructor(private authenticationService: AuthenticationService) { }
     async execute(session_id: string) {
-        let session = await this.authenticationService.validateSession(
+        const session = await this.authenticationService.validateSession(
             session_id
         )
 

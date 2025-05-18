@@ -1,4 +1,4 @@
 export interface IPasswordService {
-    comparePassword(plainPassword: string, hashedPassword: string): Boolean;
+    comparePassword(plainPassword: string, hashedPassword: string): boolean;
     hashPassword(plainPassword: string): string;
 }

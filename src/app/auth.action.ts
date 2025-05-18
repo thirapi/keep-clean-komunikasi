@@ -145,7 +145,7 @@ export const getUserSession = cache(async (): Promise<SessionDTO | null> => {
 });
 
 export const sidaBarUserInfo = async () => {
-  let session = await getUserSession();
+  const session = await getUserSession();
 
   const userData = await getUserWithRolesController(session);
 
