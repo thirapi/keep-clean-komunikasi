@@ -8,6 +8,6 @@ export const createRolesController = async (
   permissions: string[],
   description?: string
 ): Promise<void> => {
-  console.log("createRolesController received permissions:", permissions);
+
   await createRolesUseCase.execute(name, permissions, description);
 };

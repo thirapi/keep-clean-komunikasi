@@ -17,6 +17,8 @@ import {
   Home,
   Users,
   User,
+  Hash,
+  FlameKindling,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -29,136 +31,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-};
+import { getUserSession } from "../auth.action";
+import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 
 const groups = [
   {
@@ -210,11 +84,12 @@ const users = [
 
 const brand = {
   name: "Komunikasi",
-  logo: Fingerprint,
+  logo: FlameKindling,
   description: "webchat sederhana",
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  userRooms: RoomWithParticipantsDTO[];
   user: {
     name: string;
     initial: string;
@@ -232,18 +107,25 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   } | null;
 }
 
-export function AppSidebar({ user, checkRole, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, checkRole, userRooms, ...props }: AppSidebarProps) {
+  const dynamicGroups = userRooms.map((room) => ({
+  id: room.id,
+  name: room.name,
+  url: `/channels/${room.id}`,
+  icon: Hash, 
+}));
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <NavBrand brand={brand} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain groups={groups} type="Groups" />
-        <NavMain groups={users} type="Users" />
+        <NavMain groups={dynamicGroups} type="Channels" />
+        {/* <NavMain groups={users} type="Users" /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} checkRole={checkRole}/>
+        <NavUser user={user} checkRole={checkRole} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

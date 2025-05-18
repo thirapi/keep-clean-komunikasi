@@ -3,14 +3,22 @@ import { IUserRepository } from "@/lib/application/repositories/user.repository.
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { Prisma } from "@prisma/client";
+import { connect } from "http2";
+import { create } from "lodash";
 
 export class UserRepository implements IUserRepository {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient;
+    this.prisma = new PrismaClient();
   }
-  async findByUsernameWithRoles(username: string): Promise<{ id: string; username: string; roles: { id: string; name: string }[]; } | null> {
+  async findByUsernameWithRoles(
+    username: string
+  ): Promise<{
+    id: string;
+    username: string;
+    roles: { id: string; name: string }[];
+  } | null> {
     const user = await this.prisma.user.findUnique({
       where: { username },
       include: {
@@ -34,7 +42,14 @@ export class UserRepository implements IUserRepository {
     };
   }
 
-  async findByIdWithRoles(id: string): Promise<{ id: string; username: string; password: string; roles: { id: string; name: string }[]; } | null> {
+  async findByIdWithRoles(
+    id: string
+  ): Promise<{
+    id: string;
+    username: string;
+    password: string;
+    roles: { id: string; name: string }[];
+  } | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -62,10 +77,11 @@ export class UserRepository implements IUserRepository {
   async updateUserRoles(userId: string, roleIds: string[]) {
     await this.prisma.userRole.deleteMany({
       where: { userId },
-      
     });
 
-    if(roleIds.length === 0) {return}
+    if (roleIds.length === 0) {
+      return;
+    }
 
     const data = roleIds.map((roleId) => ({ userId, roleId }));
     await this.prisma.userRole.createMany({ data });
@@ -74,23 +90,28 @@ export class UserRepository implements IUserRepository {
   async insert(user: UserRecord, tx?: Prisma.TransactionClient): Promise<void> {
     const db = tx ?? this.prisma;
 
-    const userInsert = {
-      ...user,
-    }
-
-    await db.user.create({ data: userInsert });
+    await db.user.create({
+      data: {
+        ...user,
+        rooms: {
+          connect: {
+            id: "cmak9alli0000i5sei9vn5szl",
+          },
+        },
+      },
+    });
   }
 
   async findById(id: string): Promise<UserRecord | null> {
-    return await this.prisma.user.findUnique({
+    return (await this.prisma.user.findUnique({
       where: { id },
-    }) as UserRecord | null;
+    })) as UserRecord | null;
   }
 
   async findByUsername(username: string): Promise<UserRecord | null> {
-    return await this.prisma.user.findUnique({
+    return (await this.prisma.user.findUnique({
       where: { username },
-    }) as UserRecord | null;
+    })) as UserRecord | null;
   }
 
   async getAllUsersWithRoles(): Promise<
@@ -115,7 +136,4 @@ export class UserRepository implements IUserRepository {
       })),
     }));
   }
-
-
-
 }

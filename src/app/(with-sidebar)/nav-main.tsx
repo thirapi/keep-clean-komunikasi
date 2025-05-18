@@ -18,7 +18,6 @@ type Groups = {
   name: string
   url: string
   icon: React.ElementType
-  onClick?: React.MouseEventHandler<HTMLButtonElement>
 }
 
 export function NavMain({ groups, type }: { groups: Groups[], type: string }) {
@@ -28,20 +27,12 @@ export function NavMain({ groups, type }: { groups: Groups[], type: string }) {
       <SidebarMenu>
         {groups.map((item) => (
           <SidebarMenuItem key={item.id}>
-            {item.onClick ? (
-              <SidebarMenuButton tooltip={item.name} onClick={item.onClick}>
-                <item.icon />
-                <span>{item.name}</span>
-              </SidebarMenuButton>
-            ) : (
               <SidebarMenuButton asChild tooltip={item.name}>
                 <Link href={item.url}>
                   <item.icon />
                   <span>{item.name}</span>
                 </Link>
               </SidebarMenuButton>
-            )}
-
             {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>

@@ -13,15 +13,6 @@ export class CreateRolesUseCase {
           throw new Error(`Role ${name} already exists`);
         }
       
-        const data = {
-            name,
-            description: description ?? undefined,
-            permissions: permissions.map((permission) => ({
-                id: permission,
-            })),
-        }
-        console.log("🔍 data received in use-case:", data);
-      
         await this.roleRepository.createRole(name, permissions, description);
       }
       
