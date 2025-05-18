@@ -2,7 +2,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma";
 
 export class UserRepository implements IUserRepository {
   constructor(private prisma: PrismaClient) {}
