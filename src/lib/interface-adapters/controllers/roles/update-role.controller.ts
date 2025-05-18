@@ -1,7 +1,9 @@
 import { UpdateRolesUseCase } from "@/lib/application/use-cases/roles/update-role.use-case";
 import { RoleRepository } from "@/lib/infrastructure/repositories/role.repository";
 
-const roleRepository = new RoleRepository();
+import { prisma } from "@/lib/prisma";
+
+const roleRepository = new RoleRepository(prisma);
 
 const updateRoleUseCase = new UpdateRolesUseCase(roleRepository);
 

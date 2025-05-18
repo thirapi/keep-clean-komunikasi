@@ -5,7 +5,9 @@ import { InputParsedError } from "@/lib/entities/errors/common";
 import { z } from "zod";
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 
-const messageRepository = new MessageRepository();
+import { prisma } from "@/lib/prisma";
+
+const messageRepository = new MessageRepository(prisma);
 const pusherService = new PusherService();
 
 const sendMessageUseCase = new SendMessageUseCase(messageRepository, pusherService);

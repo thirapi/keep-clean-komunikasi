@@ -5,8 +5,10 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
 import { z } from "zod";
 
-const userRepository = new UserRepository();
-const sessionRepository = new SessionRepository();
+import { prisma } from "@/lib/prisma";
+
+const userRepository = new UserRepository(prisma);
+const sessionRepository = new SessionRepository(prisma);
 
 const authenticationService = new AuthenticationService(
     sessionRepository,

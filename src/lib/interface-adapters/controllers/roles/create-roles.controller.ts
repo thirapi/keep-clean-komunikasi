@@ -1,7 +1,9 @@
 import { CreateRolesUseCase } from "@/lib/application/use-cases/roles/create-role.use-case";
 import { RoleRepository } from "@/lib/infrastructure/repositories/role.repository";
 
-const roleRepository = new RoleRepository();
+import { prisma } from "@/lib/prisma";
+
+const roleRepository = new RoleRepository(prisma);
 const createRolesUseCase = new CreateRolesUseCase(roleRepository);
 export const createRolesController = async (
   name: string,

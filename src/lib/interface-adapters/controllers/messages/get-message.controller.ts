@@ -2,7 +2,9 @@ import { GetMessageUseCase } from "@/lib/application/use-cases/messages/get-mess
 import { MessageRepository } from "@/lib/infrastructure/repositories/message.repository";
 import { z } from "zod";
 
-const messageRepository = new MessageRepository();
+import { prisma } from "@/lib/prisma";
+
+const messageRepository = new MessageRepository(prisma);
 const getMessageUseCase = new GetMessageUseCase(messageRepository);
 
 const formSchema = z.object({
