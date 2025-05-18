@@ -26,8 +26,8 @@ export default function EditRolesFormWrapper({
       ]);
     }, [setBreadcrumbs]);
 
-  let params = useParams<{ id: string }>();
-  let router = useRouter();
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
   const handleSubmit = async (value: RolesFormValueType) => {
     const toastId = toast.loading("Loading…");
 

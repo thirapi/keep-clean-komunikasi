@@ -3,7 +3,7 @@ import { AuthenticationService } from "@/lib/infrastructure/services/authenticat
 export class SignOutUseCase {
     constructor(private authenticationService: AuthenticationService) { }
     async execute(session_id: string) {
-        let session = await this.authenticationService.validateSession(
+        const session = await this.authenticationService.validateSession(
             session_id
         )
         if (!session.session) {

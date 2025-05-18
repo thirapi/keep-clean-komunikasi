@@ -12,7 +12,7 @@ export class SignInUseCase {
 
     async execute(username: string, password: string): Promise<string> {
 
-        let findUser = await this.userRepository.findByUsername(username)
+        const findUser = await this.userRepository.findByUsername(username)
 
         if (!findUser) {
             throw new AuthenticationError("Username not found!")
@@ -27,7 +27,7 @@ export class SignInUseCase {
             throw new AuthenticationError("Password didn't match!")
         }
 
-        let token = await this.authenticationService.generateSessionToken();
+        const token = await this.authenticationService.generateSessionToken();
         await this.authenticationService.createSession(token, findUser.id)
 
         return token;

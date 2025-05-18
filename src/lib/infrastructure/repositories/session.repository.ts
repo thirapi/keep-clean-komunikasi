@@ -9,7 +9,7 @@ export class SessionRepository implements ISessionRepository {
         this.prisma = new PrismaClient;
     }
 
-    async insertSession(sessionData: SessionRecord): Promise<Boolean> {
+    async insertSession(sessionData: SessionRecord): Promise<boolean> {
         try {
             await this.prisma.session.create({
                 data: sessionData,
