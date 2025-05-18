@@ -151,58 +151,14 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.UserOrderByRelevanceFieldEnum = {
-  id: 'id',
-  username: 'username',
-  password: 'password'
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
 };
 
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
-};
-
-exports.Prisma.MessageOrderByRelevanceFieldEnum = {
-  id: 'id',
-  content: 'content',
-  imageUrl: 'imageUrl',
-  userId: 'userId',
-  roomId: 'roomId',
-  replyTo: 'replyTo'
-};
-
-exports.Prisma.RoomOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name'
-};
-
-exports.Prisma.SessionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId'
-};
-
-exports.Prisma.RoleOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description'
-};
-
-exports.Prisma.PermissionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description'
-};
-
-exports.Prisma.UserRoleOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  roleId: 'roleId'
-};
-
-exports.Prisma.RolePermissionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  roleId: 'roleId',
-  permissionId: 'permissionId'
 };
 
 
@@ -238,6 +194,14 @@ const config = {
         "fromEnvVar": null,
         "value": "debian-openssl-3.0.x",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "debian-openssl-3.0.x"
+      },
+      {
+        "fromEnvVar": null,
+        "value": "rhel-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
@@ -254,17 +218,18 @@ const config = {
   "datasourceNames": [
     "db"
   ],
-  "activeProvider": "mysql",
+  "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "mysql://root:root@localhost:3306/db_komunikasi"
+        "value": null
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id        String     @id @default(cuid())\n  username  String     @unique\n  password  String\n  messages  Message[]\n  sessions  Session[]\n  userRoles UserRole[]\n  rooms     Room[]\n  createdAt DateTime   @default(now())\n}\n\nmodel Message {\n  id             String    @id @default(cuid())\n  content        String\n  imageUrl       String?\n  createdAt      DateTime  @default(now())\n  userId         String\n  user           User      @relation(fields: [userId], references: [id])\n  roomId         String\n  room           Room      @relation(fields: [roomId], references: [id])\n  replyTo        String?\n  replyToMessage Message?  @relation(\"MessageReply\", fields: [replyTo], references: [id])\n  replies        Message[] @relation(\"MessageReply\")\n  isDeleted      Boolean   @default(false)\n}\n\nmodel Room {\n  id           String    @id @default(cuid())\n  name         String\n  isDirect     Boolean   @default(false)\n  participants User[]\n  messages     Message[]\n}\n\nmodel Session {\n  id        String   @id @default(cuid())\n  userId    String\n  user      User     @relation(fields: [userId], references: [id])\n  expiresAt DateTime\n}\n\nmodel Role {\n  id          String           @id @default(cuid())\n  name        String           @unique\n  description String?\n  users       UserRole[]\n  permissions RolePermission[]\n  createdAt   DateTime         @default(now())\n}\n\nmodel Permission {\n  id          String           @id @default(cuid())\n  name        String           @unique\n  description String?\n  roles       RolePermission[]\n  createdAt   DateTime         @default(now())\n}\n\nmodel UserRole {\n  id     String @id @default(cuid())\n  user   User   @relation(fields: [userId], references: [id])\n  userId String\n  role   Role   @relation(fields: [roleId], references: [id])\n  roleId String\n\n  @@unique([userId, roleId]) // agar tidak ada duplikasi role untuk user yang sama\n}\n\nmodel RolePermission {\n  id           String     @id @default(cuid())\n  role         Role       @relation(fields: [roleId], references: [id])\n  roleId       String\n  permission   Permission @relation(fields: [permissionId], references: [id])\n  permissionId String\n\n  @@unique([roleId, permissionId]) // agar tidak ada duplikasi permission untuk role yang sama\n}\n",
-  "inlineSchemaHash": "cdc45ed879bc47a4edac7b32471e738172c5bce6215d3daed021a92f5579e7b9",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider      = \"prisma-client-js\"\n  output        = \"../src/generated/prisma\"\n  binaryTargets = [\"native\", \"debian-openssl-3.0.x\", \"rhel-openssl-3.0.x\"]\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id        String     @id @default(cuid())\n  username  String     @unique\n  password  String\n  messages  Message[]\n  sessions  Session[]\n  userRoles UserRole[]\n  rooms     Room[]\n  createdAt DateTime   @default(now())\n}\n\nmodel Message {\n  id             String    @id @default(cuid())\n  content        String\n  imageUrl       String?\n  createdAt      DateTime  @default(now())\n  userId         String\n  user           User      @relation(fields: [userId], references: [id])\n  roomId         String\n  room           Room      @relation(fields: [roomId], references: [id])\n  replyTo        String?\n  replyToMessage Message?  @relation(\"MessageReply\", fields: [replyTo], references: [id])\n  replies        Message[] @relation(\"MessageReply\")\n  isDeleted      Boolean   @default(false)\n}\n\nmodel Room {\n  id           String    @id @default(cuid())\n  name         String\n  isDirect     Boolean   @default(false)\n  participants User[]\n  messages     Message[]\n}\n\nmodel Session {\n  id        String   @id @default(cuid())\n  userId    String\n  user      User     @relation(fields: [userId], references: [id])\n  expiresAt DateTime\n}\n\nmodel Role {\n  id          String           @id @default(cuid())\n  name        String           @unique\n  description String?\n  users       UserRole[]\n  permissions RolePermission[]\n  createdAt   DateTime         @default(now())\n}\n\nmodel Permission {\n  id          String           @id @default(cuid())\n  name        String           @unique\n  description String?\n  roles       RolePermission[]\n  createdAt   DateTime         @default(now())\n}\n\nmodel UserRole {\n  id     String @id @default(cuid())\n  user   User   @relation(fields: [userId], references: [id])\n  userId String\n  role   Role   @relation(fields: [roleId], references: [id])\n  roleId String\n\n  @@unique([userId, roleId]) // agar tidak ada duplikasi role untuk user yang sama\n}\n\nmodel RolePermission {\n  id           String     @id @default(cuid())\n  role         Role       @relation(fields: [roleId], references: [id])\n  roleId       String\n  permission   Permission @relation(fields: [permissionId], references: [id])\n  permissionId String\n\n  @@unique([roleId, permissionId]) // agar tidak ada duplikasi permission untuk role yang sama\n}\n",
+  "inlineSchemaHash": "ce39c56d51328712b2632c15a8f5c4bb22d360ab2975d3100a610ca933fb50ac",
   "copyEngine": true
 }
 
@@ -305,6 +270,10 @@ Object.assign(exports, Prisma)
 // file annotations for bundling tools to include these files
 path.join(__dirname, "libquery_engine-debian-openssl-3.0.x.so.node");
 path.join(process.cwd(), "src/generated/prisma/libquery_engine-debian-openssl-3.0.x.so.node")
+
+// file annotations for bundling tools to include these files
+path.join(__dirname, "libquery_engine-rhel-openssl-3.0.x.so.node");
+path.join(process.cwd(), "src/generated/prisma/libquery_engine-rhel-openssl-3.0.x.so.node")
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "src/generated/prisma/schema.prisma")
