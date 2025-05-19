@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { IRoleRepository } from "@/lib/application/repositories/role.repository.interface";
 import { RoleFullRecord, RoleRecord } from "@/lib/entities/models/role.model";
 

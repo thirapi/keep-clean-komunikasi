@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { IPermissionRepository } from "@/lib/application/repositories/permission.repository.interface";
 import { PermissionRecord } from "@/lib/entities/models/permission.model";
 

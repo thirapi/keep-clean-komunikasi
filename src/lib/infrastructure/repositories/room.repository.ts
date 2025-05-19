@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { IRoomRepository } from "@/lib/application/repositories/room.repository.interface";
 
 export class RoomRepository implements IRoomRepository {

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
   MessageRecord,

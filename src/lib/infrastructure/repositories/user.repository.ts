@@ -1,8 +1,7 @@
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
-import { Prisma } from "@/generated/prisma";
 
 export class UserRepository implements IUserRepository {
   constructor(private prisma: PrismaClient) {}
@@ -28,7 +27,7 @@ export class UserRepository implements IUserRepository {
     return {
       id: user.id,
       username: user.username,
-      roles: user.userRoles.map((ur) => ({
+      roles: user.userRoles.map((ur: { role: { id: string; name: string } }) => ({
         id: ur.role.id,
         name: ur.role.name,
       })),
@@ -58,7 +57,7 @@ export class UserRepository implements IUserRepository {
       id: user.id,
       username: user.username,
       password: user.password,
-      roles: user.userRoles.map((ur) => ({
+      roles: user.userRoles.map((ur: { role: { id: string; name: string } }) => ({
         id: ur.role.id,
         name: ur.role.name,
       })),
@@ -118,7 +117,11 @@ export class UserRepository implements IUserRepository {
       },
     });
 
-    return users.map((user) => ({
+    return users.map((user: {
+      id: string;
+      username: string;
+      userRoles: { role: { id: string; name: string } }[];
+    }) => ({
       id: user.id,
       username: user.username,
       roles: user.userRoles.map((ur) => ({

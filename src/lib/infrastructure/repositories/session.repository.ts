@@ -1,6 +1,6 @@
 import { ISessionRepository } from "@/lib/application/repositories/session.repository.interface";
 import { SessionRecord } from "@/lib/entities/models/session.model";
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 export class SessionRepository implements ISessionRepository {
   constructor(private prisma: PrismaClient) {}
