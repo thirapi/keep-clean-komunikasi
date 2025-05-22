@@ -14,26 +14,30 @@ import {
 import Link from "next/link";
 
 type Groups = {
-  id: string
-  name: string
-  url: string
-  icon: React.ElementType
-}
+  id: string;
+  name: string;
+  url: string;
+  icon: React.ElementType;
+};
 
-export function NavMain({ groups, type }: { groups: Groups[], type: string }) {
+const order = ["General", "Random"];
+
+export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{type}</SidebarGroupLabel>
       <SidebarMenu>
-        {groups.map((item) => (
-          <SidebarMenuItem key={item.id}>
+        {[...groups]
+          .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name))
+          .map((item) => (
+            <SidebarMenuItem key={item.id}>
               <SidebarMenuButton asChild tooltip={item.name}>
                 <Link href={item.url}>
                   <item.icon />
                   <span>{item.name}</span>
                 </Link>
               </SidebarMenuButton>
-            {/* <DropdownMenu>
+              {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>
                 <MoreHorizontal />
@@ -56,8 +60,8 @@ export function NavMain({ groups, type }: { groups: Groups[], type: string }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu> */}
-          </SidebarMenuItem>
-        ))}
+            </SidebarMenuItem>
+          ))}
       </SidebarMenu>
     </SidebarGroup>
   );

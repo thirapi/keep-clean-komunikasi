@@ -34,54 +34,6 @@ import {
 import { getUserSession } from "../auth.action";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 
-const groups = [
-  {
-    id: "1",
-    name: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
-    onClick: () => console.log("Go to Dashboard"),
-  },
-  {
-    id: "2",
-    name: "Team",
-    url: "/team",
-    icon: Users,
-    onClick: () => console.log("Go to Team"),
-  },
-  {
-    id: "3",
-    name: "Projects",
-    url: "/projects",
-    icon: Briefcase,
-    onClick: () => console.log("Go to Projects"),
-  },
-];
-
-const users = [
-  {
-    id: "1",
-    name: "user1",
-    url: "/dashboard",
-    icon: User,
-    onClick: () => console.log("Go to Dashboard"),
-  },
-  {
-    id: "2",
-    name: "user2",
-    url: "/team",
-    icon: User,
-    onClick: () => console.log("Go to Team"),
-  },
-  {
-    id: "3",
-    name: "user3",
-    url: "/projects",
-    icon: User,
-    onClick: () => console.log("Go to Projects"),
-  },
-];
-
 const brand = {
   name: "Komunikasi",
   logo: FlameKindling,
