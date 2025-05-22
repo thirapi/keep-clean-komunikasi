@@ -70,9 +70,9 @@ export function SignUpForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">Register</CardTitle>
           <CardDescription>
-            Enter your username below to login to your account
+            Register your username and password below to make your account
           </CardDescription>
         </CardHeader>
         <CardContent>
