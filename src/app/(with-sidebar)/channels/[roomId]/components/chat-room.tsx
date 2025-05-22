@@ -13,7 +13,12 @@ import { ChatHeader } from "./chat-header";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { stringToColor } from "@/utils/background-avatar";
 
 interface ChatRoomProps {
   userId: string;
@@ -21,15 +26,15 @@ interface ChatRoomProps {
   initialMessages: MessageWithUserDTO[];
 }
 
-function stringToColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
+// function stringToColor(str: string): string {
+//   let hash = 0;
+//   for (let i = 0; i < str.length; i++) {
+//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
+//   }
 
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 50%)`;
-}
+//   const hue = hash % 360;
+//   return `hsl(${hue}, 70%, 50%)`;
+// }
 
 export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
@@ -100,6 +105,7 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
     <div className="flex flex-col h-screen max-h-[calc(100vh-5rem)]">
       <ChatHeader
         roomData={roomData}
+        currentUserId={userId}
         onToggleMembers={() => setShowMembers((prev) => !prev)}
         membersVisible={showMembers}
       />
@@ -130,27 +136,32 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
               {roomData.participants.map((user) => (
                 <li key={user.id} className="flex items-center space-x-2">
                   <div className="relative">
-                    <Avatar className="h-10 w-10 font-bold">
+                    <Avatar className="rounded-md h-10 w-10 font-bold">
                       <AvatarFallback
+                        className="rounded-md"
                         style={{ backgroundColor: stringToColor(user.id) }}
                       >
                         {user.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     {onlineUserIds.includes(user.id) && (
-                      <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-white" />
+                      <div
+                        className={`h-2.5 w-2.5 ring-[2px] ring-background rounded-full absolute bottom-0 right-0 ${
+                          onlineUserIds ? "bg-green-500" : "bg-gray-500"
+                        }`}
+                      ></div>
                     )}
                   </div>
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <span className="cursor-pointer">
-                        {user.username}
-                      </span>
+                      <span className="cursor-pointer">{user.username}</span>
                     </HoverCardTrigger>
                     <HoverCardContent className="w-64">
                       <div className="flex items-center gap-2">
                         <Avatar className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
-                          <AvatarFallback style={{ backgroundColor: stringToColor(user.id) }}>
+                          <AvatarFallback
+                            style={{ backgroundColor: stringToColor(user.id) }}
+                          >
                             {user.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>

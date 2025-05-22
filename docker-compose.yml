@@ -1,16 +1,18 @@
 version: '3.8'
 
 services:
- app:
-  image: mysql:latest
-  container_name: mysql-komunikasi
-  ports:
-   - "3306:3306"
-  environment:
-    MYSQL_ROOT_PASSWORD: root
-    MYSQL_DATABASE: db_komunikasi
-  volumes:
-   - db_data:/var/lib/mysql
+  postgres:
+    image: postgres:15
+    container_name: postgres-komunikasi
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    volumes:
+      - db_data:/var/lib/postgresql/data
 
 volumes:
   db_data:

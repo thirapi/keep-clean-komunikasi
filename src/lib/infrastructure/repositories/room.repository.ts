@@ -29,15 +29,21 @@ export class RoomRepository implements IRoomRepository {
     return room;
   }
 
-  async getAllRoomsByUserId(userId: string) {
-    const rooms = await this.prisma.room.findMany({
-      where: {
-        participants: {
-          some: {
-            id: userId,
-          },
+  async getAllRoomsByUserId(userId: string, options?: { isDirect?: boolean }) {
+    const whereClause: any = {
+      participants: {
+        some: {
+          id: userId,
         },
       },
+    };
+
+    if (typeof options?.isDirect === "boolean") {
+      whereClause.isDirect = options.isDirect;
+    }
+
+    const rooms = await this.prisma.room.findMany({
+      where: whereClause,
       include: {
         participants: {
           select: {

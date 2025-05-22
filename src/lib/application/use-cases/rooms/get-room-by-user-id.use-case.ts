@@ -4,8 +4,11 @@ import { IRoomRepository } from "../../repositories/room.repository.interface";
 export class GetRoomByUserIdUseCase {
   constructor(private roomRepository: IRoomRepository) {}
 
-  async execute(userId: string): Promise<RoomWithParticipantsDTO[] | null> {
-    const rooms = await this.roomRepository.getAllRoomsByUserId(userId);
+  async execute(
+    userId: string,
+    options?: { isDirect?: boolean }
+  ): Promise<RoomWithParticipantsDTO[] | null> {
+    const rooms = await this.roomRepository.getAllRoomsByUserId(userId, options);
 
     if (!rooms) {
       throw new Error("Rooms not found");

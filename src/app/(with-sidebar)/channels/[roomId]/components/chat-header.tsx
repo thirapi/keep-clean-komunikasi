@@ -4,22 +4,32 @@ import { useEffect, useState } from "react";
 import { HashIcon, Users2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Settings } from "lucide-react";
-import { RoomRecord } from "@/lib/entities/models/room.model";
+import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 
 interface ChatHeaderProps {
-  roomData: RoomRecord;
+  roomData: RoomWithParticipantsDTO;
+  currentUserId: string;
   onToggleMembers?: () => void;
   membersVisible: boolean;
 }
 
-export function ChatHeader({ roomData, onToggleMembers, membersVisible }: ChatHeaderProps) {
+export function ChatHeader({ roomData, onToggleMembers, currentUserId, membersVisible }: ChatHeaderProps) {
   const [roomName, setRoomName] = useState("Loading...");
 
   useEffect(() => {
-    setTimeout(() => {
+    if (roomData.isDirect) {
+      const otherParticipant = roomData.participants.find(
+        (p) => p.id !== currentUserId
+      );
+      setRoomName(
+        otherParticipant?.username
+          ? `${roomData.name} - ${otherParticipant.username}`
+          : "unknown"
+      );
+    } else {
       setRoomName(roomData.name);
-    }, 300);
-  }, [roomData]);
+    }
+  }, [roomData, currentUserId]);
 
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-zinc-900 rounded-t-lg shadow-sm">

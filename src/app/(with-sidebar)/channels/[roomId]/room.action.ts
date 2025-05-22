@@ -26,9 +26,9 @@ export const getRoom = async (roomId: string): Promise<ServerResponse<RoomWithPa
   }
 };
 
-export const getRoomsByUserId = async (userId: string): Promise<ServerResponse<RoomWithParticipantsDTO[] | null>> => {
+export const getRoomsByUserId = async (userId: string, options?: { isDirect?: boolean }): Promise<ServerResponse<RoomWithParticipantsDTO[] | null>> => {
   try {
-    const rooms = await getRoomByUserIdController(userId);
+    const rooms = await getRoomByUserIdController(userId, options);
 
     return {
       status: "success",

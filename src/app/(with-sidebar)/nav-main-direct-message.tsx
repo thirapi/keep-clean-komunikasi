@@ -1,36 +1,54 @@
 "use client";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuAction,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { stringToColor } from "@/utils/background-avatar";
 import Link from "next/link";
 
 type Groups = {
   id: string;
+  userId: string;
   name: string;
   url: string;
   icon: React.ElementType;
 };
 
-export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
+export function NavMainDirectMessage({
+  groups,
+  type,
+}: {
+  groups: Groups[];
+  type: string;
+}) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{type}</SidebarGroupLabel>
       <SidebarMenu>
-        {[...groups]
-          .map((item) => (
-            <SidebarMenuItem key={item.id}>
-              <SidebarMenuButton asChild tooltip={item.name}>
-                <Link href={item.url}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                </Link>
-              </SidebarMenuButton>
-              {/* <DropdownMenu>
+        {[...groups].map((item) => (
+          <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton
+              className="flex items-center gap-2"
+              asChild
+              tooltip={item.name}
+            >
+              <Link href={item.url} className="relative">
+                <Avatar className="h-6 w-6 rounded-md">
+                  <AvatarFallback className="text-xs rounded-md" style={{ backgroundColor: stringToColor(item.userId) }}>{item.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span>@{item.name}</span>
+              </Link>
+            </SidebarMenuButton>
+            {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>
                 <MoreHorizontal />
@@ -53,8 +71,8 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu> */}
-            </SidebarMenuItem>
-          ))}
+          </SidebarMenuItem>
+        ))}
       </SidebarMenu>
     </SidebarGroup>
   );

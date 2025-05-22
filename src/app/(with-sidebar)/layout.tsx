@@ -37,8 +37,11 @@ export default async function layout({
       </div>
     );
   }
-  
+
   const userRooms = await getRoomsByUserId(userId.user.id);
+
+  const directRooms = (userRooms.data ?? []).filter((room) => room.isDirect);
+  const groupRooms = (userRooms.data ?? []).filter((room) => !room.isDirect);
 
   const session = await sidaBarUserInfo();
   const role = await getUserWithRolesFromSession();
@@ -53,6 +56,7 @@ export default async function layout({
   }
 
   const user = {
+    id: userId.user.id,
     name: session.name,
     initial: getInitials(session.name),
     role: session.role,
@@ -67,7 +71,8 @@ export default async function layout({
           <AppSidebar
             user={user}
             checkRole={role}
-            userRooms={userRooms.data ?? []}
+            groupRooms={groupRooms}
+            directRooms={directRooms}
           />
           <SidebarInset>
             <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">

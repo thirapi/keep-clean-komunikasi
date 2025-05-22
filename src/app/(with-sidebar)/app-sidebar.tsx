@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getUserSession } from "../auth.action";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import { NavMainDirectMessage } from "./nav-main-direct-message";
 
 const brand = {
   name: "Komunikasi",
@@ -41,8 +42,10 @@ const brand = {
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  userRooms: RoomWithParticipantsDTO[];
+  groupRooms: RoomWithParticipantsDTO[];
+  directRooms: RoomWithParticipantsDTO[];
   user: {
+    id: string;
     name: string;
     initial: string;
     role: string;
@@ -59,13 +62,26 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   } | null;
 }
 
-export function AppSidebar({ user, checkRole, userRooms, ...props }: AppSidebarProps) {
-  const dynamicGroups = userRooms.map((room) => ({
+export function AppSidebar({ user, checkRole, groupRooms, directRooms, ...props }: AppSidebarProps) {
+  const groups = groupRooms.map((room) => ({
   id: room.id,
   name: room.name,
   url: `/channels/${room.id}`,
   icon: Hash, 
 }));
+const directMessages = directRooms.map((room) => {
+  const otherUser = room.participants.find(
+    (participant) => participant.id !== user.id
+  );
+
+  return {
+    id: room.id,
+    userId: otherUser?.id || "",
+    name: otherUser?.username || "unknown",
+    url: `/channels/${room.id}`,
+    icon: User,
+  };
+});
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -73,8 +89,8 @@ export function AppSidebar({ user, checkRole, userRooms, ...props }: AppSidebarP
         <NavBrand brand={brand} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain groups={dynamicGroups} type="Channels" />
-        {/* <NavMain groups={users} type="Users" /> */}
+        <NavMain groups={groups} type="Channels" />
+        <NavMainDirectMessage groups={directMessages} type="Direct Messages" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} checkRole={checkRole} />

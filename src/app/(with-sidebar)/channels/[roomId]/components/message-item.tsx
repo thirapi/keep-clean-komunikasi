@@ -40,8 +40,8 @@ export function MessageItem({
   return (
     <div className="flex items-start gap-3">
       <div className="relative">
-        <Avatar className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
-          <AvatarFallback style={{ backgroundColor: bgColor }}>
+        <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
+          <AvatarFallback className="rounded-md" style={{ backgroundColor: bgColor }}>
             {message.user.username.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -59,8 +59,8 @@ export function MessageItem({
             </HoverCardTrigger>
             <HoverCardContent className="w-64">
               <div className="flex items-center gap-2">
-                <Avatar className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
-                  <AvatarFallback style={{ backgroundColor: bgColor }}>
+                <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
+                  <AvatarFallback className="rounded-md" style={{ backgroundColor: bgColor }}>
                     {message.user.username.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

@@ -6,6 +6,6 @@ import { prisma } from "@/lib/prisma";
 const roomRepository = new RoomRepository(prisma);
 const getRoomByUserIdUseCase = new GetRoomByUserIdUseCase(roomRepository);
 
-export async function getRoomByUserIdController(userId: string) {
-  return await getRoomByUserIdUseCase.execute(userId);
+export async function getRoomByUserIdController(userId: string, options?: { isDirect?: boolean }) {
+  return await getRoomByUserIdUseCase.execute(userId, options);
 }
