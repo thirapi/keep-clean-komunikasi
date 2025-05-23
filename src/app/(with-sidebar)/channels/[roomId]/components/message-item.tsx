@@ -4,12 +4,19 @@ import {
   MessageWithUserDTO,
 } from "@/lib/entities/models/message.model";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CornerLeftUp } from "lucide-react";
+import { CornerLeftUp, CornerUpLeft } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function stringToColor(str: string): string {
   let hash = 0;
@@ -36,12 +43,20 @@ export function MessageItem({
 }) {
   const bgColor = stringToColor(message.userId);
   const isOnline = onlineUserIds.includes(message.userId);
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div className="flex items-start gap-3">
+    <div
+      className="relative group flex items-start gap-3 hover:bg-accent/50 p-2 rounded-md transition-colors duration-200 ease-in-out"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="relative">
         <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
-          <AvatarFallback className="rounded-md" style={{ backgroundColor: bgColor }}>
+          <AvatarFallback
+            className="rounded-md"
+            style={{ backgroundColor: bgColor }}
+          >
             {message.user.username.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -60,7 +75,10 @@ export function MessageItem({
             <HoverCardContent className="w-64">
               <div className="flex items-center gap-2">
                 <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
-                  <AvatarFallback className="rounded-md" style={{ backgroundColor: bgColor }}>
+                  <AvatarFallback
+                    className="rounded-md"
+                    style={{ backgroundColor: bgColor }}
+                  >
                     {message.user.username.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -101,14 +119,23 @@ export function MessageItem({
         <div className="text-sm text-gray-300">{message.content}</div>
         {message.imageUrl && <img src={message.imageUrl} alt="attachment" />}
 
-        <div className="flex items-center gap-2 mt-2">
-          <button
-            className="text-sm text-blue-500 hover:underline"
-            onClick={() => onReply(message)}
-          >
-            Reply
-          </button>
-        </div>
+        {isHovered && (
+          <div className="absolute top-0 right-4 bg-background shadow-sm border rounded-md py-1 px-2 flex items-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onReply(message)}
+                  className="text-gray-400 hover:text-blue-500 p-1"
+                >
+                  <CornerUpLeft className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Reply</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
     </div>
   );

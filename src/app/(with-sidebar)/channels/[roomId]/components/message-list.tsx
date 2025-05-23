@@ -6,6 +6,7 @@ import {
 import { MessageItem } from "./message-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare } from "lucide-react";
+import { DateSeparator } from "./date-separator";
 
 export function MessageList({
   messages,
@@ -18,6 +19,7 @@ export function MessageList({
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
 }) {
+  let lastDate: string | null = null;
   return (
     <ScrollArea className="h-full w-full px-4 pt-3">
       <div className="flex flex-col space-y-4">
@@ -32,14 +34,24 @@ export function MessageList({
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageItem
-              key={msg.id}
-              message={msg}
-              onlineUserIds={onlineUserIds}
-              onReply={onReply}
-            />
-          ))
+          messages.map((msg, index) => {
+            const currentDate = new Date(msg.createdAt).toDateString();
+            const shouldShowDate = currentDate !== lastDate;
+            lastDate = currentDate;
+
+            return (
+              <div key={msg.id}>
+                {shouldShowDate && (
+                  <DateSeparator date={new Date(msg.createdAt)} />
+                )}
+                <MessageItem
+                  message={msg}
+                  onlineUserIds={onlineUserIds}
+                  onReply={onReply}
+                />
+              </div>
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>

@@ -12,6 +12,7 @@ import { pusher } from "@/lib/pusher/pusher.client";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { CornerLeftUp, X } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -92,17 +93,24 @@ export function MessageInput({
   return (
     <div className="flex flex-col gap-1 px-4 pb-4">
       {replyingTo && (
-        <div className="mb-2 p-2 bg-gray-700 text-gray-200 rounded flex justify-between items-center">
-          <div>
-            <span className="font-semibold">{replyingTo.user.username}</span>:{" "}
-            {replyingTo.content}
+        <div className="bg-muted border-l-2 border-blue-500 rounded-md p-3 flex items-start gap-3 relative">
+          <CornerLeftUp className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-sm font-medium mb-1">
+              Replying to {replyingTo.user.username}
+            </div>
+            <div className="text-muted-foreground text-sm line-clamp-2 break-words">
+              {replyingTo.content}
+            </div>
           </div>
-          <button
-            className="text-red-400 text-xs hover:underline"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
             onClick={onCancelReply}
           >
-            Cancel
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       )}
       <form
