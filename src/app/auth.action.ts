@@ -83,7 +83,7 @@ export const signUpUser = async (
       confirm_password,
     };
     await signUpController(signUpData);
-    redirect("/");
+    redirect("/signin");
   } catch (err: any) {
     if (err.message === "NEXT_REDIRECT") throw err;
     if (err instanceof AuthenticationError) {
@@ -128,7 +128,7 @@ export const signOutUserAction = async () => {
   }
   await signOutController(session_id.value);
   cookieStore.delete("session_id");
-  redirect("/");
+  redirect("/signin");
 };
 
 export const getUserSession = cache(async (): Promise<SessionDTO | null> => {
