@@ -152,4 +152,20 @@ export class RoomRepository implements IRoomRepository {
 
     return participant?.lastReadAt ?? null;
   }
+
+    async getOtherParticipants(roomId: string, excludeUserId: string): Promise<{ userId: string }[]> {
+    const participants = await this.prisma.roomParticipant.findMany({
+      where: {
+        roomId,
+        NOT: {
+          userId: excludeUserId,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    return participants;
+  }
 }

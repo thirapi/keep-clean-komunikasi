@@ -21,6 +21,7 @@ import {
 import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
 import { BreadcrumbRenderer } from "@/components/breadcrumb/breadcrumb-renderer";
 import { getRoomsByUserId } from "./channels/[roomId]/room.action";
+import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
 
 export default async function layout({
   children,
@@ -67,6 +68,7 @@ export default async function layout({
   return (
     <>
       <SidebarProvider>
+        <RealtimeNotificationListener user={{ id: user.id, username: user.name }}/>
         <BreadcrumbProvider>
           <AppSidebar
             user={user}

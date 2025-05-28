@@ -8,4 +8,8 @@ export interface IRoomRepository {
   ): Promise<RoomWithParticipantsDTO[] | null>;
   updateLastReadAt(userId: string, roomId: string, date: Date): Promise<void>;
   getLastReadAt(userId: string, roomId: string): Promise<Date | null>;
+  getOtherParticipants(
+    roomId: string,
+    excludeUserId: string
+  ): Promise<{ userId: string }[]>;
 }
