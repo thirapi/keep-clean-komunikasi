@@ -14,6 +14,7 @@ type Groups = {
   name: string;
   url: string;
   icon: React.ElementType;
+  hasUnread: boolean | null;
 };
 
 export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
@@ -21,16 +22,22 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
     <SidebarGroup>
       <SidebarGroupLabel>{type}</SidebarGroupLabel>
       <SidebarMenu>
-        {[...groups]
-          .map((item) => (
-            <SidebarMenuItem key={item.id}>
-              <SidebarMenuButton asChild tooltip={item.name}>
-                <Link href={item.url}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                </Link>
-              </SidebarMenuButton>
-              {/* <DropdownMenu>
+        {[...groups].map((item) => (
+          <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton asChild tooltip={item.name}>
+              <Link href={item.url}>
+                <item.icon />
+                <span>{item.name}</span>
+                {item.hasUnread && (
+                  <div className="ml-auto relative">
+                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
+                    <div className="absolute inset-0 h-2 w-2 bg-red-400 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute inset-0.5 h-1 w-1 bg-red-300 rounded-full"></div>
+                  </div>
+                )}
+              </Link>
+            </SidebarMenuButton>
+            {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>
                 <MoreHorizontal />
@@ -53,8 +60,8 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu> */}
-            </SidebarMenuItem>
-          ))}
+          </SidebarMenuItem>
+        ))}
       </SidebarMenu>
     </SidebarGroup>
   );

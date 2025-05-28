@@ -19,11 +19,11 @@ export function ChatHeader({ roomData, onToggleMembers, currentUserId, membersVi
   useEffect(() => {
     if (roomData.isDirect) {
       const otherParticipant = roomData.participants.find(
-        (p) => p.id !== currentUserId
+        (p) => p.user.id !== currentUserId
       );
       setRoomName(
-        otherParticipant?.username
-          ? `${roomData.name} - ${otherParticipant.username}`
+        otherParticipant?.user.username
+          ? `${roomData.name} - ${otherParticipant.user.username}`
           : "unknown"
       );
     } else {

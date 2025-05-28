@@ -7,19 +7,32 @@ import { MessageItem } from "./message-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare } from "lucide-react";
 import { DateSeparator } from "./date-separator";
+import { UnreadSeparator } from "./unread-separator";
+import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 
 export function MessageList({
   messages,
   bottomRef,
   onlineUserIds,
   onReply,
+  lastReadAt,
+  userId,
 }: {
   messages: MessageWithUserDTO[];
   bottomRef: React.RefObject<HTMLDivElement | null>;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
+  lastReadAt: Date | null;
+  userId: string;
 }) {
   let lastDate: string | null = null;
+
+  const unreadSeparatorIndex = messages.findIndex(
+    (msg) =>
+      lastReadAt &&
+      new Date(msg.createdAt) > lastReadAt &&
+      msg.userId !== userId
+  );
   return (
     <ScrollArea className="h-full w-full px-4 pt-3">
       <div className="flex flex-col space-y-4">
@@ -37,13 +50,27 @@ export function MessageList({
           messages.map((msg, index) => {
             const currentDate = new Date(msg.createdAt).toDateString();
             const shouldShowDate = currentDate !== lastDate;
+            const isUnread =
+            unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
+            const showDateSeparator = shouldShowDate && !isUnread; 
+            const showUnreadAndDate = shouldShowDate && isUnread; 
+
             lastDate = currentDate;
 
             return (
               <div key={msg.id}>
-                {shouldShowDate && (
+                {showDateSeparator && (
                   <DateSeparator date={new Date(msg.createdAt)} />
                 )}
+
+                {showUnreadAndDate && (
+                  <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
+                )}
+
+                {!showDateSeparator && !showUnreadAndDate && isUnread && (
+                  <UnreadSeparator />
+                )}
+
                 <MessageItem
                   message={msg}
                   onlineUserIds={onlineUserIds}

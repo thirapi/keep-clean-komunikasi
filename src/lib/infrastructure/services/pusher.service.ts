@@ -27,4 +27,10 @@ export class PusherService implements IPusherService {
       },
     });
   }
+
+  async triggerToUsers(userIds: string[], event: string, data: any) {
+    await Promise.all(
+      userIds.map((id) => pusher.trigger(`user-${id}`, event, data))
+    );
+  }
 }

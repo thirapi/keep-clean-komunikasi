@@ -77,20 +77,25 @@ export class UserRepository implements IUserRepository {
     await this.prisma.userRole.createMany({ data });
   }
 
-  async insert(user: UserRecord, tx?: Prisma.TransactionClient): Promise<void> {
-    const db = tx ?? this.prisma;
+async insert(user: UserRecord, tx?: Prisma.TransactionClient): Promise<void> {
+  const db = tx ?? this.prisma;
 
-    await db.user.create({
-      data: {
-        ...user,
-        rooms: {
-          connect: {
-            id: "cmak9alli0000i5sei9vn5szl",
+  await db.user.create({
+    data: {
+      ...user,
+      roomParticipants: {
+        create: {
+          room: {
+            connect: {
+              id: "cmak9alli0000i5sei9vn5szl",
+            },
           },
+          lastReadAt: new Date(),
         },
       },
-    });
-  }
+    },
+  });
+}
 
   async findById(id: string): Promise<UserRecord | null> {
     return (await this.prisma.user.findUnique({

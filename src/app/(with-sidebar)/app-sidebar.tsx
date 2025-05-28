@@ -62,26 +62,49 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   } | null;
 }
 
-export function AppSidebar({ user, checkRole, groupRooms, directRooms, ...props }: AppSidebarProps) {
-  const groups = groupRooms.map((room) => ({
-  id: room.id,
-  name: room.name,
-  url: `/channels/${room.id}`,
-  icon: Hash, 
-}));
-const directMessages = directRooms.map((room) => {
-  const otherUser = room.participants.find(
-    (participant) => participant.id !== user.id
-  );
+export function AppSidebar({
+  user,
+  checkRole,
+  groupRooms,
+  directRooms,
+  ...props
+}: AppSidebarProps) {
+  const groups = groupRooms.map((room) => {
+    const currentUserParticipant = room.participants.find(
+      (participant) => participant.user.id === user.id
+    );
 
-  return {
-    id: room.id,
-    userId: otherUser?.id || "",
-    name: otherUser?.username || "unknown",
-    url: `/channels/${room.id}`,
-    icon: User,
-  };
-});
+    const lastReadAt = currentUserParticipant?.lastReadAt
+      ? new Date(currentUserParticipant.lastReadAt)
+      : null;
+
+    const latestMessageAt = room.messages[0]?.createdAt
+      ? new Date(room.messages[0].createdAt)
+      : null;
+
+    const hasUnread =
+      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt);
+    return {
+      id: room.id,
+      name: room.name,
+      url: `/channels/${room.id}`,
+      icon: Hash,
+      hasUnread,
+    };
+  });
+  const directMessages = directRooms.map((room) => {
+    const otherUser = room.participants.find(
+      (participant) => participant.user.id !== user.id
+    );
+
+    return {
+      id: room.id,
+      userId: otherUser?.user.id || "",
+      name: otherUser?.user.username || "unknown",
+      url: `/channels/${room.id}`,
+      icon: User,
+    };
+  });
 
   return (
     <Sidebar collapsible="icon" {...props}>

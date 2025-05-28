@@ -6,11 +6,13 @@ import { z } from "zod";
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 
 import { prisma } from "@/lib/prisma";
+import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
 
 const messageRepository = new MessageRepository(prisma);
+const roomRepository = new RoomRepository(prisma)
 const pusherService = new PusherService();
 
-const sendMessageUseCase = new SendMessageUseCase(messageRepository, pusherService);
+const sendMessageUseCase = new SendMessageUseCase(messageRepository, roomRepository, pusherService);
 
 const formSchema = z.object({
     content: z.string(),
