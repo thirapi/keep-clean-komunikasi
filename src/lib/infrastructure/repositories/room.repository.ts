@@ -9,14 +9,18 @@ export class RoomRepository implements IRoomRepository {
       where: { id: roomId },
       include: {
         participants: {
-          select: {
-            id: true,
-            username: true,
-            userRoles: {
+          include: {
+            user: {
               select: {
-                role: {
+                id: true,
+                username: true,
+                userRoles: {
                   select: {
-                    name: true,
+                    role: {
+                      select: {
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
@@ -33,7 +37,7 @@ export class RoomRepository implements IRoomRepository {
     const whereClause: any = {
       participants: {
         some: {
-          id: userId,
+          userId: userId,
         },
       },
     };
@@ -46,14 +50,16 @@ export class RoomRepository implements IRoomRepository {
       where: whereClause,
       include: {
         participants: {
-          select: {
-            id: true,
-            username: true,
-            userRoles: {
+          include: {
+            user: {
               select: {
-                role: {
+                id: true,
+                username: true,
+                userRoles: {
                   select: {
-                    name: true,
+                    role: {
+                      select: { name: true },
+                    },
                   },
                 },
               },
@@ -64,5 +70,36 @@ export class RoomRepository implements IRoomRepository {
     });
 
     return rooms;
+  }
+
+  async updateLastReadAt(
+    userId: string,
+    roomId: string,
+    date: Date
+  ): Promise<void> {
+    await this.prisma.roomParticipant.update({
+      where: {
+        roomId_userId: {
+          roomId: roomId,
+          userId: userId,
+        },
+      },
+      data: {
+        lastReadAt: date,
+      },
+    });
+  }
+
+  async getLastReadAt(userId: string, roomId: string): Promise<Date | null> {
+    const participant = await this.prisma.roomParticipant.findUnique({
+      where: {
+        roomId_userId: { roomId: roomId, userId: userId },
+      },
+      select: {
+        lastReadAt: true,
+      },
+    });
+
+    return participant?.lastReadAt ?? null;
   }
 }

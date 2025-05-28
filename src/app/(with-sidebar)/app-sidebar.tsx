@@ -71,13 +71,13 @@ export function AppSidebar({ user, checkRole, groupRooms, directRooms, ...props 
 }));
 const directMessages = directRooms.map((room) => {
   const otherUser = room.participants.find(
-    (participant) => participant.id !== user.id
+    (participant) => participant.user.id !== user.id
   );
 
   return {
     id: room.id,
-    userId: otherUser?.id || "",
-    name: otherUser?.username || "unknown",
+    userId: otherUser?.user.id || "",
+    name: otherUser?.user.username || "unknown",
     url: `/channels/${room.id}`,
     icon: User,
   };

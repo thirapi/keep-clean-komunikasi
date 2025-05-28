@@ -3,40 +3,28 @@
 
 import { useState, useEffect, useRef } from "react";
 import { pusher } from "@/lib/pusher/pusher.client";
-import {
-  MessageRecord,
-  MessageWithUserDTO,
-} from "@/lib/entities/models/message.model";
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { ChatHeader } from "./chat-header";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { stringToColor } from "@/utils/background-avatar";
+import { updateLastReadAt } from "../messages.action";
+import { MemberList } from "./member-list";
+import { debounce } from "lodash";
 
 interface ChatRoomProps {
   userId: string;
   roomData: RoomWithParticipantsDTO;
   initialMessages: MessageWithUserDTO[];
+  lastReadAt: Date | null;
 }
 
-// function stringToColor(str: string): string {
-//   let hash = 0;
-//   for (let i = 0; i < str.length; i++) {
-//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
-//   }
-
-//   const hue = hash % 360;
-//   return `hsl(${hue}, 70%, 50%)`;
-// }
-
-export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
+export function ChatRoom({
+  userId,
+  roomData,
+  initialMessages,
+  lastReadAt,
+}: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
@@ -44,6 +32,10 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const markAsRead = debounce(() => {
+    updateLastReadAt(userId, roomData.id, new Date());
+  }, 2000);
 
   const handleCancelReply = () => {
     setReplyingTo(null);
@@ -69,6 +61,33 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // useEffect(() => {
+  //   if (!userId || !roomData?.id || messages.length === 0) return;
+
+  //   const lastMessageAt = new Date(messages[messages.length - 1].createdAt);
+  //   if (!lastReadAt || lastMessageAt > new Date(lastReadAt)) {
+  //     updateLastReadAt(userId, roomData.id, new Date());
+  //   }
+  // }, [userId, roomData?.id, messages]);
+
+  useEffect(() => {
+    if (!bottomRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          markAsRead(); // hanya update kalau user lihat area bawah
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    observer.observe(bottomRef.current);
+
+    return () => observer.disconnect();
+  }, [bottomRef.current]);
 
   useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
@@ -113,10 +132,12 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-hidden">
             <MessageList
+              userId={userId}
               messages={messages}
               bottomRef={bottomRef}
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
+              lastReadAt={lastReadAt}
             />
           </div>
           <MessageInput
@@ -128,55 +149,7 @@ export function ChatRoom({ userId, roomData, initialMessages }: ChatRoomProps) {
           />
         </div>
         {showMembers && (
-          <aside className="w-64 border-l p-4 hidden lg:block">
-            <h3 className="text-sm font-semibold text-zinc-500 mb-2">
-              Members
-            </h3>
-            <ul className="space-y-3">
-              {roomData.participants.map((user) => (
-                <li key={user.id} className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Avatar className="rounded-md h-10 w-10 font-bold">
-                      <AvatarFallback
-                        className="rounded-md"
-                        style={{ backgroundColor: stringToColor(user.id) }}
-                      >
-                        {user.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {onlineUserIds.includes(user.id) && (
-                      <div
-                        className={`h-2.5 w-2.5 ring-[2px] ring-background rounded-full absolute bottom-0 right-0 ${
-                          onlineUserIds ? "bg-green-500" : "bg-gray-500"
-                        }`}
-                      ></div>
-                    )}
-                  </div>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <span className="cursor-pointer">{user.username}</span>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
-                          <AvatarFallback
-                            style={{ backgroundColor: stringToColor(user.id) }}
-                          >
-                            {user.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-semibold text-white">
-                            {user.username}
-                          </p>
-                        </div>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </li>
-              ))}
-            </ul>
-          </aside>
+          <MemberList roomData={roomData} onlineUserIds={onlineUserIds} />
         )}
       </div>
     </div>
