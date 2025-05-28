@@ -6,6 +6,7 @@ export interface RoomRecord {
 
 export interface RoomWithParticipantsDTO extends RoomRecord {
   participants: {
+    lastReadAt: Date | null;
     user: {
       id: string;
       username: string;
@@ -15,5 +16,10 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
         };
       }[];
     };
+  }[];
+  messages: {
+    id: string;
+    content: string;
+    createdAt: Date;
   }[];
 }
