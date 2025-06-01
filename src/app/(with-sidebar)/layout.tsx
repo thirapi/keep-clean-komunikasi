@@ -22,6 +22,7 @@ import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
 import { BreadcrumbRenderer } from "@/components/breadcrumb/breadcrumb-renderer";
 import { getRoomsByUserId } from "./channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
+import { ModeToggle } from "@/components/landingpage/mode-toggle";
 
 export default async function layout({
   children,
@@ -68,7 +69,9 @@ export default async function layout({
   return (
     <>
       <SidebarProvider>
-        <RealtimeNotificationListener user={{ id: user.id, username: user.name }}/>
+        <RealtimeNotificationListener
+          user={{ id: user.id, username: user.name }}
+        />
         <BreadcrumbProvider>
           <AppSidebar
             user={user}
@@ -77,7 +80,7 @@ export default async function layout({
             directRooms={directRooms}
           />
           <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 justify-between">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
                 <Separator
@@ -85,6 +88,9 @@ export default async function layout({
                   className="mr-2 data-[orientation=vertical]:h-4"
                 />
                 <BreadcrumbRenderer />
+              </div>
+              <div className="mr-4">
+                <ModeToggle />
               </div>
             </header>
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
