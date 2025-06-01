@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -26,7 +26,14 @@ import { Label } from "@/components/ui/label";
 import { useMemo, useState } from "react";
 import { signInUser, signUpUser } from "@/app/auth.action";
 import { ServerResponse } from "@/lib/entities/models/response.model";
-import { CircleX, LoaderCircle } from "lucide-react";
+import {
+  CircleX,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LoaderCircle,
+  UserRound,
+} from "lucide-react";
 
 const formSchema = z.object({
   username: z.string().min(3),
@@ -41,6 +48,8 @@ export function SignUpForm({
   const [formStatus, setFormStatus] = useState<"idle" | "pending" | "error">(
     "idle"
   );
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,20 +60,38 @@ export function SignUpForm({
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const response = await signUpUser(values.username, values.password, values.confirm_password);
-  
+    if (values.password !== values.confirm_password) {
+      form.setError("confirm_password", {
+        type: "manual",
+        message: "Password tidak sama",
+      });
+      return;
+    }
+
+    setFormStatus("pending");
+
+    const response = await signUpUser(
+      values.username,
+      values.password,
+      values.confirm_password
+    );
+
     if (response?.status === "error") {
       if (response.error) {
         toast.error(response.error.message, {
-          description: response.error.type === "InputParsedError"
-            ? JSON.stringify(response.error.meta)
-            : undefined,
+          description:
+            response.error.type === "InputParsedError"
+              ? JSON.stringify(response.error.meta)
+              : undefined,
         });
       }
+      setFormStatus("error");
+    } else {
+      toast.success("Sign up berhasil");
+      form.reset();
+      setFormStatus("idle");
     }
   };
-  
-  
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -87,7 +114,14 @@ export function SignUpForm({
                       <FormItem>
                         <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input required placeholder="username" {...field} />
+                          <div className="relative">
+                            <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              placeholder="Choose a username"
+                              className="pl-10"
+                              {...field}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -102,12 +136,27 @@ export function SignUpForm({
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            required
-                            type="password"
-                            placeholder="password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Create a password"
+                              className="pl-10 pr-10"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowPassword(!showPassword)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -120,14 +169,31 @@ export function SignUpForm({
                     name="confirm_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm password</FormLabel>
+                        <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input
-                            required
-                            type="password"
-                            placeholder="confirm password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="Confirm your password"
+                              className="pl-10 pr-10"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -135,8 +201,19 @@ export function SignUpForm({
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Sign Up
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={formStatus === "pending"}
+                >
+                  {formStatus === "pending" ? (
+                    <>
+                      <span>Sign Up</span>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </div>
               <div className="mt-4 text-center text-sm">

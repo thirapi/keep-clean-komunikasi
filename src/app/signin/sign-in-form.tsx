@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -26,7 +26,15 @@ import { Label } from "@/components/ui/label";
 import { useMemo, useState } from "react";
 import { signInUser } from "@/app/auth.action";
 import { ServerResponse } from "@/lib/entities/models/response.model";
-import { CircleX, LoaderCircle } from "lucide-react";
+import {
+  CircleX,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Link,
+  LoaderCircle,
+  UserRound,
+} from "lucide-react";
 
 const formSchema = z.object({
   username: z.string().min(3),
@@ -40,6 +48,7 @@ export function SignInForm({
   const [formStatus, setFormStatus] = useState<"idle" | "pending" | "error">(
     "idle"
   );
+  const [showPassword, setShowPassword] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,26 +58,29 @@ export function SignInForm({
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setFormStatus("pending");
     const response = await signInUser(values.username, values.password);
-  
+
     if (response?.status === "error") {
       if (response.error) {
         toast.error(response.error.message, {
-          description: response.error.type === "InputParsedError"
-            ? JSON.stringify(response.error.meta)
-            : undefined,
+          description:
+            response.error.type === "InputParsedError"
+              ? JSON.stringify(response.error.meta)
+              : undefined,
         });
       }
+      setFormStatus("error");
+    } else {
+      setFormStatus("idle");
     }
   };
-  
-  
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="border-border/40 shadow-lg transition-all duration-300 hover:shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Enter your username below to login to your account
           </CardDescription>
@@ -85,7 +97,14 @@ export function SignInForm({
                       <FormItem>
                         <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input required placeholder="username" {...field} />
+                          <div className="relative">
+                            <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              placeholder="Enter your username"
+                              className="pl-10"
+                              {...field}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -100,12 +119,27 @@ export function SignInForm({
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            required
-                            type="password"
-                            placeholder="password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              className="pl-10 pr-10"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowPassword(!showPassword)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -113,8 +147,19 @@ export function SignInForm({
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={formStatus === "pending"}
+                >
+                  {formStatus === "pending" ? (
+                    <>
+                      <span>Sign In</span>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </div>
               <div className="mt-4 text-center text-sm">

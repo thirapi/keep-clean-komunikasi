@@ -12,7 +12,7 @@ import { pusher } from "@/lib/pusher/pusher.client";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
-import { CornerLeftUp, X } from "lucide-react";
+import { CornerLeftUp, Loader2, X } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -30,6 +30,7 @@ export function MessageInput({
   inputRef,
 }: Props) {
   const [content, setContent] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const { displayNames } = useTypingIndicator(roomData.id, userId);
 
@@ -53,33 +54,49 @@ export function MessageInput({
   const handleSend = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
-      if (!content.trim()) return;
 
+      if (!content.trim() || isSending) return;
+
+      setIsSending(true);
       sendStopTypingEvent.cancel();
       setTypingStatusAction(userId, roomData.id, false);
 
-      const response = await createMessage({
-        userId,
-        content,
-        roomId: roomData.id,
-        replyTo: replyingTo?.id,
-      });
+      try {
+        const response = await createMessage({
+          userId,
+          content,
+          roomId: roomData.id,
+          replyTo: replyingTo?.id,
+        });
 
-      if (response.status === "success") {
-        setContent("");
-        onCancelReply();
-      } else {
-        console.error("Gagal mengirim pesan:", response.error);
-        toast.error(response.error?.message);
+        if (response.status === "success") {
+          setContent("");
+          onCancelReply();
+        } else {
+          console.error("Gagal mengirim pesan:", response.error);
+          toast.error(response.error?.message);
+        }
+      } finally {
+        setIsSending(false); // pastikan kembali normal meski gagal
       }
     },
-    [content, userId, roomData.id, sendStopTypingEvent]
+    [
+      content,
+      isSending,
+      userId,
+      roomData.id,
+      replyingTo?.id,
+      onCancelReply,
+      sendStopTypingEvent,
+    ]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    } else if (e.key === "Escape" && replyingTo) {
+      onCancelReply();
     }
   };
 
@@ -93,29 +110,30 @@ export function MessageInput({
   return (
     <div className="flex flex-col gap-1 px-4 pb-4">
       {replyingTo && (
-        <div className="bg-muted border-l-2 border-blue-500 rounded-md p-3 flex items-start gap-3 relative">
+        <div className="relative rounded-md bg-white/5 border-l-4 border-blue-500 px-4 py-3 flex items-start gap-3 shadow-inner">
           <CornerLeftUp className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="text-white text-sm font-medium mb-1">
+            <div className="text-sm font-medium text-blue-400">
               Replying to {replyingTo.user.username}
             </div>
-            <div className="text-muted-foreground text-sm line-clamp-2 break-words">
+            <div className="text-sm text-gray-300 line-clamp-2 break-words">
               {replyingTo.content}
             </div>
           </div>
           <Button
             variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
+            size="icon"
+            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
             onClick={onCancelReply}
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
       )}
+
       <form
         onSubmit={handleSend}
-        className="pt-2 border-t border-[#1e1f22] flex gap-2"
+        className="pt-2 border-t border-[#1e1f22] flex gap-2 backdrop-blur-md bg-white/5 border rounded-xl p-2 shadow-lg items-center"
       >
         <Input
           autoFocus
@@ -131,23 +149,51 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           type="text"
           placeholder={`"Message #${roomData.name}"`}
-          className="flex-1 px-4 py-2 rounded-md bg-[#1e1f22] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+          className="flex-1 bg-transparent border-none text-white placeholder-gray-400 focus:outline-none"
         />
         <Button
           type="submit"
-          disabled={!content.trim()}
-          className="px-4 py-2 bg-[#5865f2] text-white rounded-md hover:bg-[#4752c4] disabled:bg-gray-500 disabled:cursor-not-allowed"
+          disabled={!content.trim() || isSending}
+          className="ml-2 p-2 rounded-lg bg-gradient-to-br from-[#5865f2] to-[#4752c4] text-white hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5865f2] hover:shadow-md shadow-[#5865f2]/30"
         >
-          send
+          {isSending ? (
+            <div className="flex items-center justify-center gap-1">
+              <div
+                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
+                style={{ animationDelay: "0s" }}
+              />
+              <div
+                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <div
+                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
+                style={{ animationDelay: "0.4s" }}
+              />
+            </div>
+          ) : (
+            <CornerLeftUp className="h-5 w-5" />
+          )}
         </Button>
       </form>
 
-      <div className="h-1.5 text-sm text-gray-400 italic transition-opacity duration-200 ease-in-out">
+      <div className="h-5 text-sm text-gray-400 italic transition-opacity duration-200 ease-in-out flex items-center">
         {displayNames.length > 0 && (
-          <span>
-            {displayNames.join(", ")} {displayNames.length > 1 ? "are" : "is"}{" "}
-            typing...
-          </span>
+          <div className="flex items-center">
+            <span>
+              {displayNames.join(", ")} {displayNames.length > 1 ? "are" : "is"}{" "}
+              typing
+            </span>
+            <div className="flex items-center justify-center gap-0.5 pl-1 pt-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.2}s` }}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
