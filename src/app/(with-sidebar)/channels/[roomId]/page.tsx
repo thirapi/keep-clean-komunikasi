@@ -26,18 +26,18 @@ export default async function ChatPage({
   }
 
   const session = await getUserSession();
-  const roomResponse = await getRoom(roomId);
+  const [roomResponse, initialMessagesResponse, lastReadAtResponse] =
+    await Promise.all([
+      getRoom(roomId),
+      getMessage(roomId),
+      getLastReadAt(session?.user?.id ?? "", roomId),
+    ]);
+
   const roomData = roomResponse.status === "success" ? roomResponse.data : null;
-  const initialMessagesResponse = await getMessage(roomId);
   const initialMessages =
     initialMessagesResponse.status === "success"
       ? initialMessagesResponse.data
       : [];
-
-  const lastReadAtResponse = await getLastReadAt(
-    session?.user?.id ?? "",
-    roomId
-  );
   const lastReadAt =
     lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null;
 

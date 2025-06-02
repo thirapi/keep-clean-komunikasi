@@ -82,16 +82,28 @@ export function AppSidebar({
       ? new Date(room.messages[0].createdAt)
       : null;
 
+    const unreadMessages = room.messages.filter((message) => {
+      const createdAt = new Date(message.createdAt);
+      const isUnread = !lastReadAt || createdAt > lastReadAt;
+
+      return isUnread;
+    });
+
+    const unreadCount = unreadMessages.length;
+
     const hasUnread =
       latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt);
+
     return {
       id: room.id,
       name: room.name,
       url: `/channels/${room.id}`,
       icon: Hash,
+      unreadCount,
       hasUnread,
     };
   });
+
   const directMessages = directRooms.map((room) => {
     const otherUser = room.participants.find(
       (participant) => participant.user.id !== user.id
@@ -113,7 +125,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain groups={groups} type="Channels" />
-        <NavMainDirectMessage groups={directMessages} type="Direct Messages" />
+        {/* <NavMainDirectMessage groups={directMessages} type="Direct Messages" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} checkRole={checkRole} />
