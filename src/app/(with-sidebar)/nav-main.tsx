@@ -4,6 +4,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -15,6 +16,7 @@ type Groups = {
   url: string;
   icon: React.ElementType;
   hasUnread: boolean | null;
+  unreadCount?: number;
 };
 
 export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
@@ -28,15 +30,12 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
               <Link href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
-                {item.hasUnread && (
-                  <div className="ml-auto relative">
-                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
-                    <div className="absolute inset-0 h-2 w-2 bg-red-400 rounded-full animate-ping opacity-75"></div>
-                    <div className="absolute inset-0.5 h-1 w-1 bg-red-300 rounded-full"></div>
-                  </div>
-                )}
               </Link>
             </SidebarMenuButton>
+            {typeof item.unreadCount === "number" && item.unreadCount > 0 && (
+              <SidebarMenuBadge>{item.unreadCount}</SidebarMenuBadge>
+            )}
+
             {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>

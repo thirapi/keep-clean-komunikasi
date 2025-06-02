@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Pusher from "pusher-js";
 import { toast } from "sonner";
 import { requestNotificationPermission } from "@/utils/notifications";
+import { usePathname } from "next/navigation";
 
 interface Props {
   user: {
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function RealtimeNotificationListener({ user }: Props) {
+  const pathname = usePathname();
+
   useEffect(() => {
     requestNotificationPermission();
   }, []);
@@ -25,25 +28,33 @@ export function RealtimeNotificationListener({ user }: Props) {
     const channel = pusher.subscribe(`user-${user.id}`);
 
     channel.bind("new-message-notification", (data: any) => {
-      const { message, senderId } = data;
+      const { message } = data;
       const sender = message.user.username || "unknown";
       const content = message.content || "[Pesan Gambar]";
+      const roomUrl = `/channels/${message.roomId}`;
 
-      toast(`📨 Pesan baru dari ${sender}: ${content}`);
+      const isViewingRoom = pathname === roomUrl;
 
-      if (Notification.permission === "granted") {
-        const notification = new Notification("📩 Pesan Baru dari " + sender, {
-          body: content,
-          icon: "/logo.png",
-          tag: `chat-${message.roomId}`,
-          data: { url: `/channels/${message.roomId}` },
-        });
+      // toast(`📨 Pesan baru dari ${sender}: ${content}`);
 
-        notification.onclick = (event) => {
-          event.preventDefault();
-          window.focus();
-          window.location.href = notification.data.url;
-        };
+      if (!isViewingRoom) {
+        if (Notification.permission === "granted") {
+          const notification = new Notification(
+            "📩 Pesan Baru dari " + sender,
+            {
+              body: content,
+              icon: "/logo.png",
+              tag: `chat-${message.roomId}`,
+              data: { url: `/channels/${message.roomId}` },
+            }
+          );
+
+          notification.onclick = (event) => {
+            event.preventDefault();
+            window.focus();
+            window.location.href = notification.data.url;
+          };
+        }
       }
     });
 

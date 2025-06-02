@@ -91,14 +91,16 @@ export class RoomRepository implements IRoomRepository {
           },
         },
         messages: {
-          take: 1,
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
           select: {
             id: true,
             content: true,
             createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: true, 
           },
         },
       },
@@ -153,7 +155,10 @@ export class RoomRepository implements IRoomRepository {
     return participant?.lastReadAt ?? null;
   }
 
-    async getOtherParticipants(roomId: string, excludeUserId: string): Promise<{ userId: string }[]> {
+  async getOtherParticipants(
+    roomId: string,
+    excludeUserId: string
+  ): Promise<{ userId: string }[]> {
     const participants = await this.prisma.roomParticipant.findMany({
       where: {
         roomId,
