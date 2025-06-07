@@ -1,16 +1,17 @@
-// src/app/(with-sidebar)/channels/[roomId]/components/chat-room.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
+import { updateLastReadAt } from "../messages.action";
+
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { ChatHeader } from "./chat-header";
-import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { updateLastReadAt } from "../messages.action";
 import { MemberList } from "./member-list";
-import { debounce } from "lodash";
 
 interface ChatRoomProps {
   userId: string;
@@ -25,26 +26,60 @@ export function ChatRoom({
   initialMessages,
   lastReadAt,
 }: ChatRoomProps) {
+  // === State ===
   const [messages, setMessages] = useState(initialMessages);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(false);
 
+  // === Refs ===
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const unreadRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // === Function: menandai pesan sudah dibaca (debounced) ===
   const markAsRead = debounce(() => {
     updateLastReadAt(userId, roomData.id, new Date());
   }, 2000);
 
+  // === Function: batal membalas pesan ===
   const handleCancelReply = () => {
     setReplyingTo(null);
   };
 
+  // === Scroll ke pesan terakhir atau pesan unread saat pertama kali render ===
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!messages || messages.length === 0) return;
+
+    const hasUnread = unreadRef.current !== null;
+
+    const timeout = setTimeout(() => {
+      if (hasUnread) {
+        unreadRef.current?.scrollIntoView({
+          behavior: "auto",
+          block: "center",
+        });
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      }
+    }, 50);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // === Scroll otomatis ke bawah jika ada pesan baru dari user sendiri atau saat user berada di bawah ===
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage?.userId === userId || isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
+  // === Auto-focus input saat tekan keyboard kecuali sedang fokus input lain ===
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isTypingAreaFocused =
@@ -62,23 +97,15 @@ export function ChatRoom({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // useEffect(() => {
-  //   if (!userId || !roomData?.id || messages.length === 0) return;
-
-  //   const lastMessageAt = new Date(messages[messages.length - 1].createdAt);
-  //   if (!lastReadAt || lastMessageAt > new Date(lastReadAt)) {
-  //     updateLastReadAt(userId, roomData.id, new Date());
-  //   }
-  // }, [userId, roomData?.id, messages]);
-
+  // === Pantau apakah user berada di bawah chat menggunakan IntersectionObserver ===
   useEffect(() => {
     if (!bottomRef.current) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
+      ([entry]) => {
+        setIsAtBottom(entry.isIntersecting);
         if (entry.isIntersecting) {
-          markAsRead(); // hanya update kalau user lihat area bawah
+          markAsRead();
         }
       },
       { threshold: 1.0 }
@@ -86,9 +113,12 @@ export function ChatRoom({
 
     observer.observe(bottomRef.current);
 
-    return () => observer.disconnect();
-  }, [bottomRef.current]);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
+  // === Setup Pusher untuk menerima pesan baru & status online member ===
   useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
     const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
@@ -114,12 +144,12 @@ export function ChatRoom({
     return () => {
       chatChannel.unbind_all();
       chatChannel.unsubscribe();
-
       presenceChannel.unbind_all();
       presenceChannel.unsubscribe();
     };
   }, [roomData.id]);
 
+  // === UI ===
   return (
     <div className="flex flex-col h-screen max-h-[calc(100vh-5rem)]">
       <ChatHeader
@@ -135,6 +165,7 @@ export function ChatRoom({
               userId={userId}
               messages={messages}
               bottomRef={bottomRef}
+              unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
               lastReadAt={lastReadAt}

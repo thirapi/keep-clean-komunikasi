@@ -13,6 +13,7 @@ import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 export function MessageList({
   messages,
   bottomRef,
+  unreadRef,
   onlineUserIds,
   onReply,
   lastReadAt,
@@ -20,6 +21,7 @@ export function MessageList({
 }: {
   messages: MessageWithUserDTO[];
   bottomRef: React.RefObject<HTMLDivElement | null>;
+  unreadRef: React.RefObject<HTMLDivElement | null>;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
   lastReadAt: Date | null;
@@ -58,7 +60,7 @@ export function MessageList({
             lastDate = currentDate;
 
             return (
-              <div key={msg.id}>
+              <div key={msg.id} ref={unreadRef}>
                 {showDateSeparator && (
                   <DateSeparator date={new Date(msg.createdAt)} />
                 )}
