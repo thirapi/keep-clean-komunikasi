@@ -57,7 +57,35 @@ export function ChatRoom({
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
   useAutoFocusInput(inputRef);
   useMarkAsRead(bottomRef, setIsAtBottom, markAsRead);
-  useChatRealtime(roomData.id, setMessages, setOnlineUserIds);
+  useEffect(() => {
+    const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
+    const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
+
+    chatChannel.bind("new-message", (msg: MessageWithUserDTO) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
+      const ids: string[] = [];
+      members.each((member: any) => ids.push(member.id));
+      setOnlineUserIds(ids);
+    });
+
+    presenceChannel.bind("pusher:member_added", (member: any) => {
+      setOnlineUserIds((prev) => [...prev, member.id]);
+    });
+
+    presenceChannel.bind("pusher:member_removed", (member: any) => {
+      setOnlineUserIds((prev) => prev.filter((id) => id !== member.id));
+    });
+
+    return () => {
+      chatChannel.unbind_all();
+      chatChannel.unsubscribe();
+      presenceChannel.unbind_all();
+      presenceChannel.unsubscribe();
+    };
+  }, [roomData.id]);
 
   // === UI ===
   return (
