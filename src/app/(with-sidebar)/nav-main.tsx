@@ -9,6 +9,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import clsx from "clsx"; // opsional jika mau bantu toggle class dengan clean
 
 type Groups = {
   id: string;
@@ -20,47 +22,34 @@ type Groups = {
 };
 
 export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
+  const pathname = usePathname();
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{type}</SidebarGroupLabel>
       <SidebarMenu>
-        {[...groups].map((item) => (
-          <SidebarMenuItem key={item.id}>
-            <SidebarMenuButton asChild tooltip={item.name}>
-              <Link href={item.url}>
-                <item.icon />
-                <span>{item.name}</span>
-              </Link>
-            </SidebarMenuButton>
-            {typeof item.unreadCount === "number" && item.unreadCount > 0 && (
-              <SidebarMenuBadge>{item.unreadCount}</SidebarMenuBadge>
-            )}
+        {[...groups].map((item) => {
+          const isActive = pathname === item.url;
 
-            {/* <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuAction showOnHover>
-                <MoreHorizontal />
-                <span className="sr-only">More</span>
-              </SidebarMenuAction>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48 rounded-lg">
-              <DropdownMenuItem>
-                <Folder className="text-zinc-500 dark:text-zinc-400" />
-                <span>View Project</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Forward className="text-zinc-500 dark:text-zinc-400" />
-                <span>Share Project</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Trash2 className="text-zinc-500 dark:text-zinc-400" />
-                <span>Delete Project</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu> */}
-          </SidebarMenuItem>
-        ))}
+          return (
+            <SidebarMenuItem key={item.id}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.name}
+                className={clsx({ "bg-muted text-foreground": isActive })}
+              >
+                <Link href={item.url}>
+                  <item.icon />
+                  <span>{item.name}</span>
+                </Link>
+              </SidebarMenuButton>
+
+              {typeof item.unreadCount === "number" && item.unreadCount > 0 && (
+                <SidebarMenuBadge>{item.unreadCount}</SidebarMenuBadge>
+              )}
+            </SidebarMenuItem>
+          );
+        })}
       </SidebarMenu>
     </SidebarGroup>
   );
