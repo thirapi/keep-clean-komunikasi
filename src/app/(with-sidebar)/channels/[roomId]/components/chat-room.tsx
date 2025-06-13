@@ -57,7 +57,7 @@ export function ChatRoom({
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
   useAutoFocusInput(inputRef);
   useMarkAsRead(bottomRef, setIsAtBottom, markAsRead);
-<<<<<<< HEAD
+
   useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
     const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
@@ -87,7 +87,7 @@ export function ChatRoom({
       presenceChannel.unsubscribe();
     };
   }, [roomData.id]);
-  
+
   // === UI ===
   return (
     <div className="flex flex-col h-screen max-h-[calc(100vh-6rem)] bg-background">
