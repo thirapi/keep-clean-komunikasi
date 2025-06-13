@@ -12,6 +12,11 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { ChatHeader } from "./chat-header";
 import { MemberList } from "./member-list";
+import { useScrollToInitial } from "./hooks/use-scroll-to-initial";
+import { useAutoScroll } from "./hooks/use-auto-scroll";
+import { useAutoFocusInput } from "./hooks/use-auto-focus-input";
+import { useMarkAsRead } from "./hooks/use-mark-as-read";
+import { useChatRealtime } from "./hooks/use-chat-realtime";
 
 interface ChatRoomProps {
   userId: string;
@@ -48,115 +53,21 @@ export function ChatRoom({
     setReplyingTo(null);
   };
 
-  // === Scroll ke pesan terakhir atau pesan unread saat pertama kali render ===
-  useEffect(() => {
-    if (!messages || messages.length === 0) return;
-
-    const hasUnread = unreadRef.current !== null;
-
-    const timeout = setTimeout(() => {
-      if (hasUnread) {
-        unreadRef.current?.scrollIntoView({
-          behavior: "auto",
-          block: "center",
-        });
-      } else {
-        bottomRef.current?.scrollIntoView({ behavior: "auto" });
-      }
-    }, 50);
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  // === Scroll otomatis ke bawah jika ada pesan baru dari user sendiri atau saat user berada di bawah ===
-  useEffect(() => {
-    if (messages.length === 0) return;
-
-    const lastMessage = messages[messages.length - 1];
-
-    if (lastMessage?.userId === userId || isAtBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
-  // === Auto-focus input saat tekan keyboard kecuali sedang fokus input lain ===
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isTypingAreaFocused =
-        document.activeElement &&
-        (document.activeElement.tagName === "INPUT" ||
-          document.activeElement.tagName === "TEXTAREA" ||
-          document.activeElement.getAttribute("contenteditable") === "true");
-
-      if (!isTypingAreaFocused && inputRef.current) {
-        inputRef.current.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // === Pantau apakah user berada di bawah chat menggunakan IntersectionObserver ===
-  useEffect(() => {
-    if (!bottomRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsAtBottom(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          markAsRead();
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    observer.observe(bottomRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // === Setup Pusher untuk menerima pesan baru & status online member ===
-  useEffect(() => {
-    const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
-    const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
-
-    chatChannel.bind("new-message", (msg: MessageWithUserDTO) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
-      const ids: string[] = [];
-      members.each((member: any) => ids.push(member.id));
-      setOnlineUserIds(ids);
-    });
-
-    presenceChannel.bind("pusher:member_added", (member: any) => {
-      setOnlineUserIds((prev) => [...prev, member.id]);
-    });
-
-    presenceChannel.bind("pusher:member_removed", (member: any) => {
-      setOnlineUserIds((prev) => prev.filter((id) => id !== member.id));
-    });
-
-    return () => {
-      chatChannel.unbind_all();
-      chatChannel.unsubscribe();
-      presenceChannel.unbind_all();
-      presenceChannel.unsubscribe();
-    };
-  }, [roomData.id]);
+  useScrollToInitial(messages, unreadRef, bottomRef);
+  useAutoScroll(messages, userId, isAtBottom, bottomRef);
+  useAutoFocusInput(inputRef);
+  useMarkAsRead(bottomRef, setIsAtBottom, markAsRead);
+  useChatRealtime(roomData.id, setMessages, setOnlineUserIds);
 
   // === UI ===
   return (
-    <div className="flex flex-col h-screen max-h-[calc(100vh-5rem)]">
+    <div className="flex flex-col h-screen max-h-[calc(100vh-6rem)] bg-background">
       <ChatHeader
         roomData={roomData}
         currentUserId={userId}
         onToggleMembers={() => setShowMembers((prev) => !prev)}
         membersVisible={showMembers}
+        onlineUserIds={onlineUserIds}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 overflow-hidden">
