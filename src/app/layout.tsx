@@ -9,12 +9,21 @@ const geistSans = GeistSans;
 const geistMono = GeistMono;
 
 export const metadata: Metadata = {
-  title: "Komunikasi - Web Group Chat",
-  description: "Website Komunikasi sederhana untuk obrolan ringan dan cepat.",
-  keywords: ["komunikasi", "chat online", "obrolan cepat", "komunikasi ringan"],
+  title: "Komunikasi - Web Chat App",
+  description:
+    "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
+  keywords: [
+    "komunikasi",
+    "web chat app",
+    "aplikasi komunikasi",
+    "chat online",
+    "komunikasi ringan",
+    "grup chat Indonesia",
+  ],
   openGraph: {
-    title: "Komunikasi - Web Group Chat",
-    description: "Website Komunikasi sederhana untuk obrolan ringan dan cepat.",
+    title: "Komunikasi - Web Chat App",
+    description:
+      "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
     url: "https://komunikasi.vercel.app/",
     siteName: "Komunikasi",
     images: [
@@ -22,7 +31,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Komunikasi - Obrolan Ringan",
+        alt: "Komunikasi - Web Chat App",
       },
     ],
     locale: "id_ID",
@@ -30,12 +39,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Komunikasi - Web Group Chat",
-    description: "Website Komunikasi sederhana untuk obrolan ringan dan cepat.",
+    title: "Komunikasi - Web Chat App",
+    description:
+      "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman.",
     images: ["/og-image.png"],
   },
   metadataBase: new URL("https://komunikasi.vercel.app/"),
 };
+
 
 export default function RootLayout({
   children,
