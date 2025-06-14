@@ -39,10 +39,10 @@ export function MessageList({
     <ScrollArea className="h-full w-full px-4 pt-3">
       <div className="flex flex-col space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center space-y-4 text-muted-foreground min-h-[70vh]">
-            <MessageSquare className="w-20 h-20 text-gray-400" />
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold">Belum ada pesan</h2>
+          <div className="flex flex-1 flex-col items-center justify-center text-center space-y-4 text-muted-foreground min-h-[60vh]">
+            <MessageSquare className="w-20 h-20 text-gray-400 animate-bounce" />
+            <div className=" bg-accent rounded-2xl p-2">
+              <h2 className="text-xl font-semibold">Belum ada pesan</h2>
               <p className="text-base max-w-sm">
                 Mulai percakapan pertamamu dengan mengirimkan pesan ke room ini.
               </p>

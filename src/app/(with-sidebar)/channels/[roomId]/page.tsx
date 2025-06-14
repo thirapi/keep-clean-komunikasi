@@ -4,6 +4,7 @@ import { getLastReadAt, getMessage } from "./messages.action";
 import { ChatRoom } from "./components/chat-room";
 import { getRoom } from "./room.action";
 import { AlertTriangle, MessageCircle, MessageSquare } from "lucide-react";
+import K from "@/components/icons/k";
 
 export default async function ChatPage({
   params,
@@ -15,12 +16,13 @@ export default async function ChatPage({
   if (roomId === "default") {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-2">
-        <MessageSquare className="text-purple-800 w-20 h-20" />
-        <h1 className="text-2xl font-semibold text-gray-400">Pilih Channel</h1>
-        <p className="text-muted-foreground max-w-md">
-          Belum ada channel yang dipilih. Silakan pilih channel pada sidebar
-          untuk mulai chat.
-        </p>
+        <K className="text-purple-800 w-20 h-20 animate-bounce" />
+        <div className="bg-accent p-2 rounded-2xl">
+          <p className="text-muted-foreground max-w-md">
+            Belum ada channel yang dipilih. Silakan pilih channel pada sidebar
+            untuk mulai chat.
+          </p>
+        </div>
       </div>
     );
   }
