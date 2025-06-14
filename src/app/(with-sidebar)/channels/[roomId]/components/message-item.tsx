@@ -47,14 +47,14 @@ export function MessageItem({
 
   return (
     <div
-      className="relative group flex items-start gap-3 hover:bg-accent/50 p-2 rounded-md transition-colors duration-200 ease-in-out"
+      className="relative group flex items-start gap-3 hover:bg-muted p-2 rounded-md transition-colors duration-200 ease-in-out"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative">
-        <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
+        <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
           <AvatarFallback
-            className="rounded-md"
+            className="rounded-md text-white dark:text-white"
             style={{ backgroundColor: bgColor }}
           >
             {message.user.username.charAt(0).toUpperCase()}
@@ -62,35 +62,38 @@ export function MessageItem({
         </Avatar>
         <div
           className={`h-2.5 w-2.5 ring-[2px] ring-background rounded-full absolute bottom-0 right-0 ${
-            isOnline ? "bg-green-500" : "bg-gray-500"
+            isOnline ? "bg-green-500" : "bg-gray-400 dark:bg-gray-600"
           }`}
         ></div>
       </div>
+
       <div>
-        <div className="text-sm font-semibold text-white">
+        {/* Username + Timestamp */}
+        <div className="text-sm font-semibold text-foreground">
           <HoverCard>
             <HoverCardTrigger asChild>
               <span className="cursor-pointer">{message.user.username}</span>
             </HoverCardTrigger>
             <HoverCardContent className="w-64">
               <div className="flex items-center gap-2">
-                <Avatar className="w-10 h-10 bg-gray-600 rounded-md flex items-center justify-center text-white font-bold">
+                <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
                   <AvatarFallback
-                    className="rounded-md"
+                    className="rounded-md text-white dark:text-white"
                     style={{ backgroundColor: bgColor }}
                   >
                     {message.user.username.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-foreground">
                     {message.user.username}
                   </p>
                 </div>
               </div>
             </HoverCardContent>
           </HoverCard>
-          <span className="text-xs text-gray-400 ml-2">
+
+          <span className="text-xs text-muted-foreground ml-2">
             {new Date(message.createdAt).toLocaleString("en-US", {
               year: "numeric",
               month: "short",
@@ -102,10 +105,11 @@ export function MessageItem({
           </span>
         </div>
 
+        {/* Reply Preview */}
         {message.replyToMessage && (
-          <div className="flex items-start gap-2 rounded-sm">
-            <CornerLeftUp className="h-4 w-4 text-gray-500" />
-            <div className="text-sm text-gray-400">
+          <div className="flex items-start gap-2 rounded-sm mt-1">
+            <CornerLeftUp className="h-4 w-4 text-muted-foreground" />
+            <div className="text-sm text-muted-foreground">
               <span className="font-semibold">
                 {message.replyToMessage.user.username}
               </span>
@@ -116,16 +120,24 @@ export function MessageItem({
           </div>
         )}
 
-        <div className="text-sm text-gray-300">{message.content}</div>
-        {message.imageUrl && <img src={message.imageUrl} alt="attachment" />}
+        {/* Message Content */}
+        <div className="text-sm text-foreground mt-1">{message.content}</div>
+        {message.imageUrl && (
+          <img
+            src={message.imageUrl}
+            alt="attachment"
+            className="rounded-md mt-2 max-w-xs"
+          />
+        )}
 
+        {/* Hover Actions */}
         {isHovered && (
           <div className="absolute top-0 right-4 bg-background shadow-sm border rounded-md py-1 px-2 flex items-center">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => onReply(message)}
-                  className="text-gray-400 hover:text-blue-500 p-1"
+                  className="text-muted-foreground hover:text-blue-500 p-1"
                 >
                   <CornerUpLeft className="w-4 h-4" />
                 </button>

@@ -29,7 +29,7 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
       <SidebarGroupLabel>{type}</SidebarGroupLabel>
       <SidebarMenu>
         {[...groups].map((item) => {
-          const isActive = pathname === item.url;
+          const isActive = pathname.startsWith(item.url);
 
           return (
             <SidebarMenuItem key={item.id}>

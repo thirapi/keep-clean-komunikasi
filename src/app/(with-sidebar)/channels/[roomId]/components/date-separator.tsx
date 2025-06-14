@@ -7,12 +7,12 @@ export function DateSeparator({ date }: { date: Date }) {
   });
 
   return (
-    <div className="flex items-center justify-center">
-      <hr className="flex-grow border-t border-gray-700" />
-      <span className="mx-4 text-sm text-gray-400 whitespace-nowrap">
+    <div className="flex items-center justify-center px-4 py-2">
+      <hr className="flex-grow border-t border-border" />
+      <span className="mx-4 text-sm text-muted-foreground whitespace-nowrap">
         {formattedDate}
       </span>
-      <hr className="flex-grow border-t border-gray-700" />
+      <hr className="flex-grow border-t border-border" />
     </div>
   );
 }

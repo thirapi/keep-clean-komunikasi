@@ -34,10 +34,11 @@ import {
 import { getUserSession } from "../auth.action";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
+import K from "@/components/icons/k";
 
 const brand = {
   name: "Komunikasi",
-  logo: FlameKindling,
+  logo: K,
   description: "webchat sederhana",
 };
 

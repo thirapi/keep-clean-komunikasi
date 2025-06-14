@@ -8,7 +8,7 @@ import { AlertTriangle, MessageCircle, MessageSquare } from "lucide-react";
 export default async function ChatPage({
   params,
 }: {
-  params: Promise<{ roomId: string }>;
+  params: { roomId: string };
 }) {
   const { roomId } = await params;
 
