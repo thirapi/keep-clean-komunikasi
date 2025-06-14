@@ -17,6 +17,7 @@ import { MessageSquare, Zap, Moon, FlameKindling } from "lucide-react";
 import { AnimateInView } from "@/components/landingpage/animate-in-view";
 import { AnimatedButton } from "@/components/landingpage/animated-button";
 import { AnimatedCard } from "@/components/landingpage/animated-card";
+import K from "@/components/icons/k";
 
 export default function Home() {
   return (
@@ -25,11 +26,11 @@ export default function Home() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-screen-xl mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2">
-            <FlameKindling className="h-6 w-6" />
+            <K className="h-6 w-6" />
             <span className="text-xl font-bold">Komunikasi</span>
           </div>
           <div className="flex items-center gap-4">
-            <nav className="hidden md:flex gap-6">
+            {/* <nav className="hidden md:flex gap-6">
               <Link
                 href="#features"
                 className="text-sm font-medium transition-colors hover:text-primary relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all hover:after:w-full"
@@ -48,14 +49,14 @@ export default function Home() {
               >
                 FAQ
               </Link>
-            </nav>
+            </nav> */}
             <ModeToggle />
             <div className="hidden md:flex gap-2">
               <Button variant="outline" asChild>
                 <Link href="/signin">Masuk</Link>
               </Button>
               <AnimatedButton asChild>
-                <Link href="/signup">Daftar Sekarang</Link>
+                <Link href="/signup">Daftar</Link>
               </AnimatedButton>
             </div>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -83,22 +84,23 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
-          <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-2">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-40 bg-background">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="grid items-center gap-12 lg:grid-cols-2">
+              {/* Text Content */}
               <AnimateInView direction="left" delay={0.1}>
-                <div className="flex flex-col justify-center space-y-4">
-                  <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                <div className="flex flex-col justify-center space-y-6">
+                  <div className="space-y-4">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
                       Komunikasi
                     </h1>
-                    <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                      Ngobrol ringan tanpa ribet
+                    <p className="text-muted-foreground text-lg md:text-xl max-w-xl">
+                      Web Chat App
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <AnimatedButton size="lg" asChild>
-                      <Link href="/signup">Daftar Sekarang</Link>
+                      <Link href="/signup">Daftar</Link>
                     </AnimatedButton>
                     <AnimatedButton size="lg" variant="outline" asChild>
                       <Link href="/signin">Masuk</Link>
@@ -106,16 +108,12 @@ export default function Home() {
                   </div>
                 </div>
               </AnimateInView>
+
+              {/* SVG / Image */}
               <AnimateInView direction="right" delay={0.3}>
-                <div className="flex items-center justify-center">
-                  <div className="relative h-[300px] w-[300px] sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]">
-                    <img
-                      src="/flame-kindling.svg"
-                      alt="Chat application interface"
-                      className="rounded-lg object-cover"
-                      width={500}
-                      height={500}
-                    />
+                <div className="flex justify-center items-center">
+                  <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg aspect-square">
+                    <K className="w-full h-full text-primary stroke-[1.5]" />
                   </div>
                 </div>
               </AnimateInView>
@@ -124,7 +122,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section
+        {/* <section
           id="features"
           className="w-full py-12 md:py-24 lg:py-32 bg-muted/50"
         >
@@ -235,10 +233,10 @@ export default function Home() {
               </AnimateInView>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* About Section */}
-        <section id="about" className="w-full py-12 md:py-24 lg:py-32">
+        {/* <section id="about" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
               <AnimateInView direction="left" delay={0.2}>
@@ -289,10 +287,10 @@ export default function Home() {
               </AnimateInView>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* FAQ Section */}
-        <section
+        {/* <section
           id="faq"
           aria-labelledby="faq-heading"
           className="w-full py-12 md:py-24 lg:py-32 bg-muted/50"
@@ -352,7 +350,7 @@ export default function Home() {
               </div>
             </AnimateInView>
           </div>
-        </section>
+        </section> */}
       </main>
 
       {/* Footer */}
@@ -377,12 +375,12 @@ export default function Home() {
             >
               Daftar
             </Link>
-            <Link
+            {/* <Link
               href="#about"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
             >
               Tentang
-            </Link>
+            </Link> */}
             <Link
               href="/privacy"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"

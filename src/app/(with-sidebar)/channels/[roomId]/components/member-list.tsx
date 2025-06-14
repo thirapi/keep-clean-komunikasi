@@ -14,15 +14,17 @@ interface MemberListProps {
 
 export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
   return (
-    <aside className="w-64 border-l p-4 hidden lg:block">
-      <h3 className="text-sm font-semibold text-zinc-500 mb-2">Members</h3>
+    <aside className="w-64 border-l border-border p-4 hidden lg:block">
+      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+        Members
+      </h3>
       <ul className="space-y-3">
         {roomData.participants.map((participant) => (
           <li key={participant.user.id} className="flex items-center space-x-2">
             <div className="relative">
               <Avatar className="rounded-md h-10 w-10 font-bold">
                 <AvatarFallback
-                  className="rounded-md"
+                  className="rounded-md text-white"
                   style={{
                     backgroundColor: stringToColor(participant.user.id),
                   }}
@@ -31,23 +33,20 @@ export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
                 </AvatarFallback>
               </Avatar>
               {onlineUserIds.includes(participant.user.id) && (
-                <div
-                  className={`h-2.5 w-2.5 ring-[2px] ring-background rounded-full absolute bottom-0 right-0 ${
-                    onlineUserIds ? "bg-green-500" : "bg-gray-500"
-                  }`}
-                ></div>
+                <div className="h-2.5 w-2.5 bg-green-500 ring-2 ring-background rounded-full absolute bottom-0 right-0" />
               )}
             </div>
             <HoverCard>
               <HoverCardTrigger asChild>
-                <span className="cursor-pointer">
+                <span className="cursor-pointer text-foreground">
                   {participant.user.username}
                 </span>
               </HoverCardTrigger>
               <HoverCardContent className="w-64">
                 <div className="flex items-center gap-2">
-                  <Avatar className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <Avatar className="w-10 h-10 rounded-full font-bold">
                     <AvatarFallback
+                      className="text-white"
                       style={{
                         backgroundColor: stringToColor(participant.user.id),
                       }}
@@ -56,7 +55,7 @@ export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-foreground">
                       {participant.user.username}
                     </p>
                   </div>

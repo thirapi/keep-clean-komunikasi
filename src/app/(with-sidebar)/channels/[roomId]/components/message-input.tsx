@@ -110,20 +110,20 @@ export function MessageInput({
   return (
     <div className="flex flex-col gap-1 px-4 pb-4">
       {replyingTo && (
-        <div className="relative rounded-md bg-white/5 border-l-4 border-blue-500 px-4 py-3 flex items-start gap-3 shadow-inner">
+        <div className="relative rounded-md bg-muted border-l-4 border-blue-500 px-4 py-3 flex items-start gap-3 shadow-inner">
           <CornerLeftUp className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-blue-400">
+            <div className="text-sm font-medium text-primary">
               Replying to {replyingTo.user.username}
             </div>
-            <div className="text-sm text-gray-300 line-clamp-2 break-words">
+            <div className="text-sm text-muted-foreground line-clamp-2 break-words">
               {replyingTo.content}
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
             onClick={onCancelReply}
           >
             <X className="h-4 w-4" />
@@ -133,7 +133,7 @@ export function MessageInput({
 
       <form
         onSubmit={handleSend}
-        className="pt-2 border-t border-[#1e1f22] flex gap-2 backdrop-blur-md bg-white/5 border rounded-xl p-2 shadow-lg items-center"
+        className="pt-2 border-t border-border flex gap-2 backdrop-blur-md bg-muted border rounded-xl p-2 shadow-lg items-center"
       >
         <Input
           autoFocus
@@ -148,8 +148,8 @@ export function MessageInput({
           }}
           onKeyDown={handleKeyDown}
           type="text"
-          placeholder={`"Message #${roomData.name}"`}
-          className="flex-1 bg-transparent border-none text-white placeholder-gray-400 focus:outline-none"
+          placeholder={`Message #${roomData.name}`}
+          className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none"
         />
         <Button
           type="submit"
@@ -158,18 +158,13 @@ export function MessageInput({
         >
           {isSending ? (
             <div className="flex items-center justify-center gap-1">
-              <div
-                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
-                style={{ animationDelay: "0s" }}
-              />
-              <div
-                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              />
-              <div
-                className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
-                style={{ animationDelay: "0.4s" }}
-              />
+              {[0, 0.2, 0.4].map((delay, i) => (
+                <div
+                  key={i}
+                  className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
+                  style={{ animationDelay: `${delay}s` }}
+                />
+              ))}
             </div>
           ) : (
             <CornerLeftUp className="h-5 w-5" />
@@ -177,7 +172,7 @@ export function MessageInput({
         </Button>
       </form>
 
-      <div className="h-5 text-sm text-gray-400 italic transition-opacity duration-200 ease-in-out flex items-center">
+      <div className="h-5 text-sm text-muted-foreground italic transition-opacity duration-200 ease-in-out flex items-center">
         {displayNames.length > 0 && (
           <div className="flex items-center">
             <span>
@@ -188,7 +183,7 @@ export function MessageInput({
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"
+                  className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
                   style={{ animationDelay: `${i * 0.2}s` }}
                 />
               ))}

@@ -69,6 +69,9 @@ export class RoomRepository implements IRoomRepository {
 
     const rooms = await this.prisma.room.findMany({
       where: whereClause,
+      orderBy: {
+        name: "asc",
+      },
       include: {
         participants: {
           select: {
@@ -100,7 +103,7 @@ export class RoomRepository implements IRoomRepository {
         },
         _count: {
           select: {
-            messages: true, 
+            messages: true,
           },
         },
       },

@@ -1,0 +1,22 @@
+import * as React from "react";
+const K = (props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width={24}
+    height={24}
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M21,16v-8c-.0007-.7138-.3818-1.3731-1-1.73l-7-4c-.6188-.3573-1.3812-.3573-2,0l-7,4C3.3818,6.6269,3.0007,7.2862,3,8v8c.0007.7138.3818,1.3731,1,1.73l7,4c.6188.3573,1.3812.3573,2,0l7-4c.6182-.3569.9993-1.0162,1-1.73Z" />
+    <polyline points="3.27,6.96 12,12.01 20.73,6.96" />
+    <line x1={12} y1={22.08} x2={12} y2={12} />
+    <line x1={15.505} y1={17.73} x2={15.505} y2={12} />
+    <line x1={18.186} y1={12} x2={15.687} y2={14.865} />
+    <line x1={18.186} y1={15} x2={15.687} y2={14} />
+  </svg>
+);
+export default K;
