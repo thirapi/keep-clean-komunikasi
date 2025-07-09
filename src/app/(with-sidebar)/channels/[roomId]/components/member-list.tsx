@@ -14,7 +14,7 @@ interface MemberListProps {
 
 export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
   return (
-    <aside className="w-64 border-l border-border p-4 hidden lg:block">
+    <aside className="w-64 h-full border-l border-border p-4 hidden lg:block">
       <h3 className="text-sm font-semibold text-muted-foreground mb-2">
         Members
       </h3>

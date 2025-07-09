@@ -52,23 +52,23 @@ export function ChatHeader({
   const Icon = useMemo(() => (membersVisible ? X : Users), [membersVisible]);
 
   return (
-    <div className="flex items-center justify-between border-b rounded-t-xl bg-card/50 px-4 py-3">
-      <div className="flex items-center gap-2">
-        <HashIcon />
-        <h2 className="text-lg font-semibold">{roomName}</h2>
+    <div className="flex items-center justify-between border-b rounded-t-xl bg-card/50 px-3 sm:px-4 py-3">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <HashIcon className="flex-shrink-0" />
+        <h2 className="text-base sm:text-lg font-semibold truncate">{roomName}</h2>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 flex-shrink-0">
                 {onlineUserIds.length === 0 ? (
                   <>
                     <span className="animate-spin h-2 w-2 border-2 border-green-500 border-t-transparent rounded-full" />
-                    Loading...
+                    <span className="hidden sm:inline">Loading...</span>
                   </>
                 ) : (
                   <>
                     <span className="h-2 w-2 rounded-full bg-green-500" />
-                    {onlineCount} online
+                    <span className="hidden sm:inline">{onlineCount} online</span>
                   </>
                 )}
               </Badge>
@@ -91,11 +91,11 @@ export function ChatHeader({
               size="icon"
               onClick={onToggleMembers}
               className={cn(
-                "transition-colors duration-200",
+                "transition-colors duration-200 flex-shrink-0",
                 membersVisible && "bg-accent/40"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

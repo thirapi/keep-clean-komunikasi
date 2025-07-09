@@ -41,7 +41,6 @@ export default async function layout({
   }
 
   const userRooms = await getRoomsByUserId(userId.user.id);
-
   const directRooms = (userRooms.data ?? []).filter((room) => room.isDirect);
   const groupRooms = (userRooms.data ?? []).filter((room) => !room.isDirect);
 
@@ -67,7 +66,7 @@ export default async function layout({
   };
 
   return (
-    <>
+    <div className="flex flex-col h-screen overflow-hidden">
       <SidebarProvider>
         <RealtimeNotificationListener
           user={{ id: user.id, username: user.name }}
@@ -76,31 +75,34 @@ export default async function layout({
           <AppSidebar
             user={user}
             checkRole={role}
-            groupRooms={groupRooms}
             directRooms={directRooms}
+            groupRooms={groupRooms}
           />
-          <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 justify-between">
-              <div className="flex items-center gap-2 px-4">
+
+          <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+            {/* Header */}
+            <header className="flex h-16 shrink-0 items-center justify-between w-full overflow-hidden px-4">
+              <div className="flex items-center gap-2 overflow-hidden min-w-0">
                 <SidebarTrigger className="-ml-1" />
-                <Separator
-                  orientation="vertical"
-                  className="mr-2 data-[orientation=vertical]:h-4"
-                />
-                <BreadcrumbRenderer />
+                <Separator orientation="vertical" className="h-4" />
+                <div className="truncate min-w-0">
+                  <BreadcrumbRenderer />
+                </div>
               </div>
-              <div className="mr-4">
-                <ModeToggle />
-              </div>
+              <ModeToggle />
             </header>
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-              <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min">
-                {children}
+
+            {/* Main content */}
+            <main className="flex-1 min-h-0 overflow-hidden w-full">
+              <div className="h-full w-full rounded-xl overflow-hidden">
+                <div className="h-full w-full overflow-y-auto rounded-xl px-4 pb-4">
+                  <div className="h-full w-full max-w-full">{children}</div>
+                </div>
               </div>
-            </div>
+            </main>
           </SidebarInset>
         </BreadcrumbProvider>
       </SidebarProvider>
-    </>
+    </div>
   );
 }
