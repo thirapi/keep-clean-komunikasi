@@ -57,7 +57,7 @@ export default async function ChatPage({
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col flex-1 h-full min-h-0">
       <ChatRoom
         userId={session?.user?.id ?? ""}
         roomData={roomData}

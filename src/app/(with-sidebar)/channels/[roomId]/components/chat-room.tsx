@@ -12,11 +12,12 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { ChatHeader } from "./chat-header";
 import { MemberList } from "./member-list";
+import { MobileMemberList } from "./mobile-member-list";
 import { useScrollToInitial } from "./hooks/use-scroll-to-initial";
 import { useAutoScroll } from "./hooks/use-auto-scroll";
 import { useAutoFocusInput } from "./hooks/use-auto-focus-input";
 import { useMarkAsRead } from "./hooks/use-mark-as-read";
-import { useChatRealtime } from "./hooks/use-chat-realtime";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatRoomProps {
   userId: string;
@@ -31,27 +32,22 @@ export function ChatRoom({
   initialMessages,
   lastReadAt,
 }: ChatRoomProps) {
-  // === State ===
   const [messages, setMessages] = useState(initialMessages);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const isMobile = useIsMobile();
 
-  // === Refs ===
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // === Function: menandai pesan sudah dibaca (debounced) ===
   const markAsRead = debounce(() => {
     updateLastReadAt(userId, roomData.id, new Date());
   }, 2000);
 
-  // === Function: batal membalas pesan ===
-  const handleCancelReply = () => {
-    setReplyingTo(null);
-  };
+  const handleCancelReply = () => setReplyingTo(null);
 
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
@@ -88,9 +84,8 @@ export function ChatRoom({
     };
   }, [roomData.id]);
 
-  // === UI ===
   return (
-    <div className="flex flex-col h-screen max-h-[calc(100vh-6rem)] bg-background">
+    <div className="flex flex-col h-screen overflow-hidden bg-background"> {/* full height layout */}
       <ChatHeader
         roomData={roomData}
         currentUserId={userId}
@@ -99,8 +94,8 @@ export function ChatRoom({
         onlineUserIds={onlineUserIds}
       />
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <MessageList
               userId={userId}
               messages={messages}
@@ -119,10 +114,22 @@ export function ChatRoom({
             inputRef={inputRef}
           />
         </div>
-        {showMembers && (
-          <MemberList roomData={roomData} onlineUserIds={onlineUserIds} />
+
+        {/* Desktop member list */}
+        {showMembers && !isMobile && (
+          <div className="hidden lg:block">
+            <MemberList roomData={roomData} onlineUserIds={onlineUserIds} />
+          </div>
         )}
       </div>
+
+      {/* Mobile member list */}
+      <MobileMemberList
+        roomData={roomData}
+        onlineUserIds={onlineUserIds}
+        isOpen={showMembers && isMobile}
+        onClose={() => setShowMembers(false)}
+      />
     </div>
   );
 }
