@@ -17,7 +17,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EditRoleDialog } from "./edit-role-dialog";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
