@@ -32,6 +32,7 @@ export class AuthenticationService {
             id: sessionId,
             userId: userId,
             expiresAt: new Date(Date.now() + this.SESSION_EXPIRATION_TIME),
+            createdAt: new Date(),
         };
         try {
             await this.sessionRepository.insertSession(session);

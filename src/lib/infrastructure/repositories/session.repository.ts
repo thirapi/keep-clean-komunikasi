@@ -1,9 +1,20 @@
 import { ISessionRepository } from "@/lib/application/repositories/session.repository.interface";
-import { SessionRecord } from "@/lib/entities/models/session.model";
+import { SessionLogRecord, SessionRecord } from "@/lib/entities/models/session.model";
 import { PrismaClient } from "@prisma/client";
 
 export class SessionRepository implements ISessionRepository {
   constructor(private prisma: PrismaClient) {}
+
+  async getAllSessions(): Promise<SessionLogRecord[]> {
+    return await this.prisma.session.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
 
   async insertSession(sessionData: SessionRecord): Promise<boolean> {
     try {

@@ -1,0 +1,94 @@
+"use client";
+
+import * as React from "react";
+import {
+  AudioWaveform,
+  BookOpen,
+  Bot,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Map,
+  PieChart,
+  Settings2,
+  SquareTerminal,
+  Fingerprint,
+  Briefcase,
+  Home,
+  Users,
+  User,
+  Hash,
+  FlameKindling,
+  Logs,
+} from "lucide-react";
+
+import { NavMain } from "./nav-main";
+import { NavUser } from "./nav-user";
+import { NavBrand } from "./nav-brand";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { getUserSession } from "@/app/auth.action";
+import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import K from "@/components/icons/k";
+
+const brand = {
+  name: "Komunikasi",
+  logo: K,
+  description: "webchat sederhana",
+};
+
+const sidebarItems = [
+  {
+    id: "1",
+    name: "Users",
+    url: "/admin/users",
+    icon: User,
+  },
+  {
+    id: "2",
+    name: "Log Login",
+    url: "/admin/log",
+    icon: Logs,
+  },
+];
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user: {
+    id: string;
+    name: string;
+    initial: string;
+    role: string;
+    email: string;
+    avatar: string;
+  };
+  checkRole: {
+    id: string;
+    username: string;
+    roles: {
+      id: string;
+      name: string;
+    }[];
+  } | null;
+}
+
+export function AppSidebar({ user, checkRole, ...props }: AppSidebarProps) {
+  return (
+    <Sidebar collapsible="icon" variant="inset" {...props}>
+      <SidebarHeader>
+        <NavBrand brand={brand} />
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain groups={sidebarItems} type="Channels" />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={user} checkRole={checkRole} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
