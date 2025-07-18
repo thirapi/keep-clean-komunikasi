@@ -7,12 +7,14 @@ import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 
 import { prisma } from "@/lib/prisma";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
+import { DiscordNotifierService } from "@/lib/infrastructure/services/discord-notifier.service";
 
 const messageRepository = new MessageRepository(prisma);
 const roomRepository = new RoomRepository(prisma)
 const pusherService = new PusherService();
+const discordNotifierService = new DiscordNotifierService(process.env.DISCORD_WEBHOOK_URL || "");
 
-const sendMessageUseCase = new SendMessageUseCase(messageRepository, roomRepository, pusherService);
+const sendMessageUseCase = new SendMessageUseCase(messageRepository, roomRepository, pusherService, discordNotifierService);
 
 const formSchema = z.object({
     content: z.string(),
