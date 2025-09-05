@@ -12,6 +12,7 @@ export interface MessageRecord {
 export interface MessageWithUserDTO extends MessageRecord {
   user: {
     username: string;
+    avatar?: string | null;
   };
   replyToMessage?: {
     id: string;

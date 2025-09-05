@@ -33,6 +33,7 @@ export class SignUpUseCase {
             id,
             username,
             password: hashPassword,
+            avatar: null
         })
 
 

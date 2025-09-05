@@ -2,7 +2,7 @@
 import { m } from "framer-motion";
 import { IMessageRepository } from "../../repositories/message.repository.interface";
 import { IRoomRepository } from "../../repositories/room.repository.interface";
-import { INotifierService } from "../../services/discord-notifier.service";
+import { INotifierService } from "../../services/discord-notifier.service.interface";
 import { IPusherService } from "../../services/pusher.service.interface";
 
 export class SendMessageUseCase {

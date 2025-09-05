@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 function stringToColor(str: string): string {
   let hash = 0;
@@ -53,6 +54,7 @@ export function MessageItem({
     >
       <div className="relative">
         <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
+          <AvatarImage src={message.user.avatar ?? undefined} />
           <AvatarFallback
             className="rounded-md text-white dark:text-white"
             style={{ backgroundColor: bgColor }}

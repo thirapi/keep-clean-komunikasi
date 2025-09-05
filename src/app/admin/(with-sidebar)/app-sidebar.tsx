@@ -22,9 +22,9 @@ import {
   Logs,
 } from "lucide-react";
 
+import { NavBrand } from "@/app/(with-sidebar)/nav-brand";
 import { NavMain } from "./nav-main";
-import { NavUser } from "./nav-user";
-import { NavBrand } from "./nav-brand";
+import { NavUser } from "@/app/(with-sidebar)/nav-user";
 import {
   Sidebar,
   SidebarContent,

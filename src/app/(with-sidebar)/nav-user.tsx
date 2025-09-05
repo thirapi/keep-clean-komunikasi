@@ -7,6 +7,7 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  UserPen,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,12 +28,15 @@ import {
 } from "@/components/ui/sidebar";
 import { signOutUserAction } from "../auth.action";
 import { useRouter } from "next/navigation";
+import UserPage from "../admin/(with-sidebar)/log/page";
+import { UserSettingsDialog } from "./user-settings-dialog";
 
 export function NavUser({
   user,
-  checkRole
+  checkRole,
 }: {
   user: {
+    id: string;
     name: string;
     initial: string;
     role: string;
@@ -49,15 +53,17 @@ export function NavUser({
   } | null;
 }) {
   const { isMobile } = useSidebar();
-  const isAdmin = checkRole?.roles.some((role) => role.name.toLowerCase() === "admin");
-  const router = useRouter() ;
+  const isAdmin = checkRole?.roles.some(
+    (role) => role.name.toLowerCase() === "admin"
+  );
+  const router = useRouter();
 
   const handleLogout = async () => {
     await signOutUserAction();
   };
 
   const handleAdminRedirect = () => {
-    router.push('/admin');
+    router.push("/admin");
   };
 
   return (
@@ -110,6 +116,9 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <UserSettingsDialog user={user}/>
+            </DropdownMenuItem>
             {isAdmin && (
               <>
                 <DropdownMenuSeparator />

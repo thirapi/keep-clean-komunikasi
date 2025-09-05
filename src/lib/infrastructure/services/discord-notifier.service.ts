@@ -1,4 +1,4 @@
-import { INotifierService } from "@/lib/application/services/discord-notifier.service";
+import { INotifierService } from "@/lib/application/services/discord-notifier.service.interface";
 
 
 export class DiscordNotifierService implements INotifierService {

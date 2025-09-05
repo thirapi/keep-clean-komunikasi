@@ -10,4 +10,6 @@ export interface IUserRepository {
   findByIdWithRoles(id: string): Promise<{ id: string; username: string; password: string; roles: { id: string; name: string }[]; } | null>;
   getAllUsersWithRoles(): Promise<{ id: string; username: string; roles: { id: string; name: string }[] }[]>;
   updateUserRoles(userId: string, roleIds: string[]): Promise<void>;
+  update(userId: string, user: Partial<UserRecord>, tx?: Prisma.TransactionClient): Promise<void>;
+
 }
