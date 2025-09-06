@@ -7,7 +7,7 @@ export class GetRoomByUserIdUseCase {
   async execute(
     userId: string,
     options?: { isDirect?: boolean }
-  ): Promise<RoomWithParticipantsDTO[] | null> {
+  ): Promise<RoomWithParticipantsDTO[]> {
     const rooms = await this.roomRepository.getAllRoomsByUserId(userId, options);
 
     if (!rooms) {

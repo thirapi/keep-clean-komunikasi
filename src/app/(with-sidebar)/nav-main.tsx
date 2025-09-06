@@ -11,6 +11,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx"; // opsional jika mau bantu toggle class dengan clean
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 type Groups = {
   id: string;
@@ -26,7 +28,16 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{type}</SidebarGroupLabel>
+      <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wider flex items-center justify-between">
+        {type}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-5 w-5 p-0 hover:bg-sidebar-primary rounded-lg"
+        >
+          <Plus className="size-3" />
+        </Button>
+      </SidebarGroupLabel>
       <SidebarMenu>
         {[...groups].map((item) => {
           const isActive = pathname.startsWith(item.url);

@@ -2,7 +2,6 @@
 
 import { getColumns } from "./columns";
 import { DataTable } from "./data-table";
-import { AdminUserTable } from "../types";
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { useBreadcrumbs } from "@/components/breadcrumb/breadcrumb-context";
 import { useEffect } from "react";

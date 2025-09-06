@@ -12,4 +12,9 @@ export interface IRoomRepository {
     roomId: string,
     excludeUserId: string
   ): Promise<{ userId: string }[]>;
+  createRoom(
+    name: string,
+    isDirect: boolean,
+    participantIds: string[]
+  ): Promise<RoomWithParticipantsDTO>;
 }

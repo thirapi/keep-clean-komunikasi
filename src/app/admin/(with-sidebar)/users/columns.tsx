@@ -7,9 +7,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./_components/data-table-column-header";
 
 import { EditRoleDialog } from "./_components/edit-role-dialog";
-import { AdminUserTable } from "./types";
+import { AllUsers } from "./types";
 
-export function getColumns(allRoles: string[], actorUserId: string): ColumnDef<AdminUserTable>[] {
+export function getColumns(allRoles: string[], actorUserId: string): ColumnDef<AllUsers>[] {
   return [
     {
       accessorKey: "username",

@@ -35,6 +35,10 @@ import { getUserSession } from "../auth.action";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
 import K from "@/components/icons/k";
+import { AllUsers } from "../admin/(with-sidebar)/users/types";
+import { useRouter } from "next/navigation";
+import { createRoom } from "./channels/[roomId]/room.action";
+import { toast } from "sonner";
 
 const brand = {
   name: "Komunikasi",
@@ -61,6 +65,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
       name: string;
     }[];
   } | null;
+  users: AllUsers[];
 }
 
 export function AppSidebar({
@@ -68,8 +73,10 @@ export function AppSidebar({
   checkRole,
   groupRooms,
   directRooms,
+  users,
   ...props
 }: AppSidebarProps) {
+  const router = useRouter();
   const groups = groupRooms.map((room) => {
     const currentUserParticipant = room.participants.find(
       (participant) => participant.user.id === user.id
@@ -119,6 +126,26 @@ export function AppSidebar({
     };
   });
 
+  async function handleCreateRoom(participantId: string) {
+    const response = await createRoom(user.id, participantId);
+
+    if (response.status === "success" && response.data) {
+      if (response.meta?.action === "existing") {
+        toast("Percakapan ditemukan", {
+          description:
+            "Anda sudah memiliki percakapan dengan pengguna ini. Membuka chat lama...",
+        });
+      } else {
+        toast.success("Percakapan baru berhasil dibuat!", {
+          description: "Anda sekarang dapat mulai mengirim pesan.",
+        });
+      }
+      router.push(`/channels/${response.data.id}`);
+    } else {
+      toast.error(response.error?.message ?? "Gagal membuat percakapan");
+    }
+  }
+
   return (
     <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
@@ -126,7 +153,13 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain groups={groups} type="Channels" />
-        {/* <NavMainDirectMessage groups={directMessages} type="Direct Messages" /> */}
+        <NavMainDirectMessage
+          groups={directMessages}
+          type="Direct Messages"
+          users={users}
+          onCreateDirectMessage={handleCreateRoom}
+          user={user}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} checkRole={checkRole} />

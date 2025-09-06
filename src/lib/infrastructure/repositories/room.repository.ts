@@ -176,4 +176,57 @@ export class RoomRepository implements IRoomRepository {
 
     return participants;
   }
+
+  async createRoom(
+  name: string,
+  isDirect: boolean,
+  participantIds: string[]
+): Promise<RoomWithParticipantsDTO> {
+  const room = await this.prisma.room.create({
+    data: {
+      name,
+      isDirect,
+      participants: {
+        create: participantIds.map((userId) => ({
+          userId,
+        })),
+      },
+    },
+    include: {
+      participants: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              userRoles: {
+                select: {
+                  role: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    id: room.id,
+    name: room.name,
+    isDirect: room.isDirect,
+    participants: room.participants.map((p) => ({
+      lastReadAt: p.lastReadAt,
+      user: {
+        id: p.user.id,
+        username: p.user.username,
+        userRoles: p.user.userRoles.map((ur) => ({
+          role: { name: ur.role.name },
+        })),
+      },
+    })),
+    messages: [],
+  };
+}
+
 }

@@ -118,7 +118,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getAllUsersWithRoles(): Promise<
-    { id: string; username: string; roles: { id: string; name: string }[] }[]
+    { id: string; username: string; avatar: string | null; roles: { id: string; name: string }[] }[]
   > {
     const users = await this.prisma.user.findMany({
       include: {
@@ -134,10 +134,12 @@ export class UserRepository implements IUserRepository {
       (user: {
         id: string;
         username: string;
+        avatar: string | null;
         userRoles: { role: { id: string; name: string } }[];
       }) => ({
         id: user.id,
         username: user.username,
+        avatar: user.avatar,
         roles: user.userRoles.map((ur) => ({
           id: ur.role.id,
           name: ur.role.name,

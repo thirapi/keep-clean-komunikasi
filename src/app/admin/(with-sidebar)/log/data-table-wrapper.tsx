@@ -3,7 +3,6 @@
 import { useBreadcrumbs } from "@/components/breadcrumb/breadcrumb-context";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
-import { AdminUserTable } from "./types";
 import { useEffect } from "react";
 import { SessionLogRecord } from "@/lib/entities/models/session.model";
 

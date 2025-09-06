@@ -3,11 +3,11 @@
 import { useBreadcrumbs } from "@/components/breadcrumb/breadcrumb-context";
 import { getColumns } from "./columns";
 import { DataTable } from "./data-table";
-import { AdminUserTable } from "./types";
+import { AllUsers } from "./types";
 import { useEffect } from "react";
 
 interface Props {
-  users: AdminUserTable[];
+  users: AllUsers[];
   allRoles: string[];
   actorUserId: string;
 }
