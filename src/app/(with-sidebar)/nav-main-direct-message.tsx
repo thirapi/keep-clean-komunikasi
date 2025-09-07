@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   SidebarGroup,
@@ -22,6 +22,7 @@ type Groups = {
   id: string;
   userId: string;
   name: string;
+  avatar: string | null;
   url: string;
   icon: React.ElementType;
 };
@@ -61,7 +62,7 @@ export function NavMainDirectMessage({
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 w-5 p-0 hover:bg-sidebar-primary rounded-lg"
+            className="text-muted-foreground hover:text-primary"
             onClick={() => setOpenDMDialog(true)}
           >
             <Plus className="size-3" />
@@ -82,7 +83,7 @@ export function NavMainDirectMessage({
                     className="flex items-center justify-center"
                     title="Mulai Percakapan"
                   >
-                    <Plus /> 
+                    <Plus />
                     <span className="ml-1 lg:inline">
                       Mulai Percakapan
                     </span>{" "}
@@ -100,6 +101,10 @@ export function NavMainDirectMessage({
                 >
                   <Link href={item.url} className="relative">
                     <Avatar className="h-6 w-6 rounded-md">
+                      <AvatarImage
+                        src={item.avatar || "/placeholder.svg"}
+                        alt="Current Avatar"
+                      />
                       <AvatarFallback
                         className="text-xs rounded-md"
                         style={{ backgroundColor: stringToColor(item.userId) }}

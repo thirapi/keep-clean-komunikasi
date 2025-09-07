@@ -121,6 +121,7 @@ export function AppSidebar({
       id: room.id,
       userId: otherUser?.user.id || "",
       name: otherUser?.user.username || "unknown",
+      avatar: otherUser?.user.avatar || null,
       url: `/channels/${room.id}`,
       icon: User,
     };

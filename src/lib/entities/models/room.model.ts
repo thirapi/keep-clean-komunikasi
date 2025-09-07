@@ -10,6 +10,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
     user: {
       id: string;
       username: string;
+      avatar: string | null;
       userRoles: {
         role: {
           name: string;

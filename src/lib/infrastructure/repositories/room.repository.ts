@@ -15,6 +15,7 @@ export class RoomRepository implements IRoomRepository {
               select: {
                 id: true,
                 username: true,
+                avatar: true,
                 userRoles: {
                   select: {
                     role: {
@@ -40,6 +41,7 @@ export class RoomRepository implements IRoomRepository {
         user: {
           id: p.user.id,
           username: p.user.username,
+          avatar: p.user.avatar,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
           })),
@@ -80,6 +82,7 @@ export class RoomRepository implements IRoomRepository {
               select: {
                 id: true,
                 username: true,
+                avatar: true,
                 userRoles: {
                   select: {
                     role: {
@@ -118,6 +121,7 @@ export class RoomRepository implements IRoomRepository {
         user: {
           id: p.user.id,
           username: p.user.username,
+          avatar: p.user.avatar,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
           })),
@@ -199,6 +203,7 @@ export class RoomRepository implements IRoomRepository {
             select: {
               id: true,
               username: true,
+              avatar: true,
               userRoles: {
                 select: {
                   role: { select: { name: true } },
@@ -220,6 +225,7 @@ export class RoomRepository implements IRoomRepository {
       user: {
         id: p.user.id,
         username: p.user.username,
+        avatar: p.user.avatar,
         userRoles: p.user.userRoles.map((ur) => ({
           role: { name: ur.role.name },
         })),

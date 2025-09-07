@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   HoverCard,
   HoverCardContent,
@@ -22,9 +22,13 @@ export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
         {roomData.participants.map((participant) => (
           <li key={participant.user.id} className="flex items-center space-x-2">
             <div className="relative">
-              <Avatar className="rounded-md h-10 w-10 font-bold">
+              <Avatar className="rounded-lg h-10 w-10 font-bold">
+                <AvatarImage
+                  src={participant.user.avatar || "/placeholder.svg"}
+                  alt="Current Avatar"
+                />
                 <AvatarFallback
-                  className="rounded-md text-white"
+                  className="rounded-lg text-white"
                   style={{
                     backgroundColor: stringToColor(participant.user.id),
                   }}

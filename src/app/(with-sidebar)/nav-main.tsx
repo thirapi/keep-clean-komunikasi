@@ -33,7 +33,7 @@ export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-5 w-5 p-0 hover:bg-sidebar-primary rounded-lg"
+          className="text-muted-foreground hover:text-primary"
         >
           <Plus className="size-3" />
         </Button>

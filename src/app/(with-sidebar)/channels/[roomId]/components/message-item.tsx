@@ -79,6 +79,10 @@ export function MessageItem({
             <HoverCardContent className="w-64">
               <div className="flex items-center gap-2">
                 <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
+                  <AvatarImage
+                    src={message.user.avatar || "/placeholder.svg"}
+                    alt="Current Avatar"
+                  />
                   <AvatarFallback
                     className="rounded-md text-white dark:text-white"
                     style={{ backgroundColor: bgColor }}
