@@ -30,6 +30,7 @@ import { signOutUserAction } from "../auth.action";
 import { useRouter } from "next/navigation";
 import UserPage from "../admin/(with-sidebar)/log/page";
 import { UserSettingsDialog } from "./user-settings-dialog";
+import { ModeToggleItem } from "@/components/landingpage/mode-toggle-nav-user";
 
 export function NavUser({
   user,
@@ -117,7 +118,7 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <UserSettingsDialog user={user}/>
+              <UserSettingsDialog user={user} />
             </DropdownMenuItem>
             {isAdmin && (
               <>
@@ -130,6 +131,9 @@ export function NavUser({
                 </DropdownMenuGroup>
               </>
             )}
+            <DropdownMenuItem asChild>
+              <ModeToggleItem />
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />

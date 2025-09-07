@@ -48,7 +48,11 @@ export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
               </HoverCardTrigger>
               <HoverCardContent className="w-64">
                 <div className="flex items-center gap-2">
-                  <Avatar className="w-10 h-10 rounded-full font-bold">
+                  <Avatar className="w-10 h-10 rounded-lg font-bold">
+                    <AvatarImage
+                      src={participant.user.avatar || "/placeholder.svg"}
+                      alt="Current Avatar"
+                    />
                     <AvatarFallback
                       className="text-white"
                       style={{

@@ -68,7 +68,7 @@ export default async function layout({
         <RealtimeNotificationListener
           user={{ id: user.id, username: user.name }}
         />
-        <BreadcrumbProvider>
+        {/* <BreadcrumbProvider> */}
           <AppSidebar
             user={user}
             checkRole={role}
@@ -79,7 +79,7 @@ export default async function layout({
 
           <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
             {/* Header */}
-            <header className="flex h-16 shrink-0 items-center justify-between w-full overflow-hidden px-4">
+            {/* <header className="flex h-16 shrink-0 items-center justify-between w-full overflow-hidden px-4">
               <div className="flex items-center gap-2 overflow-hidden min-w-0">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="h-4" />
@@ -88,7 +88,7 @@ export default async function layout({
                 </div>
               </div>
               <ModeToggle />
-            </header>
+            </header> */}
 
             {/* Main content */}
             <main className="flex-1 min-h-0 overflow-hidden w-full">
@@ -99,7 +99,7 @@ export default async function layout({
               </div>
             </main>
           </SidebarInset>
-        </BreadcrumbProvider>
+        {/* </BreadcrumbProvider> */}
       </SidebarProvider>
     </div>
   );

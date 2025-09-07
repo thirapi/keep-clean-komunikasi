@@ -17,6 +17,12 @@ import { useState } from "react";
 import { DirectMessageDialog } from "./direct-message-dialog";
 import { AllUsers } from "../admin/(with-sidebar)/users/types";
 import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Groups = {
   id: string;
@@ -59,14 +65,23 @@ export function NavMainDirectMessage({
       <SidebarGroup>
         <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wider flex items-center justify-between">
           {type}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-primary"
-            onClick={() => setOpenDMDialog(true)}
-          >
-            <Plus className="size-3" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-primary"
+                  onClick={() => setOpenDMDialog(true)}
+                >
+                  <Plus className="size-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Buat DM Baru</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </SidebarGroupLabel>
         <SidebarMenu>
           {groups.length === 0 ? (
