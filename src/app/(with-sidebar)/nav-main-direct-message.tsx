@@ -23,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type Groups = {
   id: string;
@@ -108,29 +109,33 @@ export function NavMainDirectMessage({
             </SidebarGroup>
           ) : (
             [...groups].map((item) => (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  className="flex items-center gap-2"
-                  asChild
-                  tooltip={item.name}
-                >
-                  <Link href={item.url} className="relative">
-                    <Avatar className="h-6 w-6 rounded-md">
-                      <AvatarImage
-                        src={item.avatar || "/placeholder.svg"}
-                        alt="Current Avatar"
-                      />
-                      <AvatarFallback
-                        className="text-xs rounded-md"
-                        style={{ backgroundColor: stringToColor(item.userId) }}
-                      >
-                        {item.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>@{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+<SidebarMenuItem key={item.id}>
+  <SidebarMenuButton
+    asChild
+    className={cn(
+      "flex items-center",
+      isCollapsed ? "justify-center px-2" : "gap-2"
+    )}
+    tooltip={item.name}
+  >
+    <Link href={item.url} className="relative">
+      <Avatar className="h-6 w-6 rounded-md">
+        <AvatarImage
+          src={item.avatar || "/placeholder.svg"}
+          alt={item.name}
+        />
+        <AvatarFallback
+          className="text-xs rounded-md"
+          style={{ backgroundColor: stringToColor(item.userId) }}
+        >
+          {item.name.charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      {!isCollapsed && <span>@{item.name}</span>}
+    </Link>
+  </SidebarMenuButton>
+</SidebarMenuItem>
+
             ))
           )}
         </SidebarMenu>
