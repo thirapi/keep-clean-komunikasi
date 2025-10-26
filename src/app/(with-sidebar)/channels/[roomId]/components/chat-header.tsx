@@ -72,8 +72,11 @@ export function ChatHeader({
   const Icon = useMemo(() => (membersVisible ? X : Users), [membersVisible]);
 
   return (
-    <div className="flex items-center justify-between border-b rounded-t-xl bg-card/50 px-3 sm:px-4 py-3">
+    <div className="flex items-center justify-between border-b bg-card/50 px-8 sm:px-4 py-3 -mx-4">
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        {/* Sidebar Trigger - Mobile only */}
+        <SidebarTrigger className="md:hidden" />
+        
         {roomData.isDirect ? (
           <>
             <Avatar className="h-8 w-8 rounded-md">

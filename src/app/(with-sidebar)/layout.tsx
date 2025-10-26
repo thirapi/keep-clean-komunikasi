@@ -1,24 +1,18 @@
 "use server";
 
 import { AppSidebar } from "./app-sidebar";
-import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   getUserSession,
   getUserWithRolesFromSession,
   sidaBarUserInfo,
 } from "../auth.action";
-import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
-import { BreadcrumbRenderer } from "@/components/breadcrumb/breadcrumb-renderer";
 import { createRoom, getRoomsByUserId } from "./channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
-import { ModeToggle } from "@/components/landingpage/mode-toggle";
 import { getAllUsersWithRoles } from "../admin/(with-sidebar)/users/role.action";
-import { redirect } from "next/navigation";
 
 export default async function layout({
   children,
@@ -78,23 +72,11 @@ export default async function layout({
           />
 
           <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-            {/* Header */}
-            {/* <header className="flex h-16 shrink-0 items-center justify-between w-full overflow-hidden px-4">
-              <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="h-4" />
-                <div className="truncate min-w-0">
-                  <BreadcrumbRenderer />
-                </div>
-              </div>
-              <ModeToggle />
-            </header> */}
-
             {/* Main content */}
             <main className="flex-1 min-h-0 overflow-hidden w-full">
               <div className="h-full w-full rounded-xl overflow-hidden">
-                <div className="h-full w-full overflow-y-auto rounded-xl px-4 pb-4">
-                  <div className="h-full w-full max-w-full">{children}</div>
+                <div className="h-full w-full overflow-y-auto">
+                  {children}
                 </div>
               </div>
             </main>

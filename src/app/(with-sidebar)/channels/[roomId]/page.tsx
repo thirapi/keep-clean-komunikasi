@@ -5,6 +5,7 @@ import { ChatRoom } from "./components/chat-room";
 import { getRoom } from "./room.action";
 import { AlertTriangle, MessageCircle, MessageSquare } from "lucide-react";
 import K from "@/components/icons/k";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default async function ChatPage({
   params,
@@ -15,13 +16,24 @@ export default async function ChatPage({
 
   if (roomId === "default") {
     return (
-      <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-2">
-        <K className="text-purple-800 w-20 h-20 animate-bounce" />
-        <div className="bg-accent p-2 rounded-2xl">
-          <p className="text-muted-foreground max-w-md">
-            Belum ada channel yang dipilih. Silakan pilih channel pada sidebar
-            untuk mulai chat.
-          </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center space-y-4 relative">
+        {/* Sidebar Trigger - Mobile only */}
+        <div className="absolute top-4 left-4 md:hidden z-10">
+          <SidebarTrigger />
+        </div>
+        
+        <div className="flex flex-col items-center space-y-4 animate-fade-in">
+          <K className="text-purple-800 dark:text-purple-400 w-24 h-24 animate-bounce" />
+          
+          <div className="bg-accent/50 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-sm max-w-lg">
+            <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              Belum ada channel yang dipilih
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Silakan pilih channel pada sidebar untuk mulai chat
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -45,13 +57,24 @@ export default async function ChatPage({
 
   if (!roomData) {
     return (
-      <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-4">
-        <AlertTriangle className="text-red-500 w-16 h-16" />
-        <h1 className="text-2xl font-semibold">Room Tidak Ditemukan</h1>
-        <p className="text-muted-foreground max-w-md">
-          Room yang kamu cari tidak tersedia atau mungkin sudah dihapus.
-          Pastikan URL-nya benar atau coba pilih room lain.
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center space-y-4 relative">
+        {/* Sidebar Trigger - Mobile only */}
+        <div className="absolute top-4 left-4 md:hidden z-10">
+          <SidebarTrigger />
+        </div>
+        
+        <div className="flex flex-col items-center space-y-4 animate-fade-in">
+          <AlertTriangle className="text-red-500 dark:text-red-400 w-20 h-20" />
+          
+          <div className="bg-accent/50 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-sm max-w-lg">
+            <h1 className="text-xl font-semibold text-foreground mb-2">
+              Room Tidak Ditemukan
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Room yang kamu cari tidak tersedia atau mungkin sudah dihapus. Pastikan URL-nya benar atau coba pilih room lain.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
