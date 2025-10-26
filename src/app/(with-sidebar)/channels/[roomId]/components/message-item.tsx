@@ -69,7 +69,7 @@ export function MessageItem({
         ></div>
       </div>
 
-      <div>
+      <div className="flex-1 min-w-0">
         {/* Username + Timestamp */}
         <div className="text-sm font-semibold text-foreground">
           <HoverCard>
@@ -127,7 +127,15 @@ export function MessageItem({
         )}
 
         {/* Message Content */}
-        <div className="text-sm text-foreground mt-1">{message.content}</div>
+        <div className="
+            text-sm text-foreground mt-1
+            whitespace-pre-wrap
+            wrap-anywhere
+            min-w-0
+            pr-8
+            ">
+          {message.content}
+        </div>
         {message.imageUrl && (
           <img
             src={message.imageUrl}

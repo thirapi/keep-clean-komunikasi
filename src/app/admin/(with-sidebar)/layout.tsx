@@ -1,14 +1,5 @@
 import { AppSidebar } from "./app-sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -19,11 +10,7 @@ import {
   sidaBarUserInfo,
 } from "@/app/auth.action";
 import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
-import { BreadcrumbRenderer } from "@/components/breadcrumb/breadcrumb-renderer";
-import { getRoomsByUserId } from "@/app/(with-sidebar)/channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
-import { ModeToggle } from "@/components/landingpage/mode-toggle";
-import { Logs, User } from "lucide-react";
 
 export default async function layout({
   children,
@@ -75,16 +62,9 @@ export default async function layout({
           />
 
           <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-            {/* Header */}
-            <header className="flex h-16 shrink-0 items-center justify-between w-full overflow-hidden px-4">
-              <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="h-4" />
-                <div className="truncate min-w-0">
-                  <BreadcrumbRenderer />
-                </div>
-              </div>
-              <ModeToggle />
+            {/* Header - Mobile only */}
+            <header className="flex h-16 shrink-0 items-center gap-2 px-4 md:hidden">
+              <SidebarTrigger className="-ml-1" />
             </header>
 
             {/* Main content */}
