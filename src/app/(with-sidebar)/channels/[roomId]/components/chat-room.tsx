@@ -112,7 +112,7 @@ export function ChatRoom({
             replyingTo={replyingTo}
             onCancelReply={handleCancelReply}
             inputRef={inputRef}
-          />lear
+          />
         </div>
 
         {/* Desktop member list */}

@@ -1,0 +1,8 @@
+name = "komunikasi-clean-architecture"
+main = ".open-next/worker.js"
+compatibility_date = "2025-10-27"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
