@@ -52,6 +52,13 @@ export function ChatRoom({
 
   const handleCancelReply = () => setReplyingTo(null);
 
+  const handleNewMessage = (msg: MessageWithUserDTO) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
+  };
+
   const loadMoreMessages = async () => {
     if (isLoadingMore || !hasMore) return;
 
@@ -94,7 +101,10 @@ export function ChatRoom({
     const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
 
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
 
     presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
@@ -153,6 +163,7 @@ export function ChatRoom({
             replyingTo={replyingTo}
             onCancelReply={handleCancelReply}
             inputRef={inputRef}
+            onNewMessage={handleNewMessage}
           />
         </div>
 

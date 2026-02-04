@@ -39,19 +39,21 @@ export const setTypingStatusAction = async (
   }
 };
 
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+
 export const createMessage = async (
   userId: string,
   content: string,
   roomId: string,
   imageUrl?: string,
   replyTo?: string
-): Promise<ServerResponse<null>> => {
+): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
-    await sendMessageController(userId, content, roomId, imageUrl, replyTo);
+    const data = await sendMessageController(userId, content, roomId, imageUrl, replyTo);
 
     return {
       status: "success",
-      data: null,
+      data,
       error: null,
     };
   } catch (err: any) {

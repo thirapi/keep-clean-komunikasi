@@ -20,6 +20,7 @@ interface Props {
   replyingTo: MessageWithUserDTO | null;
   onCancelReply: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  onNewMessage: (message: MessageWithUserDTO) => void;
 }
 
 export function MessageInput({
@@ -28,6 +29,7 @@ export function MessageInput({
   replyingTo,
   onCancelReply,
   inputRef,
+  onNewMessage,
 }: Props) {
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -37,13 +39,13 @@ export function MessageInput({
   const sendTypingEvent = useRef(
     debounce(() => {
       setTypingStatusAction(userId, roomData.id, true);
-    }, 300)
+    }, 300),
   ).current;
 
   const sendStopTypingEvent = useRef(
     debounce(() => {
       setTypingStatusAction(userId, roomData.id, false);
-    }, 5000)
+    }, 5000),
   ).current;
 
   const handleTyping = useCallback(() => {
@@ -69,9 +71,10 @@ export function MessageInput({
           replyTo: replyingTo?.id,
         });
 
-        if (response.status === "success") {
+        if (response.status === "success" && response.data) {
           setContent("");
           onCancelReply();
+          onNewMessage(response.data);
         } else {
           console.error("Gagal mengirim pesan:", response.error);
           toast.error(response.error?.message);
@@ -88,7 +91,7 @@ export function MessageInput({
       replyingTo?.id,
       onCancelReply,
       sendStopTypingEvent,
-    ]
+    ],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

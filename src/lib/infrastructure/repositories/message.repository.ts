@@ -34,6 +34,7 @@ export class MessageRepository implements IMessageRepository {
         user: {
           columns: {
             username: true,
+            avatar: true,
           },
         },
         replyToMessage: {

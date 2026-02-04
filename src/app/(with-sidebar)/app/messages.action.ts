@@ -1,6 +1,7 @@
 "use server";
 
 import { ServerResponse } from "@/lib/entities/models/response.model";
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { getMessageController } from "@/lib/interface-adapters/controllers/messages/get-message.controller";
 import { sendMessageController } from "@/lib/interface-adapters/controllers/messages/send-message.controller";
 
@@ -10,15 +11,15 @@ export const createMessage = async ({
   roomId,
   imageUrl,
   replyTo
-} : {
+}: {
   userId: string;
   content: string;
   roomId: string;
   imageUrl?: string;
   replyTo?: string;
-}): Promise<ServerResponse<string | null>> => {
+}): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
-    await sendMessageController(
+    const data = await sendMessageController(
       userId,
       content,
       roomId,
@@ -28,7 +29,7 @@ export const createMessage = async ({
 
     return {
       status: "success",
-      data: null,
+      data,
       error: null,
     };
   } catch (err: any) {
