@@ -13,6 +13,7 @@ import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { CornerLeftUp, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   userId: string;
@@ -141,22 +142,24 @@ export function MessageInput({
   }, [sendTypingEvent, sendStopTypingEvent]);
 
   return (
-    <div className="flex flex-col gap-1 px-2 sm:px-4 pb-2 sm:pb-4">
+    <div className="flex flex-col gap-0 px-3 sm:px-6 pb-4 sm:pb-6">
       {replyingTo && (
-        <div className="relative rounded-md bg-muted border-l-4 border-blue-500 px-3 sm:px-4 py-2 sm:py-3 flex items-start gap-2 sm:gap-3 shadow-inner">
-          <CornerLeftUp className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+        <div className="relative rounded-t-xl bg-muted/50 border-x border-t border-border/50 backdrop-blur-md px-4 py-3 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-primary/20 p-1.5 rounded-lg">
+            <CornerLeftUp className="h-3.5 w-3.5 text-primary" />
+          </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-primary">
+            <div className="text-[11px] font-bold text-primary uppercase tracking-wider mb-0.5">
               Replying to {replyingTo.user.username}
             </div>
-            <div className="text-sm text-muted-foreground line-clamp-2 break-words">
-              {replyingTo.content}
+            <div className="text-sm text-muted-foreground/80 line-clamp-1 italic">
+              "{replyingTo.content}"
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 absolute top-2 right-2"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
             onClick={onCancelReply}
           >
             <X className="h-4 w-4" />
@@ -166,41 +169,47 @@ export function MessageInput({
 
       <form
         onSubmit={handleSend}
-        className="pt-2 border-t border-border flex gap-2 backdrop-blur-md bg-muted border rounded-xl p-2 shadow-lg items-center"
+        className={cn(
+          "flex items-center gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
+          replyingTo ? "rounded-b-xl border-t-0" : "rounded-xl",
+        )}
       >
-        <Input
-          autoFocus
-          ref={inputRef}
-          value={content}
-          onChange={(e) => {
-            setContent(e.target.value);
-            handleTyping();
-          }}
-          onBlur={() => {
-            sendStopTypingEvent();
-          }}
-          onKeyDown={handleKeyDown}
-          type="text"
-          placeholder={`Message #${roomData.name}`}
-          className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none"
-        />
+        <div className="flex-1 relative flex items-center">
+          <Input
+            autoFocus
+            ref={inputRef}
+            value={content}
+            onChange={(e) => {
+              setContent(e.target.value);
+              handleTyping();
+            }}
+            onBlur={() => {
+              sendStopTypingEvent();
+            }}
+            onKeyDown={handleKeyDown}
+            type="text"
+            placeholder={`Tulis pesan di #${roomData.name}`}
+            className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground/60 focus:outline-none focus-visible:ring-0 h-10 px-3 text-[14px]"
+          />
+        </div>
+
         <Button
           type="submit"
           disabled={!content.trim() || isSending}
-          className="ml-2 p-2 rounded-lg bg-gradient-to-br from-[#5865f2] to-[#4752c4] text-white hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5865f2] hover:shadow-md shadow-[#5865f2]/30"
+          className="h-9 w-9 p-0 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
         >
           {isSending ? (
             <div className="flex items-center justify-center gap-1">
               {[0, 0.2, 0.4].map((delay, i) => (
                 <div
                   key={i}
-                  className="h-1.5 w-1.5 bg-white rounded-full animate-bounce"
+                  className="h-1 w-1 bg-white rounded-full animate-bounce"
                   style={{ animationDelay: `${delay}s` }}
                 />
               ))}
             </div>
           ) : (
-            <CornerLeftUp className="h-5 w-5" />
+            <CornerLeftUp className="h-5 w-5 rotate-90" />
           )}
         </Button>
       </form>

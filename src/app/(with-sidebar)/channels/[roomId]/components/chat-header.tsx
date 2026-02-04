@@ -72,14 +72,14 @@ export function ChatHeader({
   const Icon = useMemo(() => (membersVisible ? X : Users), [membersVisible]);
 
   return (
-    <div className="flex items-center justify-between border-b bg-card/50 px-4 py-3 md:px-6">
+    <div className="flex items-center justify-between border-b bg-background/60 backdrop-blur-xl sticky top-0 z-10 px-4 py-3 md:px-6">
       <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
         {/* Sidebar Trigger - Mobile only */}
         <SidebarTrigger className="md:hidden" />
 
         {roomData.isDirect ? (
           <>
-            <Avatar className="h-8 w-8 rounded-md">
+            <Avatar className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm">
               <AvatarImage
                 src={
                   roomData.participants.find((p) => p.user.id !== currentUserId)
@@ -87,7 +87,7 @@ export function ChatHeader({
                 }
               />
               <AvatarFallback
-                className="text-xs rounded-md"
+                className="text-xs rounded-md font-bold text-white"
                 style={{
                   backgroundColor: stringToColor(
                     roomData.participants.find(
@@ -99,18 +99,23 @@ export function ChatHeader({
                 {roomName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold text-sidebar-foreground leading-tight">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm md:text-base font-bold text-foreground leading-tight truncate">
                 {roomName}
               </h1>
-              <p className="text-[10px] text-sidebar-foreground/70 flex items-center gap-1.5 uppercase font-medium tracking-wider">
+              <div className="flex items-center gap-1.5 transition-opacity duration-300">
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    isOtherUserOnline ? "bg-green-500" : "bg-gray-400"
-                  }`}
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    isOtherUserOnline
+                      ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                      : "bg-muted-foreground/50",
+                  )}
                 />
-                {isOtherUserOnline ? "Online" : "Offline"}
-              </p>
+                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                  {isOtherUserOnline ? "Online" : "Offline"}
+                </span>
+              </div>
             </div>
           </>
         ) : (

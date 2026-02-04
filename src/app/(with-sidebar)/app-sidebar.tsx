@@ -161,7 +161,12 @@ export function AppSidebar({
   }, [user.id, router]);
 
   return (
-    <Sidebar collapsible="icon" variant="inset" {...props}>
+    <Sidebar
+      collapsible="icon"
+      variant="floating"
+      className="border-none bg-transparent"
+      {...props}
+    >
       <SidebarHeader>
         <NavBrand brand={brand} />
       </SidebarHeader>

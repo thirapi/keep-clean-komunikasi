@@ -11,8 +11,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { stringToColor } from "@/utils/background-avatar";
-import { Plus } from "lucide-react";
+import { Plus, Hash, User } from "lucide-react";
 import { usePresence } from "@/components/presence-provider";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { DirectMessageDialog } from "./direct-message-dialog";
@@ -56,6 +57,7 @@ export function NavMainDirectMessage({
 }) {
   const [openDMDialog, setOpenDMDialog] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { state } = useSidebar();
   const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
@@ -107,43 +109,57 @@ export function NavMainDirectMessage({
               )}
             </SidebarGroup>
           ) : (
-            [...groups].map((item) => (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  asChild
-                  className={cn(
-                    "flex items-center",
-                    isCollapsed ? "justify-center px-2" : "gap-2",
-                  )}
-                  tooltip={item.name}
-                >
-                  <Link href={item.url} className="relative">
-                    <div className="relative">
-                      <Avatar className="h-6 w-6 rounded-md">
-                        <AvatarImage
-                          src={item.avatar || "/placeholder.svg"}
-                          alt={item.name}
-                        />
-                        <AvatarFallback
-                          className="text-xs rounded-md"
-                          style={{
-                            backgroundColor: stringToColor(item.userId),
-                          }}
-                        >
-                          {item.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {onlineUserIds.includes(item.userId) && (
-                        <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-background">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            groups.map((item) => {
+              const isActive = pathname.startsWith(item.url);
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
+                    className={cn(
+                      "flex items-center transition-all duration-200 ease-in-out relative group/btn h-9",
+                      isCollapsed ? "justify-center px-2" : "gap-3",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
+                        : "hover:bg-sidebar-accent/80 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground",
+                    )}
+                    tooltip={item.name}
+                  >
+                    <Link href={item.url} className="flex items-center w-full">
+                      {isActive && !isCollapsed && (
+                        <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
+                      )}
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="h-6 w-6 rounded-md">
+                          <AvatarImage
+                            src={item.avatar || "/placeholder.svg"}
+                            alt={item.name}
+                          />
+                          <AvatarFallback
+                            className="text-[10px] rounded-md font-bold"
+                            style={{
+                              backgroundColor: stringToColor(item.userId),
+                            }}
+                          >
+                            {item.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {onlineUserIds.includes(item.userId) && (
+                          <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-sidebar group-hover/btn:bg-sidebar-accent transition-colors">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                          </span>
+                        )}
+                      </div>
+                      {!isCollapsed && (
+                        <span className="truncate flex-1 text-sm">
+                          {item.name}
                         </span>
                       )}
-                    </div>
-                    {!isCollapsed && <span>@{item.name}</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })
           )}
         </SidebarMenu>
       </SidebarGroup>
