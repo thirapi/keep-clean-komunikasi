@@ -19,6 +19,7 @@ import { useAutoScroll } from "./hooks/use-auto-scroll";
 import { useAutoFocusInput } from "./hooks/use-auto-focus-input";
 import { useMarkAsRead } from "./hooks/use-mark-as-read";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePresence } from "@/components/presence-provider";
 
 interface ChatRoomProps {
   userId: string;
@@ -34,7 +35,7 @@ export function ChatRoom({
   lastReadAt,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
-  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+  const { onlineUserIds } = usePresence();
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
@@ -103,7 +104,6 @@ export function ChatRoom({
 
   useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
-    const presenceChannel = pusher.subscribe(`presence-chat-${roomData.id}`);
 
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) => {
       setMessages((prev) => {
@@ -112,25 +112,9 @@ export function ChatRoom({
       });
     });
 
-    presenceChannel.bind("pusher:subscription_succeeded", (members: any) => {
-      const ids: string[] = [];
-      members.each((member: any) => ids.push(member.id));
-      setOnlineUserIds(ids);
-    });
-
-    presenceChannel.bind("pusher:member_added", (member: any) => {
-      setOnlineUserIds((prev) => [...prev, member.id]);
-    });
-
-    presenceChannel.bind("pusher:member_removed", (member: any) => {
-      setOnlineUserIds((prev) => prev.filter((id) => id !== member.id));
-    });
-
     return () => {
       chatChannel.unbind_all();
       chatChannel.unsubscribe();
-      presenceChannel.unbind_all();
-      presenceChannel.unsubscribe();
     };
   }, [roomData.id]);
 

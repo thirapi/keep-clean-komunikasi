@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { stringToColor } from "@/utils/background-avatar";
 import { Plus } from "lucide-react";
+import { usePresence } from "@/components/presence-provider";
 import Link from "next/link";
 import { useState } from "react";
 import { DirectMessageDialog } from "./direct-message-dialog";
@@ -56,6 +57,7 @@ export function NavMainDirectMessage({
   const [openDMDialog, setOpenDMDialog] = useState(false);
   const router = useRouter();
   const { state } = useSidebar();
+  const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
 
   return (
@@ -116,18 +118,27 @@ export function NavMainDirectMessage({
                   tooltip={item.name}
                 >
                   <Link href={item.url} className="relative">
-                    <Avatar className="h-6 w-6 rounded-md">
-                      <AvatarImage
-                        src={item.avatar || "/placeholder.svg"}
-                        alt={item.name}
-                      />
-                      <AvatarFallback
-                        className="text-xs rounded-md"
-                        style={{ backgroundColor: stringToColor(item.userId) }}
-                      >
-                        {item.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-6 w-6 rounded-md">
+                        <AvatarImage
+                          src={item.avatar || "/placeholder.svg"}
+                          alt={item.name}
+                        />
+                        <AvatarFallback
+                          className="text-xs rounded-md"
+                          style={{
+                            backgroundColor: stringToColor(item.userId),
+                          }}
+                        >
+                          {item.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {onlineUserIds.includes(item.userId) && (
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-background">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        </span>
+                      )}
+                    </div>
                     {!isCollapsed && <span>@{item.name}</span>}
                   </Link>
                 </SidebarMenuButton>
