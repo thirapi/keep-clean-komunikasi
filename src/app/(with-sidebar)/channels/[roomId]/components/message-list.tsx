@@ -9,6 +9,8 @@ import { MessageSquare } from "lucide-react";
 import { DateSeparator } from "./date-separator";
 import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export function MessageList({
   messages,
@@ -18,6 +20,10 @@ export function MessageList({
   onReply,
   lastReadAt,
   userId,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+  viewportRef,
 }: {
   messages: MessageWithUserDTO[];
   bottomRef: React.RefObject<HTMLDivElement | null>;
@@ -26,6 +32,10 @@ export function MessageList({
   onReply: (message: MessageWithUserDTO) => void;
   lastReadAt: Date | null;
   userId: string;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  viewportRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   let lastDate: string | null = null;
 
@@ -33,11 +43,31 @@ export function MessageList({
     (msg) =>
       lastReadAt &&
       new Date(msg.createdAt) > lastReadAt &&
-      msg.userId !== userId
+      msg.userId !== userId,
   );
   return (
-    <ScrollArea className="h-full w-full px-4 pt-3">
+    <ScrollArea viewportRef={viewportRef} className="h-full w-full px-4 pt-3">
       <div className="flex flex-col space-y-4">
+        {hasMore && (
+          <div className="flex justify-center pb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="text-xs text-muted-foreground hover:text-primary"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Memuat...
+                </>
+              ) : (
+                "Muat pesan lama"
+              )}
+            </Button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center space-y-4 text-muted-foreground min-h-[60vh]">
             <MessageSquare className="w-20 h-20 text-gray-400 animate-bounce" />
@@ -53,9 +83,9 @@ export function MessageList({
             const currentDate = new Date(msg.createdAt).toDateString();
             const shouldShowDate = currentDate !== lastDate;
             const isUnread =
-            unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
-            const showDateSeparator = shouldShowDate && !isUnread; 
-            const showUnreadAndDate = shouldShowDate && isUnread; 
+              unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
+            const showDateSeparator = shouldShowDate && !isUnread;
+            const showUnreadAndDate = shouldShowDate && isUnread;
 
             lastDate = currentDate;
 

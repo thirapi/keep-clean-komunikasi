@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AllUsers } from "../admin/(with-sidebar)/users/types";
 import { stringToColor } from "@/utils/background-avatar";
+import { searchUsersAction } from "./user.action";
 
 interface User {
   id: string;
@@ -22,19 +22,18 @@ interface User {
 }
 
 type CurrentUser = {
-    id: string;
-    name: string;
-    initial: string;
-    role: string;
-    email: string;
-    avatar: string;
-  }
+  id: string;
+  name: string;
+  initial: string;
+  role: string;
+  email: string;
+  avatar: string;
+};
 
 interface DirectMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectUser: (userId: string) => void;
-  usersData: AllUsers[];
   user: CurrentUser;
 }
 
@@ -42,23 +41,24 @@ export function DirectMessageDialog({
   open,
   onOpenChange,
   onSelectUser,
-  usersData,
-  user
+  user,
 }: DirectMessageDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const searchUsers = async (query: string): Promise<User[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 300)); // optional delay
-    return usersData
-      .filter((u) => u.id !== user.id)
-      .filter((u) => u.username.toLowerCase().includes(query.toLowerCase()))
-      .map((u) => ({
-        id: u.id,
-        username: u.username,
-        avatar: u.avatar ?? undefined,
-      }));
+    const response = await searchUsersAction(query);
+    if (response.status === "success" && response.data) {
+      return response.data
+        .filter((u) => u.id !== user.id)
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          avatar: u.avatar ?? undefined,
+        }));
+    }
+    return [];
   };
 
   // Handle search with debouncing
@@ -133,7 +133,9 @@ export function DirectMessageDialog({
               </div>
             ) : searchQuery && users.length === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <p className="text-sm text-muted-foreground">Tidak ada pengguna yang cocok</p>
+                <p className="text-sm text-muted-foreground">
+                  Tidak ada pengguna yang cocok
+                </p>
               </div>
             ) : users.length > 0 ? (
               <ScrollArea className="h-[200px]">
@@ -150,8 +152,10 @@ export function DirectMessageDialog({
                           src={user.avatar || "/placeholder.svg"}
                           alt={user.username}
                         />
-                        <AvatarFallback className="text-xs text-white rounded-lg"
-                        style={{ backgroundColor: stringToColor(user.id) }}>
+                        <AvatarFallback
+                          className="text-xs text-white rounded-lg"
+                          style={{ backgroundColor: stringToColor(user.id) }}
+                        >
                           {getUserInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>

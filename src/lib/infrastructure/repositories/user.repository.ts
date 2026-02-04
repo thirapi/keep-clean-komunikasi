@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users, userRoles, roles, roomParticipants } from "@/lib/infrastructure/drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, like } from "drizzle-orm";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -146,5 +146,18 @@ export class UserRepository implements IUserRepository {
   ): Promise<void> {
     const client = tx ?? this.client;
     await client.update(users).set(user).where(eq(users.id, userId));
+  }
+
+  async searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string | null }[]> {
+    const results = await this.client.query.users.findMany({
+      where: like(users.username, `%${query}%`),
+      limit: limit ?? 10,
+      columns: {
+        id: true,
+        username: true,
+        avatar: true,
+      }
+    });
+    return results;
   }
 }

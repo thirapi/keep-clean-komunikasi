@@ -65,7 +65,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
       name: string;
     }[];
   } | null;
-  users: AllUsers[];
 }
 
 export function AppSidebar({
@@ -73,7 +72,6 @@ export function AppSidebar({
   checkRole,
   groupRooms,
   directRooms,
-  users,
   ...props
 }: AppSidebarProps) {
   const router = useRouter();
@@ -157,7 +155,6 @@ export function AppSidebar({
         <NavMainDirectMessage
           groups={directMessages}
           type="Direct Messages"
-          users={users}
           onCreateDirectMessage={handleCreateRoom}
           user={user}
         />

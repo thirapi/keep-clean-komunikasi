@@ -67,9 +67,9 @@ export const createMessage = async (
   }
 };
 
-export const getMessage = async (roomId: string) => {
+export const getMessage = async (roomId: string, limit?: number, before?: Date) => {
   try {
-    const message = await getMessageController(roomId);
+    const message = await getMessageController(roomId, limit, before);
 
     return {
       status: "success",

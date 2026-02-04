@@ -15,7 +15,6 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { DirectMessageDialog } from "./direct-message-dialog";
-import { AllUsers } from "../admin/(with-sidebar)/users/types";
 import { useRouter } from "next/navigation";
 import {
   Tooltip,
@@ -46,13 +45,11 @@ type User = {
 export function NavMainDirectMessage({
   groups,
   type,
-  users,
   user,
   onCreateDirectMessage,
 }: {
   groups: Groups[];
   type: string;
-  users: AllUsers[];
   user: User;
   onCreateDirectMessage: (userId: string) => Promise<void>;
 }) {
@@ -109,33 +106,32 @@ export function NavMainDirectMessage({
             </SidebarGroup>
           ) : (
             [...groups].map((item) => (
-<SidebarMenuItem key={item.id}>
-  <SidebarMenuButton
-    asChild
-    className={cn(
-      "flex items-center",
-      isCollapsed ? "justify-center px-2" : "gap-2"
-    )}
-    tooltip={item.name}
-  >
-    <Link href={item.url} className="relative">
-      <Avatar className="h-6 w-6 rounded-md">
-        <AvatarImage
-          src={item.avatar || "/placeholder.svg"}
-          alt={item.name}
-        />
-        <AvatarFallback
-          className="text-xs rounded-md"
-          style={{ backgroundColor: stringToColor(item.userId) }}
-        >
-          {item.name.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      {!isCollapsed && <span>@{item.name}</span>}
-    </Link>
-  </SidebarMenuButton>
-</SidebarMenuItem>
-
+              <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton
+                  asChild
+                  className={cn(
+                    "flex items-center",
+                    isCollapsed ? "justify-center px-2" : "gap-2",
+                  )}
+                  tooltip={item.name}
+                >
+                  <Link href={item.url} className="relative">
+                    <Avatar className="h-6 w-6 rounded-md">
+                      <AvatarImage
+                        src={item.avatar || "/placeholder.svg"}
+                        alt={item.name}
+                      />
+                      <AvatarFallback
+                        className="text-xs rounded-md"
+                        style={{ backgroundColor: stringToColor(item.userId) }}
+                      >
+                        {item.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!isCollapsed && <span>@{item.name}</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             ))
           )}
         </SidebarMenu>
@@ -148,7 +144,6 @@ export function NavMainDirectMessage({
           router.refresh();
           setOpenDMDialog(false);
         }}
-        usersData={users}
         user={user}
       />
     </>

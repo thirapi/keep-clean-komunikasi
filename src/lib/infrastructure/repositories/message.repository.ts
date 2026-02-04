@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { messages, users } from "@/lib/infrastructure/drizzle/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, desc, lt, and } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
   MessageRecord,
@@ -51,10 +51,16 @@ export class MessageRepository implements IMessageRepository {
     return newMessage as unknown as MessageWithUserDTO;
   }
 
-  async getMessagesByRoomId(roomId: string): Promise<MessageWithUserDTO[]> {
+  async getMessagesByRoomId(roomId: string, limit?: number, before?: Date): Promise<MessageWithUserDTO[]> {
+    const filters = [eq(messages.roomId, roomId)];
+    if (before) {
+      filters.push(lt(messages.createdAt, before));
+    }
+
     const allMessages = await this.client.query.messages.findMany({
-      where: eq(messages.roomId, roomId),
-      orderBy: [asc(messages.createdAt)],
+      where: and(...filters),
+      orderBy: [limit ? desc(messages.createdAt) : asc(messages.createdAt)],
+      limit: limit,
       with: {
         user: {
           columns: {
@@ -74,6 +80,13 @@ export class MessageRepository implements IMessageRepository {
       },
     });
 
-    return allMessages as unknown as MessageWithUserDTO[];
+    const result = allMessages as unknown as MessageWithUserDTO[];
+
+    // If we limit (getting latest), we should sort them back to ascending for the UI
+    if (limit) {
+      return result.reverse();
+    }
+
+    return result;
   }
 }

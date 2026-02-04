@@ -3,6 +3,7 @@
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { updateUserController } from "@/lib/interface-adapters/controllers/users/update.controller";
+import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
 
 export const updateUserAction = async (
   userId: string,
@@ -24,6 +25,26 @@ export const updateUserAction = async (
       error: {
         type: "UNKNOWN_ERROR",
         message: err.message || "Something went wrong",
+      },
+    };
+  }
+};
+
+export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string | null }[]>> => {
+  try {
+    const users = await searchUserController(query);
+    return {
+      status: "success",
+      data: users,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: [],
+      error: {
+        type: "UNKNOWN_ERROR",
+        message: err.message,
       },
     };
   }

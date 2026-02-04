@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
-import { updateLastReadAt } from "../messages.action";
+import { getMessage, updateLastReadAt } from "../messages.action";
 
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
@@ -37,10 +37,13 @@ export function ChatRoom({
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [hasMore, setHasMore] = useState(initialMessages.length === 50);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const isMobile = useIsMobile();
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const markAsRead = debounce(() => {
@@ -48,6 +51,38 @@ export function ChatRoom({
   }, 2000);
 
   const handleCancelReply = () => setReplyingTo(null);
+
+  const loadMoreMessages = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    const viewport = viewportRef.current;
+    const previousScrollHeight = viewport?.scrollHeight ?? 0;
+
+    setIsLoadingMore(true);
+    const oldestMessage = messages[0];
+    const beforeDate = oldestMessage
+      ? new Date(oldestMessage.createdAt)
+      : undefined;
+
+    const response = await getMessage(roomData.id, 50, beforeDate);
+
+    if (response.status === "success" && response.data) {
+      const newMessages = response.data;
+      if (newMessages.length < 50) {
+        setHasMore(false);
+      }
+      setMessages((prev) => [...newMessages, ...prev]);
+
+      // Maintain scroll position
+      setTimeout(() => {
+        if (viewport) {
+          const newScrollHeight = viewport.scrollHeight;
+          viewport.scrollTop = newScrollHeight - previousScrollHeight;
+        }
+      }, 0);
+    }
+    setIsLoadingMore(false);
+  };
 
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
@@ -85,7 +120,9 @@ export function ChatRoom({
   }, [roomData.id]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background"> {/* full height layout */}
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {" "}
+      {/* full height layout */}
       <ChatHeader
         roomData={roomData}
         currentUserId={userId}
@@ -104,6 +141,10 @@ export function ChatRoom({
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
               lastReadAt={lastReadAt}
+              onLoadMore={loadMoreMessages}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              viewportRef={viewportRef}
             />
           </div>
           <MessageInput
@@ -122,7 +163,6 @@ export function ChatRoom({
           </div>
         )}
       </div>
-
       {/* Mobile member list */}
       <MobileMemberList
         roomData={roomData}

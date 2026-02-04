@@ -21,10 +21,10 @@ export default async function ChatPage({
         <div className="absolute top-4 left-4 md:hidden z-10">
           <SidebarTrigger />
         </div>
-        
+
         <div className="flex flex-col items-center space-y-4 animate-fade-in">
           <K className="text-purple-800 dark:text-purple-400 w-24 h-24 animate-bounce" />
-          
+
           <div className="bg-accent/50 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-sm max-w-lg">
             <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <h2 className="text-lg font-semibold text-foreground mb-2">
@@ -43,7 +43,7 @@ export default async function ChatPage({
   const [roomResponse, initialMessagesResponse, lastReadAtResponse] =
     await Promise.all([
       getRoom(roomId),
-      getMessage(roomId),
+      getMessage(roomId, 50),
       getLastReadAt(session?.user?.id ?? "", roomId),
     ]);
 
@@ -62,16 +62,17 @@ export default async function ChatPage({
         <div className="absolute top-4 left-4 md:hidden z-10">
           <SidebarTrigger />
         </div>
-        
+
         <div className="flex flex-col items-center space-y-4 animate-fade-in">
           <AlertTriangle className="text-red-500 dark:text-red-400 w-20 h-20" />
-          
+
           <div className="bg-accent/50 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-sm max-w-lg">
             <h1 className="text-xl font-semibold text-foreground mb-2">
               Room Tidak Ditemukan
             </h1>
             <p className="text-sm text-muted-foreground">
-              Room yang kamu cari tidak tersedia atau mungkin sudah dihapus. Pastikan URL-nya benar atau coba pilih room lain.
+              Room yang kamu cari tidak tersedia atau mungkin sudah dihapus.
+              Pastikan URL-nya benar atau coba pilih room lain.
             </p>
           </div>
         </div>

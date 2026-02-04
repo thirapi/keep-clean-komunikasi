@@ -2,10 +2,10 @@ import { MessageRecord, MessageWithUserDTO } from "@/lib/entities/models/message
 import { IMessageRepository } from "../../repositories/message.repository.interface";
 
 export class GetMessageUseCase {
-  constructor(private messageRepository: IMessageRepository) {}
+  constructor(private messageRepository: IMessageRepository) { }
 
-  async execute(roomId: string): Promise<MessageWithUserDTO[]> {
-    const message = await this.messageRepository.getMessagesByRoomId(roomId);
+  async execute(roomId: string, limit?: number, before?: Date): Promise<MessageWithUserDTO[]> {
+    const message = await this.messageRepository.getMessagesByRoomId(roomId, limit, before);
 
     if (!message) {
       throw new Error("Message not found");

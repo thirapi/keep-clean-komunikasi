@@ -9,4 +9,5 @@ export interface IUserRepository {
   getAllUsersWithRoles(): Promise<{ id: string; username: string; avatar: string | null; roles: { id: string; name: string }[] }[]>;
   updateUserRoles(userId: string, roleIds: string[]): Promise<void>;
   update(userId: string, user: Partial<UserRecord>, tx?: any): Promise<void>;
+  searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string | null }[]>;
 }

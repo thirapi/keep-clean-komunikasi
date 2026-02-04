@@ -9,7 +9,6 @@ import {
 } from "../auth.action";
 import { createRoom, getRoomsByUserId } from "./channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
-import { getAllUsersWithRoles } from "../admin/(with-sidebar)/users/role.action";
 
 export default async function layout({
   children,
@@ -32,7 +31,6 @@ export default async function layout({
   const groupRooms = (userRooms.data ?? []).filter((room) => !room.isDirect);
   const session = await sidaBarUserInfo();
   const role = await getUserWithRolesFromSession();
-  const usersData = await getAllUsersWithRoles();
 
   function getInitials(name: string) {
     if (!name) return "?";
@@ -64,7 +62,6 @@ export default async function layout({
           checkRole={role}
           directRooms={directRooms}
           groupRooms={groupRooms}
-          users={usersData}
         />
 
         <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
