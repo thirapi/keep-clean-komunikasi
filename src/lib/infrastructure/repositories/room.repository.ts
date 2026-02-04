@@ -9,7 +9,6 @@ export class RoomRepository implements IRoomRepository {
   constructor(private client: typeof db) { }
 
   async getRoomById(roomId: string): Promise<RoomWithParticipantsDTO | null> {
-    console.log(`[RoomRepository] Fetching room by id: ${roomId}`);
     const room = await this.client.query.rooms.findFirst({
       where: (rooms, { eq }) => eq(rooms.id, roomId),
       with: {
@@ -30,10 +29,8 @@ export class RoomRepository implements IRoomRepository {
     });
 
     if (!room) {
-      console.log(`[RoomRepository] Room ${roomId} not found`);
       return null;
     }
-    console.log(`[RoomRepository] Room ${roomId} found: ${room.name}`);
 
     return {
       id: room.id,
@@ -58,7 +55,6 @@ export class RoomRepository implements IRoomRepository {
     userId: string,
     options?: { isDirect?: boolean }
   ): Promise<RoomWithParticipantsDTO[]> {
-    console.log(`[RoomRepository] Fetching all rooms for user: ${userId}, options:`, options);
     // Standard join approach to find rooms the user is participating in
     const participantRooms = await this.client
       .select({ roomId: roomParticipants.roomId })
@@ -66,7 +62,6 @@ export class RoomRepository implements IRoomRepository {
       .where(eq(roomParticipants.userId, userId));
 
     const roomIds = participantRooms.map(p => p.roomId);
-    console.log(`[RoomRepository] User ${userId} is in rooms:`, roomIds);
 
     if (roomIds.length === 0) return [];
 
@@ -103,8 +98,6 @@ export class RoomRepository implements IRoomRepository {
         },
       },
     });
-
-    console.log(`[RoomRepository] Found ${allRooms.length} rooms for user ${userId}`);
 
     return allRooms.map((room) => ({
       id: room.id,

@@ -3,6 +3,7 @@ import { users, userRoles, roles, roomParticipants } from "@/lib/infrastructure/
 import { eq, and, sql } from "drizzle-orm";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { UserRecord } from "@/lib/entities/models/user.model";
+import { createId } from "@paralleldrive/cuid2";
 
 export class UserRepository implements IUserRepository {
   constructor(private client: typeof db) { }
@@ -76,7 +77,7 @@ export class UserRepository implements IUserRepository {
       if (roleIds.length === 0) return;
 
       const data = roleIds.map((roleId) => ({
-        id: crypto.randomUUID(), // Or generate a cuid
+        id: createId(),
         userId,
         roleId,
       }));
@@ -92,7 +93,7 @@ export class UserRepository implements IUserRepository {
 
       // Fixed room ID from the original repository
       await innerTx.insert(roomParticipants).values({
-        id: crypto.randomUUID(), // Or generate a cuid
+        id: createId(),
         roomId: "cmak9alli0000i5sei9vn5szl",
         userId: user.id,
         lastReadAt: new Date(),
