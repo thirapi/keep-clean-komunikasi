@@ -63,7 +63,9 @@ export class RoomRepository implements IRoomRepository {
 
     const roomIds = participantRooms.map(p => p.roomId);
 
-    if (roomIds.length === 0) return [];
+    if (roomIds.length === 0) {
+      return [];
+    }
 
     const conditions = [inArray(rooms.id, roomIds)];
     if (typeof options?.isDirect === "boolean") {

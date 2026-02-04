@@ -82,50 +82,7 @@ async function main() {
         }
     }
 
-    // 3. Dev User
-    const devUsername = "dev";
-    const devPassword = "password123";
-    const existingDev = await db.query.users.findFirst({
-        where: eq(usersTable.username, devUsername),
-    });
-
-    let userId: string;
-
-    if (!existingDev) {
-        userId = createId();
-        const salt = genSaltSync(10);
-        const hashedPassword = hashSync(devPassword, salt);
-
-        await db.insert(usersTable).values({
-            id: userId,
-            username: devUsername,
-            password: hashedPassword,
-            avatar: "https://github.com/thirapi.png",
-        });
-        console.log(`👤 Created dev user: ${devUsername} / ${devPassword}`);
-    } else {
-        userId = existingDev.id;
-    }
-
-    // 4. Assign Admin Role to Dev User
-    if (adminRole) {
-        const existingUserRole = await db.query.userRoles.findFirst({
-            where: and(
-                eq(userRolesTable.userId, userId),
-                eq(userRolesTable.roleId, adminRole.id)
-            ),
-        });
-
-        if (!existingUserRole) {
-            await db.insert(userRolesTable).values({
-                id: createId(),
-                userId,
-                roleId: adminRole.id,
-            });
-        }
-    }
-
-    // 5. Default Channel
+    // 3. Default Channel
     const defaultRoomID = "cmak9alli0000i5sei9vn5szl";
     const existingRoom = await db.query.rooms.findFirst({
         where: eq(roomsTable.id, defaultRoomID),
@@ -140,21 +97,50 @@ async function main() {
         console.log(`💬 Created default channel: general`);
     }
 
-    // 6. Join dev user to default channel
-    const existingParticipation = await db.query.roomParticipants.findFirst({
-        where: and(
-            eq(roomParticipantsTable.userId, userId),
-            eq(roomParticipantsTable.roomId, defaultRoomID)
-        ),
-    });
+    // 4. Dev Users
+    const salt = genSaltSync(10);
+    const hashedPassword = hashSync("password123", salt);
 
-    if (!existingParticipation) {
-        await db.insert(roomParticipantsTable).values({
-            id: createId(),
-            userId,
-            roomId: defaultRoomID,
-            lastReadAt: new Date(),
+    const devUsers = [
+        {
+            id: "cmak9alli0001i5sei9vn5szl",
+            username: "dev",
+            password: hashedPassword,
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dev",
+        },
+        {
+            id: "cmak9alli0002i5sei9vn5szl",
+            username: "dev2",
+            password: hashedPassword,
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dev2",
+        }
+    ];
+
+    for (const user of devUsers) {
+        const existingUser = await db.query.users.findFirst({
+            where: eq(usersTable.username, user.username),
         });
+
+        if (!existingUser) {
+            await db.insert(usersTable).values(user);
+            console.log(`👤 Created dev user: ${user.username}`);
+
+            if (adminRole) {
+                await db.insert(userRolesTable).values({
+                    id: createId(),
+                    userId: user.id,
+                    roleId: adminRole.id,
+                });
+            }
+
+            // Join general channel
+            await db.insert(roomParticipantsTable).values({
+                id: createId(),
+                roomId: defaultRoomID,
+                userId: user.id,
+                lastReadAt: new Date(),
+            });
+        }
     }
 
     console.log("✅ Seeding selesai.");

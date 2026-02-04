@@ -54,12 +54,12 @@ export function MessageItem({
     >
       <div className="relative">
         <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
-          <AvatarImage src={message.user.avatar ?? undefined} />
+          <AvatarImage src={message.user?.avatar ?? undefined} />
           <AvatarFallback
             className="rounded-md text-white dark:text-white"
             style={{ backgroundColor: bgColor }}
           >
-            {message.user.username.charAt(0).toUpperCase()}
+            {message.user?.username.charAt(0).toUpperCase() ?? "?"}
           </AvatarFallback>
         </Avatar>
         <div
@@ -74,25 +74,27 @@ export function MessageItem({
         <div className="text-sm font-semibold text-foreground">
           <HoverCard>
             <HoverCardTrigger asChild>
-              <span className="cursor-pointer">{message.user.username}</span>
+              <span className="cursor-pointer">
+                {message.user?.username ?? "Unknown User"}
+              </span>
             </HoverCardTrigger>
             <HoverCardContent className="w-64">
               <div className="flex items-center gap-2">
                 <Avatar className="w-10 h-10 rounded-md flex items-center justify-center font-bold">
                   <AvatarImage
-                    src={message.user.avatar || "/placeholder.svg"}
+                    src={message.user?.avatar || "/placeholder.svg"}
                     alt="Current Avatar"
                   />
                   <AvatarFallback
                     className="rounded-md text-white dark:text-white"
                     style={{ backgroundColor: bgColor }}
                   >
-                    {message.user.username.charAt(0).toUpperCase()}
+                    {message.user?.username.charAt(0).toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    {message.user.username}
+                    {message.user?.username ?? "Unknown User"}
                   </p>
                 </div>
               </div>
@@ -117,7 +119,7 @@ export function MessageItem({
             <CornerLeftUp className="h-4 w-4 text-muted-foreground" />
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold">
-                {message.replyToMessage.user.username}
+                {message.replyToMessage.user?.username ?? "Unknown User"}
               </span>
               <span className="ml-1">
                 {truncate(message.replyToMessage.content, 100)}
@@ -127,13 +129,15 @@ export function MessageItem({
         )}
 
         {/* Message Content */}
-        <div className="
+        <div
+          className="
             text-sm text-foreground mt-1
             whitespace-pre-wrap
             wrap-anywhere
             min-w-0
             pr-8
-            ">
+            "
+        >
           {message.content}
         </div>
         {message.imageUrl && (

@@ -1,10 +1,7 @@
 "use server";
 
 import { AppSidebar } from "./app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import {
   getUserSession,
   getUserWithRolesFromSession,
@@ -33,7 +30,6 @@ export default async function layout({
   const userRooms = await getRoomsByUserId(userId.user.id);
   const directRooms = (userRooms.data ?? []).filter((room) => room.isDirect);
   const groupRooms = (userRooms.data ?? []).filter((room) => !room.isDirect);
-
   const session = await sidaBarUserInfo();
   const role = await getUserWithRolesFromSession();
   const usersData = await getAllUsersWithRoles();
@@ -63,24 +59,22 @@ export default async function layout({
           user={{ id: user.id, username: user.name }}
         />
         {/* <BreadcrumbProvider> */}
-          <AppSidebar
-            user={user}
-            checkRole={role}
-            directRooms={directRooms}
-            groupRooms={groupRooms}
-            users={usersData}
-          />
+        <AppSidebar
+          user={user}
+          checkRole={role}
+          directRooms={directRooms}
+          groupRooms={groupRooms}
+          users={usersData}
+        />
 
-          <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-            {/* Main content */}
-            <main className="flex-1 min-h-0 overflow-hidden w-full">
-              <div className="h-full w-full rounded-xl overflow-hidden">
-                <div className="h-full w-full overflow-y-auto">
-                  {children}
-                </div>
-              </div>
-            </main>
-          </SidebarInset>
+        <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+          {/* Main content */}
+          <main className="flex-1 min-h-0 overflow-hidden w-full">
+            <div className="h-full w-full rounded-xl overflow-hidden">
+              <div className="h-full w-full overflow-y-auto">{children}</div>
+            </div>
+          </main>
+        </SidebarInset>
         {/* </BreadcrumbProvider> */}
       </SidebarProvider>
     </div>

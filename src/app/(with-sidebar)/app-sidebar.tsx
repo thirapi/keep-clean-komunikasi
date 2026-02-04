@@ -79,7 +79,7 @@ export function AppSidebar({
   const router = useRouter();
   const groups = groupRooms.map((room) => {
     const currentUserParticipant = room.participants.find(
-      (participant) => participant.user.id === user.id
+      (participant) => participant.user.id === user.id,
     );
 
     const lastReadAt = currentUserParticipant?.lastReadAt
@@ -114,7 +114,7 @@ export function AppSidebar({
 
   const directMessages = directRooms.map((room) => {
     const otherUser = room.participants.find(
-      (participant) => participant.user.id !== user.id
+      (participant) => participant.user.id !== user.id,
     );
 
     return {
