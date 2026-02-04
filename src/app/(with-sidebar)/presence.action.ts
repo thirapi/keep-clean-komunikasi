@@ -44,7 +44,7 @@ export const getOnlineUsersAction = async (): Promise<ServerResponse<string[]>> 
     } catch (err: any) {
         return {
             status: "error",
-            data: null,
+            data: [] as string[],
             error: {
                 message: err.message,
                 type: err.name,

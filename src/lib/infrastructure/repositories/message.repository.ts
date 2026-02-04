@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { messages, users } from "@/lib/infrastructure/drizzle/schema";
-import { eq, asc, desc, lt, and } from "drizzle-orm";
+import { eq, asc, desc, lt, gt, and } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
   MessageRecord,
@@ -52,10 +52,13 @@ export class MessageRepository implements IMessageRepository {
     return newMessage as unknown as MessageWithUserDTO;
   }
 
-  async getMessagesByRoomId(roomId: string, limit?: number, before?: Date): Promise<MessageWithUserDTO[]> {
+  async getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]> {
     const filters = [eq(messages.roomId, roomId)];
     if (before) {
       filters.push(lt(messages.createdAt, before));
+    }
+    if (after) {
+      filters.push(gt(messages.createdAt, after));
     }
 
     const allMessages = await this.client.query.messages.findMany({

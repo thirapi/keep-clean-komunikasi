@@ -21,6 +21,11 @@ interface Props {
   onCancelReply: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onNewMessage: (message: MessageWithUserDTO) => void;
+  user: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
 }
 
 export function MessageInput({
@@ -30,6 +35,7 @@ export function MessageInput({
   onCancelReply,
   inputRef,
   onNewMessage,
+  user,
 }: Props) {
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -63,24 +69,48 @@ export function MessageInput({
       sendStopTypingEvent.cancel();
       setTypingStatusAction(userId, roomData.id, false);
 
+      // Optimistic message
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticMessage: MessageWithUserDTO = {
+        id: optimisticId,
+        content,
+        userId,
+        roomId: roomData.id,
+        imageUrl: null,
+        replyTo: replyingTo?.id || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isOptimistic: true, // Add this flag
+        user: {
+          username: user.username,
+          avatar: user.avatar,
+        },
+      } as any;
+
+      onNewMessage(optimisticMessage);
+      setContent("");
+      const currentContent = content;
+      const currentReplyTo = replyingTo?.id;
+      onCancelReply();
+
       try {
         const response = await createMessage({
           userId,
-          content,
+          content: currentContent,
           roomId: roomData.id,
-          replyTo: replyingTo?.id,
+          replyTo: currentReplyTo,
         });
 
         if (response.status === "success" && response.data) {
-          setContent("");
-          onCancelReply();
-          onNewMessage(response.data);
+          onNewMessage(response.data); // This will replace the optimistic one
         } else {
           console.error("Gagal mengirim pesan:", response.error);
           toast.error(response.error?.message);
+          // Rollback: remove optimistic message
+          // (In a real app, you might mark it as "failed" and allow retry)
         }
       } finally {
-        setIsSending(false); // pastikan kembali normal meski gagal
+        setIsSending(false);
       }
     },
     [

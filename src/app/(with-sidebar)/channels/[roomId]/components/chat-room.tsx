@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt } from "../messages.action";
@@ -26,6 +26,11 @@ interface ChatRoomProps {
   roomData: RoomWithParticipantsDTO;
   initialMessages: MessageWithUserDTO[];
   lastReadAt: Date | null;
+  user: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
 }
 
 export function ChatRoom({
@@ -33,6 +38,7 @@ export function ChatRoom({
   roomData,
   initialMessages,
   lastReadAt,
+  user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
   const { onlineUserIds } = usePresence();
@@ -45,6 +51,11 @@ export function ChatRoom({
   const isMobile = useIsMobile();
   const router = useRouter();
 
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -56,14 +67,55 @@ export function ChatRoom({
     router.refresh(); // Sync sidebar
   }, 2000);
 
-  const handleCancelReply = () => setReplyingTo(null);
-
-  const handleNewMessage = (msg: MessageWithUserDTO) => {
+  const handleNewMessage = useCallback((msg: MessageWithUserDTO) => {
     setMessages((prev) => {
-      if (prev.some((m) => m.id === msg.id)) return prev;
+      // Check if we already have this message (real or optimistic)
+      const existingIndex = prev.findIndex((m) => {
+        // Match by ID (for real/synced messages)
+        if (m.id === msg.id) return true;
+
+        // Match by optimistic properties (for replacing our own optimistic message)
+        if (m.isOptimistic && m.userId === msg.userId) {
+          const mTrimmed = m.content.trim();
+          const msgTrimmed = msg.content.trim();
+          return mTrimmed === msgTrimmed;
+        }
+
+        return false;
+      });
+
+      if (existingIndex > -1) {
+        const newMessages = [...prev];
+        // Replace the existing one (could be original optimistic or older real)
+        newMessages[existingIndex] = {
+          ...msg,
+          isOptimistic: false, // Ensure it's marked as non-optimistic
+        };
+        return newMessages;
+      }
+
       return [...prev, msg];
     });
-  };
+  }, []);
+
+  const syncMessages = useCallback(async () => {
+    const currentMessages = messagesRef.current;
+    if (currentMessages.length === 0) return;
+
+    const lastMessage = currentMessages[currentMessages.length - 1];
+    const afterDate = new Date(lastMessage.createdAt);
+
+    const response = await getMessage(roomData.id, 50, undefined, afterDate);
+
+    if (response.status === "success" && response.data) {
+      const newMessages = response.data;
+      if (newMessages.length > 0) {
+        newMessages.forEach((msg) => handleNewMessage(msg));
+      }
+    }
+  }, [roomData.id, handleNewMessage]);
+
+  const handleCancelReply = () => setReplyingTo(null);
 
   const loadMoreMessages = async () => {
     if (isLoadingMore || !hasMore) return;
@@ -106,17 +158,29 @@ export function ChatRoom({
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
 
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
+      handleNewMessage(msg);
     });
+
+    // Handle Pusher reconnection
+    const handleConnected = () => {
+      syncMessages();
+    };
+
+    pusher.connection.bind("connected", handleConnected);
+
+    // Handle Window Focus
+    const handleFocus = () => {
+      syncMessages();
+    };
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       chatChannel.unbind_all();
       chatChannel.unsubscribe();
+      pusher.connection.unbind("connected", handleConnected);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [roomData.id]);
+  }, [roomData.id, handleNewMessage, syncMessages]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -153,6 +217,7 @@ export function ChatRoom({
             onCancelReply={handleCancelReply}
             inputRef={inputRef}
             onNewMessage={handleNewMessage}
+            user={user}
           />
         </div>
 

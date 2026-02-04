@@ -1,5 +1,5 @@
 // src/app/(with-sidebar)/channels/[roomId]/page.tsx
-import { getUserSession } from "@/app/auth.action";
+import { getUserSession, sidaBarUserInfo } from "@/app/auth.action";
 import { getLastReadAt, getMessage } from "./messages.action";
 import { ChatRoom } from "./components/chat-room";
 import { getRoom } from "./room.action";
@@ -40,11 +40,12 @@ export default async function ChatPage({
   }
 
   const session = await getUserSession();
-  const [roomResponse, initialMessagesResponse, lastReadAtResponse] =
+  const [roomResponse, initialMessagesResponse, lastReadAtResponse, userInfo] =
     await Promise.all([
       getRoom(roomId),
       getMessage(roomId, 50),
       getLastReadAt(session?.user?.id ?? "", roomId),
+      sidaBarUserInfo(),
     ]);
 
   const roomData = roomResponse.status === "success" ? roomResponse.data : null;
@@ -87,6 +88,11 @@ export default async function ChatPage({
         roomData={roomData}
         initialMessages={initialMessages ?? []}
         lastReadAt={lastReadAt}
+        user={{
+          id: session?.user?.id ?? "",
+          username: userInfo.name,
+          avatar: userInfo.avatar,
+        }}
       />
     </div>
   );

@@ -7,6 +7,8 @@ export interface MessageRecord {
   replyTo?: string | null;
   isDeleted: boolean;
   createdAt: Date;
+  updatedAt: Date;
+  isOptimistic?: boolean;
 }
 
 export interface MessageWithUserDTO extends MessageRecord {

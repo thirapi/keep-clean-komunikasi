@@ -8,5 +8,5 @@ export interface IMessageRepository {
     imageUrl?: string,
     replyTo?: string,
   ): Promise<MessageWithUserDTO>;
-  getMessagesByRoomId(roomId: string, limit?: number, before?: Date): Promise<MessageWithUserDTO[]>;
+  getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]>;
 }
