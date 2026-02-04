@@ -1,9 +1,9 @@
 import { GetAllPermissionsUseCase } from "@/lib/application/use-cases/permissions/get-all-permission.use-case";
 import { PermissionRepository } from "@/lib/infrastructure/repositories/permission.repository";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const permissionRepository = new PermissionRepository(prisma);
+const permissionRepository = new PermissionRepository(db);
 const getAllPermissionsUseCase = new GetAllPermissionsUseCase(
   permissionRepository
 );

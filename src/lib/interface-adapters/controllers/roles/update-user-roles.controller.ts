@@ -3,10 +3,10 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { UpdateUserRolesUseCase } from "@/lib/application/use-cases/roles/update-user-roles.use-case";
 import { RoleService } from "@/lib/infrastructure/services/role.service";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const userRepository = new UserRepository(prisma);
-const roleRepository = new RoleRepository(prisma);
+const userRepository = new UserRepository(db);
+const roleRepository = new RoleRepository(db);
 const roleService = new RoleService(userRepository);
 const updateUserRolesUseCase = new UpdateUserRolesUseCase(userRepository, roleRepository, roleService);
 

@@ -3,9 +3,9 @@ import { SessionDTO } from "@/lib/entities/models/session.model";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { RoleService } from "@/lib/infrastructure/services/role.service";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const userRepository = new UserRepository(prisma);
+const userRepository = new UserRepository(db);
 
 const roleService = new RoleService(userRepository);
 

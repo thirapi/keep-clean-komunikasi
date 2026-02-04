@@ -2,16 +2,17 @@
   "name": "komunikasi-clean-architecture",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
-    "postinstall": "prisma generate",
     "postbuild": "next-sitemap",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:reset": "tsx --env-file=.env src/lib/infrastructure/drizzle/reset.ts",
+    "db:seed": "tsx --env-file=.env src/lib/infrastructure/drizzle/seed.ts",
+    "dev:clean": "npm run db:reset && npm run db:push && npm run db:seed && npm run dev",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
@@ -22,7 +23,6 @@
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
     "@paralleldrive/cuid2": "^2.2.2",
-    "@prisma/client": "^6.12.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-avatar": "^1.1.4",
@@ -59,7 +59,9 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0",
     "tw-animate-css": "^1.2.5",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "drizzle-orm": "^0.39.1",
+    "@neondatabase/serverless": "^0.10.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -74,13 +76,14 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "^26.1.0",
-    "prisma": "^6.12.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.1.3",
-    "wrangler": "^4.45.0"
+    "wrangler": "^4.45.0",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2"
   }
 }

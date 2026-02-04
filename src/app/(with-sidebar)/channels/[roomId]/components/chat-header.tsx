@@ -40,7 +40,7 @@ export function ChatHeader({
   useEffect(() => {
     if (roomData.isDirect) {
       const otherUser = roomData.participants.find(
-        (p) => p.user.id !== currentUserId
+        (p) => p.user.id !== currentUserId,
       )?.user;
 
       setRoomName(otherUser?.username ?? "Unknown user");
@@ -52,7 +52,7 @@ export function ChatHeader({
   useEffect(() => {
     if (roomData.isDirect) {
       const other = roomData.participants.find(
-        (p) => p.user.id !== currentUserId
+        (p) => p.user.id !== currentUserId,
       )?.user;
       setOtherUser(other ?? null);
       setRoomName(other?.username ?? "Unknown user");
@@ -66,17 +66,17 @@ export function ChatHeader({
     : false;
 
   const onlineCount = roomData.participants.filter((p) =>
-    onlineUserIds.includes(p.user.id)
+    onlineUserIds.includes(p.user.id),
   ).length;
 
   const Icon = useMemo(() => (membersVisible ? X : Users), [membersVisible]);
 
   return (
-    <div className="flex items-center justify-between border-b bg-card/50 px-8 sm:px-4 py-3 -mx-4">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="flex items-center justify-between border-b bg-card/50 px-4 py-3 md:px-6">
+      <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
         {/* Sidebar Trigger - Mobile only */}
         <SidebarTrigger className="md:hidden" />
-        
+
         {roomData.isDirect ? (
           <>
             <Avatar className="h-8 w-8 rounded-md">
@@ -85,21 +85,21 @@ export function ChatHeader({
                 style={{
                   backgroundColor: stringToColor(
                     roomData.participants.find(
-                      (p) => p.user.id !== currentUserId
-                    )?.user.id ?? ""
+                      (p) => p.user.id !== currentUserId,
+                    )?.user.id ?? "",
                   ),
                 }}
               >
                 {roomName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="text-lg font-semibold text-sidebar-foreground">
+            <div className="flex flex-col">
+              <h1 className="text-lg font-semibold text-sidebar-foreground leading-tight">
                 {roomName}
               </h1>
-              <p className="text-xs text-sidebar-foreground/70 flex items-center gap-1">
+              <p className="text-[10px] text-sidebar-foreground/70 flex items-center gap-1.5 uppercase font-medium tracking-wider">
                 <span
-                  className={`h-2 w-2 rounded-full ${
+                  className={`h-1.5 w-1.5 rounded-full ${
                     isOtherUserOnline ? "bg-green-500" : "bg-gray-400"
                   }`}
                 />
@@ -109,30 +109,37 @@ export function ChatHeader({
           </>
         ) : (
           <>
-            <HashIcon className="flex-shrink-0" />
-            <h2 className="text-base sm:text-lg font-semibold truncate">
-              {roomName}
+            <HashIcon className="flex-shrink-0 w-5 h-5 text-muted-foreground mr-1" />
+            <div className="flex items-center gap-3 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold truncate">
+                {roomName}
+              </h2>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="secondary" className="gap-1 flex-shrink-0">
+                    <Badge
+                      variant="secondary"
+                      className="gap-2 flex-shrink-0 font-medium py-0.5 px-2"
+                    >
                       {onlineUserIds.length === 0 ? (
                         <>
                           <span className="animate-spin h-2 w-2 border-2 border-green-500 border-t-transparent rounded-full" />
-                          <span className="hidden sm:inline">Loading...</span>
+                          <span className="hidden sm:inline text-[11px]">
+                            Loading...
+                          </span>
                         </>
                       ) : (
                         <>
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          <span className="hidden sm:inline">
+                          <span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                          <span className="hidden sm:inline text-[11px]">
                             {onlineCount} online
                           </span>
                         </>
                       )}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
+                  <TooltipContent side="bottom" align="start">
+                    <p className="text-xs">
                       {onlineUserIds.length === 0
                         ? "Checking online members..."
                         : `${onlineCount} online of ${roomData.participants.length} members`}
@@ -140,7 +147,7 @@ export function ChatHeader({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </h2>
+            </div>
           </>
         )}
       </div>
@@ -153,7 +160,7 @@ export function ChatHeader({
               onClick={onToggleMembers}
               className={cn(
                 "transition-colors duration-200 flex-shrink-0",
-                membersVisible && "bg-accent/40"
+                membersVisible && "bg-accent/40",
               )}
             >
               <Icon className="h-4 w-4 sm:h-5 sm:w-5" />

@@ -1,12 +1,14 @@
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
+import { permissions as permissionsTable } from "@/lib/infrastructure/drizzle/schema";
 import { IPermissionRepository } from "@/lib/application/repositories/permission.repository.interface";
 import { PermissionRecord } from "@/lib/entities/models/permission.model";
 
 export class PermissionRepository implements IPermissionRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private client: typeof db) { }
 
   async getAllPermissions(): Promise<PermissionRecord[]> {
-    return (await this.prisma.permission.findMany()).map((permission) => ({
+    const allPermissions = await this.client.query.permissions.findMany();
+    return allPermissions.map((permission) => ({
       ...permission,
       description: permission.description ?? undefined,
     }));

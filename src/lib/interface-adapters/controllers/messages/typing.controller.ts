@@ -3,10 +3,10 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { z } from "zod";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 const pusherService = new PusherService();
-const userRepository = new UserRepository(prisma);
+const userRepository = new UserRepository(db);
 const typingUseCase = new TypingUseCase(pusherService, userRepository);
 
 const formSchema = z.object({

@@ -5,12 +5,12 @@ import { InputParsedError } from "@/lib/entities/errors/common";
 import { z } from "zod";
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
 import { DiscordNotifierService } from "@/lib/infrastructure/services/discord-notifier.service";
 
-const messageRepository = new MessageRepository(prisma);
-const roomRepository = new RoomRepository(prisma)
+const messageRepository = new MessageRepository(db);
+const roomRepository = new RoomRepository(db)
 const pusherService = new PusherService();
 const discordNotifierService = new DiscordNotifierService(process.env.DISCORD_WEBHOOK_URL || "");
 

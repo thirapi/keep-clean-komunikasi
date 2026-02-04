@@ -1,8 +1,8 @@
 import { UpdateLastReadAtUseCase } from "@/lib/application/use-cases/rooms/update-last-read-at.use-case";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const roomRepository = new RoomRepository(prisma);
+const roomRepository = new RoomRepository(db);
 const updateLastReadAtUseCase = new UpdateLastReadAtUseCase(roomRepository);
 
 export async function updateLastReadAtController(

@@ -6,11 +6,11 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
 import { z } from "zod";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const userRepository = new UserRepository(prisma);
+const userRepository = new UserRepository(db);
 const passwordService = new PasswordService();
-const roleRepository = new RoleRepository(prisma);
+const roleRepository = new RoleRepository(db);
 
 const signUpUseCase = new SignUpUseCase(
     userRepository,

@@ -1,9 +1,9 @@
 import { GetRoomByIdUseCase } from "@/lib/application/use-cases/rooms/get-room-by-id.use-case";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
-const roomRepository = new RoomRepository(prisma);
+const roomRepository = new RoomRepository(db);
 const getRoomByIdUseCase = new GetRoomByIdUseCase(roomRepository);
 
 export async function getRoomByIdController(roomId: string) {

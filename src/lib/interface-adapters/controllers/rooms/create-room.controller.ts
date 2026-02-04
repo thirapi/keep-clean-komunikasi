@@ -1,9 +1,9 @@
 import { CreateRoomUseCase } from "@/lib/application/use-cases/rooms/create-room.use-case";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
 
-const roomRepository = new RoomRepository(prisma);
+const roomRepository = new RoomRepository(db);
 const createRoomUseCase = new CreateRoomUseCase(roomRepository);
 
 const formSchema = z.object({

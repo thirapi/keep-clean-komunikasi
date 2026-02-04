@@ -2,11 +2,11 @@ import { getUserSession } from "@/app/auth.action";
 import { RoleService } from "@/lib/infrastructure/services/role.service";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 export async function adminGuard() {
     const session = await getUserSession();
-    const roleService = new RoleService(new UserRepository(prisma));
+    const roleService = new RoleService(new UserRepository(db));
 
     const user = await roleService.getUserWithRolesFromSession(session);
     if (!user) return false;
