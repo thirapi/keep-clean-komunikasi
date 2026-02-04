@@ -101,7 +101,7 @@ export class RoomRepository implements IRoomRepository {
       },
     });
 
-    return allRooms.map((room) => ({
+    const dtoRooms = allRooms.map((room) => ({
       id: room.id,
       name: room.name,
       isDirect: room.isDirect,
@@ -118,6 +118,19 @@ export class RoomRepository implements IRoomRepository {
       })),
       messages: room.messages,
     }));
+
+    // Sort by latest message date (if any) or room creation date
+    return dtoRooms.sort((a, b) => {
+      const aTime = a.messages[0]?.createdAt
+        ? new Date(a.messages[0].createdAt).getTime()
+        : 0;
+      const bTime = b.messages[0]?.createdAt
+        ? new Date(b.messages[0].createdAt).getTime()
+        : 0;
+
+      // If no messages in both, keep stable or sort by room creation (not available here so just stable)
+      return bTime - aTime;
+    });
   }
 
   async updateLastReadAt(

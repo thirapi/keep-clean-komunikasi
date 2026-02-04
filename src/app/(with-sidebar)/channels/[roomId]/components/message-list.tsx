@@ -107,6 +107,7 @@ export function MessageList({
                   message={msg}
                   onlineUserIds={onlineUserIds}
                   onReply={onReply}
+                  currentUserId={userId}
                 />
               </div>
             );

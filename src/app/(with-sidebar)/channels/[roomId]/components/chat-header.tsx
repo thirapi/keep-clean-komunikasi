@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { stringToColor } from "@/utils/background-avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -80,6 +80,12 @@ export function ChatHeader({
         {roomData.isDirect ? (
           <>
             <Avatar className="h-8 w-8 rounded-md">
+              <AvatarImage
+                src={
+                  roomData.participants.find((p) => p.user.id !== currentUserId)
+                    ?.user.avatar || undefined
+                }
+              />
               <AvatarFallback
                 className="text-xs rounded-md"
                 style={{

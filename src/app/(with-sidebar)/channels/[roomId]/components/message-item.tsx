@@ -1,10 +1,6 @@
-// src/app/(with-sidebar)/channels/[roomId]/components/message-item.tsx
-import {
-  MessageRecord,
-  MessageWithUserDTO,
-} from "@/lib/entities/models/message.model";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CornerLeftUp, CornerUpLeft } from "lucide-react";
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CornerLeftUp, CornerUpLeft, MessageSquare } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -17,7 +13,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AvatarImage } from "@radix-ui/react-avatar";
+import { createRoom } from "../room.action";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 function stringToColor(str: string): string {
   let hash = 0;
@@ -37,11 +35,25 @@ export function MessageItem({
   message,
   onlineUserIds,
   onReply,
+  currentUserId,
 }: {
   message: MessageWithUserDTO;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
+  currentUserId: string;
 }) {
+  const router = useRouter();
+
+  const handleStartDM = async (targetUserId: string) => {
+    if (targetUserId === currentUserId) return;
+
+    const response = await createRoom(currentUserId, targetUserId);
+    if (response.status === "success" && response.data) {
+      router.push(`/channels/${response.data.id}`);
+    } else {
+      toast.error(response.error?.message || "Gagal membuat percakapan");
+    }
+  };
   const bgColor = stringToColor(message.userId);
   const isOnline = onlineUserIds.includes(message.userId);
   const [isHovered, setIsHovered] = useState(false);
@@ -92,10 +104,21 @@ export function MessageItem({
                     {message.user?.username.charAt(0).toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-semibold text-foreground">
                     {message.user?.username ?? "Unknown User"}
                   </p>
+                  {message.userId !== currentUserId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full gap-2 h-8 text-xs"
+                      onClick={() => handleStartDM(message.userId)}
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Kirim Pesan
+                    </Button>
+                  )}
                 </div>
               </div>
             </HoverCardContent>

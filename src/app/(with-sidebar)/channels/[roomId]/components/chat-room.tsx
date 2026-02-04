@@ -224,7 +224,11 @@ export function ChatRoom({
         {/* Desktop member list */}
         {showMembers && !isMobile && (
           <div className="hidden lg:block">
-            <MemberList roomData={roomData} onlineUserIds={onlineUserIds} />
+            <MemberList
+              roomData={roomData}
+              onlineUserIds={onlineUserIds}
+              currentUserId={userId}
+            />
           </div>
         )}
       </div>

@@ -6,13 +6,36 @@ import {
 } from "@/components/ui/hover-card";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { stringToColor } from "@/utils/background-avatar";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
+import { createRoom } from "../room.action";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface MemberListProps {
   roomData: RoomWithParticipantsDTO;
   onlineUserIds: string[];
+  currentUserId: string;
 }
 
-export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
+export function MemberList({
+  roomData,
+  onlineUserIds,
+  currentUserId,
+}: MemberListProps) {
+  const router = useRouter();
+
+  const handleStartDM = async (targetUserId: string) => {
+    if (targetUserId === currentUserId) return;
+
+    const response = await createRoom(currentUserId, targetUserId);
+    if (response.status === "success" && response.data) {
+      router.push(`/channels/${response.data.id}`);
+    } else {
+      toast.error(response.error?.message || "Gagal membuat percakapan");
+    }
+  };
+
   return (
     <aside className="w-64 h-full border-l border-border p-4 hidden lg:block">
       <h3 className="text-sm font-semibold text-muted-foreground mb-2">
@@ -62,10 +85,21 @@ export function MemberList({ roomData, onlineUserIds }: MemberListProps) {
                       {participant.user.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground">
                       {participant.user.username}
                     </p>
+                    {participant.user.id !== currentUserId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full gap-2 h-8 text-xs"
+                        onClick={() => handleStartDM(participant.user.id)}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        Kirim Pesan
+                      </Button>
+                    )}
                   </div>
                 </div>
               </HoverCardContent>
