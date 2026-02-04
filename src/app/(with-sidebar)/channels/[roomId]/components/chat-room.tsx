@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt } from "../messages.action";
+import { useRouter } from "next/navigation";
 
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
@@ -39,15 +40,19 @@ export function ChatRoom({
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length === 50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [lastReadState, setLastReadAt] = useState<Date | null>(lastReadAt);
   const isMobile = useIsMobile();
+  const router = useRouter();
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const markAsRead = debounce(() => {
-    updateLastReadAt(userId, roomData.id, new Date());
+  const markAsRead = debounce(async () => {
+    await updateLastReadAt(userId, roomData.id, new Date());
+    setLastReadAt(new Date());
+    router.refresh(); // Sync sidebar
   }, 2000);
 
   const handleCancelReply = () => setReplyingTo(null);
@@ -150,7 +155,7 @@ export function ChatRoom({
               unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
-              lastReadAt={lastReadAt}
+              lastReadAt={lastReadState}
               onLoadMore={loadMoreMessages}
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}

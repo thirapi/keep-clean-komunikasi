@@ -39,6 +39,7 @@ import { AllUsers } from "../admin/(with-sidebar)/users/types";
 import { useRouter } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
+import { pusher } from "@/lib/pusher/pusher.client";
 
 const brand = {
   name: "Komunikasi",
@@ -144,6 +145,20 @@ export function AppSidebar({
       toast.error(response.error?.message ?? "Gagal membuat percakapan");
     }
   }
+
+  React.useEffect(() => {
+    if (!user.id) return;
+
+    const channel = pusher.subscribe(`user-${user.id}`);
+
+    channel.bind("new-message-notification", () => {
+      router.refresh();
+    });
+
+    return () => {
+      pusher.unsubscribe(`user-${user.id}`);
+    };
+  }, [user.id, router]);
 
   return (
     <Sidebar collapsible="icon" variant="inset" {...props}>
