@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/landingpage/mode-toggle";
 import { AnimateInView } from "@/components/landingpage/animate-in-view";
 import K from "@/components/icons/k";
+import { InteractiveText } from "@/components/landingpage/interactive-text";
 
 export default function Home() {
   return (
@@ -30,9 +31,7 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
         <AnimateInView direction="up" delay={0.2}>
-          <h1 className="text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)]">
-            komunikasi
-          </h1>
+          <InteractiveText text="komunikasi" />
         </AnimateInView>
       </main>
 
