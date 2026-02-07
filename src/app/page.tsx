@@ -18,12 +18,18 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <ModeToggle />
             <div className="hidden sm:flex items-center gap-3">
-              <Button variant="ghost" className="text-sm font-medium" asChild>
-                <Link href="/signin">Sign In</Link>
-              </Button>
-              <Button className="rounded-full px-6" asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
+              <Link
+                href="/signin"
+                className="inline-flex items-center justify-center border border-border/60 text-foreground hover:bg-foreground/5 hover:border-foreground/20 text-sm font-medium rounded-full px-6 h-9 transition-all duration-200"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium rounded-full px-6 h-9 transition-all duration-200"
+              >
+                Sign Up
+              </Link>
             </div>
           </div>
         </div>
