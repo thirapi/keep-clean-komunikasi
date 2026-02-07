@@ -106,13 +106,13 @@ async function main() {
             id: "cmak9alli0001i5sei9vn5szl",
             username: "dev",
             password: hashedPassword,
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dev",
+            avatar: "https://api.dicebear.com/9.x/glass/svg?seed=dex",
         },
         {
             id: "cmak9alli0002i5sei9vn5szl",
             username: "dev2",
             password: hashedPassword,
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dev2",
+            avatar: "https://api.dicebear.com/9.x/glass/svg?seed=Felix",
         }
     ];
 

@@ -3,10 +3,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Doto } from "next/font/google";
 import "./globals.css";
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
+const doto = Doto({
+  subsets: ["latin"],
+  variable: "--font-doto",
+});
 
 export const metadata: Metadata = {
   title: "Komunikasi - Web Chat App",
@@ -47,7 +52,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://komunikasi.vercel.app/"),
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -61,7 +65,9 @@ export default function RootLayout({
         <meta name="robots" content="index, follow" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${doto.variable} antialiased h-full flex flex-col`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
