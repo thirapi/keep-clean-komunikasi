@@ -36,6 +36,9 @@ export class RoomRepository implements IRoomRepository {
       id: room.id,
       name: room.name,
       isDirect: room.isDirect,
+      description: room.description ?? null,
+      isPublic: room.isPublic,
+      ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
         lastReadAt: p.lastReadAt,
         user: {
@@ -105,6 +108,9 @@ export class RoomRepository implements IRoomRepository {
       id: room.id,
       name: room.name,
       isDirect: room.isDirect,
+      description: room.description ?? null,
+      isPublic: room.isPublic,
+      ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
         lastReadAt: p.lastReadAt,
         user: {
@@ -183,7 +189,10 @@ export class RoomRepository implements IRoomRepository {
   async createRoom(
     name: string,
     isDirect: boolean,
-    participantIds: string[]
+    participantIds: string[],
+    description?: string,
+    isPublic: boolean = false,
+    ownerId?: string
   ): Promise<RoomWithParticipantsDTO> {
     const roomId = createId();
 
@@ -192,6 +201,9 @@ export class RoomRepository implements IRoomRepository {
         id: roomId,
         name,
         isDirect,
+        description,
+        isPublic,
+        ownerId,
       });
 
       const participantValues = participantIds.map((userId) => ({
@@ -227,6 +239,9 @@ export class RoomRepository implements IRoomRepository {
         id: newRoom.id,
         name: newRoom.name,
         isDirect: newRoom.isDirect,
+        description: newRoom.description ?? null,
+        isPublic: newRoom.isPublic,
+        ownerId: newRoom.ownerId,
         participants: newRoom.participants.map((p) => ({
           lastReadAt: p.lastReadAt,
           user: {
@@ -241,5 +256,91 @@ export class RoomRepository implements IRoomRepository {
         messages: [],
       };
     });
+  }
+  async getPublicRooms(excludeUserId: string): Promise<RoomWithParticipantsDTO[]> {
+    // Find rooms where the user is already a participant
+    const joinedRoomIds = await this.client
+      .select({ roomId: roomParticipants.roomId })
+      .from(roomParticipants)
+      .where(eq(roomParticipants.userId, excludeUserId));
+
+    const joinedIds = joinedRoomIds.map(p => p.roomId);
+
+    const publicRooms = await this.client.query.rooms.findMany({
+      where: joinedIds.length > 0 
+        ? and(eq(rooms.isPublic, true), not(inArray(rooms.id, joinedIds)))
+        : eq(rooms.isPublic, true),
+      with: {
+        participants: {
+          with: {
+            user: {
+              with: {
+                userRoles: {
+                  with: {
+                    role: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return publicRooms.map(room => ({
+      id: room.id,
+      name: room.name,
+      isDirect: room.isDirect,
+      description: room.description ?? null,
+      isPublic: room.isPublic,
+      ownerId: room.ownerId,
+      participants: room.participants.map((p) => ({
+        lastReadAt: p.lastReadAt,
+        user: {
+          id: p.user.id,
+          username: p.user.username,
+          avatar: p.user.avatar,
+          userRoles: p.user.userRoles.map((ur) => ({
+            role: { name: ur.role.name },
+          })),
+        },
+      })),
+      messages: [],
+    }));
+  }
+
+  async addParticipant(roomId: string, userId: string): Promise<void> {
+    await this.client.insert(roomParticipants).values({
+      id: createId(),
+      roomId,
+      userId,
+    });
+  }
+
+  async removeParticipant(roomId: string, userId: string): Promise<void> {
+    await this.client
+      .delete(roomParticipants)
+      .where(
+        and(
+          eq(roomParticipants.roomId, roomId),
+          eq(roomParticipants.userId, userId)
+        )
+      );
+  }
+
+  async updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean }): Promise<void> {
+    await this.client
+      .update(rooms)
+      .set(data)
+      .where(eq(rooms.id, roomId));
+  }
+
+  async deleteRoom(roomId: string): Promise<void> {
+    // Delete all participants first (FK constraint)
+    await this.client.delete(roomParticipants).where(eq(roomParticipants.roomId, roomId));
+    // Delete all messages
+    await this.client.delete(messages).where(eq(messages.roomId, roomId));
+    // Delete the room
+    await this.client.delete(rooms).where(eq(rooms.id, roomId));
   }
 }

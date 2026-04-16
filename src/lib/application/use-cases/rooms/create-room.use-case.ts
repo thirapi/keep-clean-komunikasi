@@ -6,8 +6,18 @@ export class CreateRoomUseCase {
   async execute(
     name: string,
     isDirect: boolean,
-    participantIds: string[]
+    participantIds: string[],
+    description?: string,
+    isPublic: boolean = false,
+    ownerId?: string
   ): Promise<RoomWithParticipantsDTO> {
-    return this.roomRepository.createRoom(name, isDirect, participantIds);
+    return this.roomRepository.createRoom(
+      name,
+      isDirect,
+      participantIds,
+      description,
+      isPublic,
+      ownerId
+    );
   }
 }

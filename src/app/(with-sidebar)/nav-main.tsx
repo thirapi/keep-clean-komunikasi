@@ -13,7 +13,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx"; // opsional jika mau bantu toggle class dengan clean
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Compass } from "lucide-react";
 
 type Groups = {
   id: string;
@@ -24,20 +24,47 @@ type Groups = {
   unreadCount?: number;
 };
 
-export function NavMain({ groups, type }: { groups: Groups[]; type: string }) {
+export function NavMain({ 
+  groups, 
+  type,
+  onCreate,
+  onExplore
+}: { 
+  groups: Groups[]; 
+  type: string;
+  onCreate?: () => void;
+  onExplore?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wider flex items-center justify-between">
         {type}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-primary"
-        >
-          <Plus className="size-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {onExplore && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
+              onClick={onExplore}
+              title="Jelajahi Channel"
+            >
+              <Compass className="size-3.5" />
+            </Button>
+          )}
+          {onCreate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
+              onClick={onCreate}
+              title="Buat Channel"
+            >
+              <Plus className="size-3.5" />
+            </Button>
+          )}
+        </div>
       </SidebarGroupLabel>
       <SidebarMenu>
         {[...groups].map((item) => {

@@ -42,6 +42,9 @@ export const rooms = pgTable("Room", {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     isDirect: boolean("isDirect").default(false).notNull(),
+    description: text("description"),
+    isPublic: boolean("isPublic").default(false).notNull(),
+    ownerId: text("ownerId").references(() => users.id),
 });
 
 export const roomsRelations = relations(rooms, ({ many }) => ({

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   HoverCard,
@@ -7,10 +8,12 @@ import {
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { stringToColor } from "@/utils/background-avatar";
 import { Button } from "@/components/ui/button";
-import { MessageSquare } from "lucide-react";
-import { createRoom } from "../room.action";
+import { MessageSquare, Crown, UserMinus, LogOut, UserPlus } from "lucide-react";
+import { createRoom, removeParticipant } from "../room.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { InviteMemberDialog } from "./invite-member-dialog";
 
 interface MemberListProps {
   roomData: RoomWithParticipantsDTO;
@@ -36,77 +39,169 @@ export function MemberList({
     }
   };
 
+  const handleKick = async (targetUserId: string) => {
+    const isSelf = targetUserId === currentUserId;
+    const confirmMsg = isSelf 
+      ? "Apakah Anda yakin ingin keluar dari channel ini?" 
+      : "Apakah Anda yakin ingin mengeluarkan anggota ini?";
+    
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const response = await removeParticipant(roomData.id, targetUserId, currentUserId);
+      if (response.status === "success") {
+        toast.success(isSelf ? "Berhasil keluar dari channel" : "Berhasil mengeluarkan anggota");
+        if (isSelf) {
+          router.push("/channels");
+          router.refresh();
+        } else {
+          router.refresh();
+        }
+      } else {
+        toast.error(response.error?.message || "Gagal melakukan aksi");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan sistem");
+    }
+  };
+
+  const [showInvite, setShowInvite] = useState(false);
+  const isOwner = currentUserId === roomData.ownerId;
+
   return (
-    <aside className="w-64 h-full border-l border-border p-4 hidden lg:block">
-      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-        Members
-      </h3>
-      <ul className="space-y-3">
-        {roomData.participants.map((participant) => (
-          <li key={participant.user.id} className="flex items-center space-x-2">
-            <div className="relative">
-              <Avatar className="rounded-lg h-10 w-10 font-bold">
-                <AvatarImage
-                  src={participant.user.avatar || "/placeholder.svg"}
-                  alt="Current Avatar"
-                />
-                <AvatarFallback
-                  className="rounded-lg text-white"
-                  style={{
-                    backgroundColor: stringToColor(participant.user.id),
-                  }}
-                >
-                  {participant.user.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              {onlineUserIds.includes(participant.user.id) && (
-                <div className="h-2.5 w-2.5 bg-green-500 ring-2 ring-background rounded-full absolute bottom-0 right-0" />
-              )}
-            </div>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <span className="cursor-pointer text-foreground">
-                  {participant.user.username}
-                </span>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-64">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-10 h-10 rounded-lg font-bold">
-                    <AvatarImage
-                      src={participant.user.avatar || "/placeholder.svg"}
-                      alt="Current Avatar"
-                    />
-                    <AvatarFallback
-                      className="text-white"
-                      style={{
-                        backgroundColor: stringToColor(participant.user.id),
-                      }}
-                    >
-                      {participant.user.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
+    <>
+    <aside className="w-64 h-full border-l border-border p-4 hidden lg:block bg-card/30">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          Anggota — {roomData.participants.length}
+        </h3>
+        {isOwner && (
+          <button
+            onClick={() => setShowInvite(true)}
+            className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+            title="Undang Anggota"
+          >
+            <UserPlus className="size-3.5" />
+          </button>
+        )}
+      </div>
+      <ul className="space-y-4">
+        {roomData.participants.map((participant) => {
+          const isParticipantOnline = onlineUserIds.includes(participant.user.id);
+          const isParticipantOwner = participant.user.id === roomData.ownerId;
+
+          return (
+            <li key={participant.user.id} className="group flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="h-8 w-8 rounded-lg shadow-sm">
+                  <AvatarImage
+                    src={participant.user.avatar || "/placeholder.svg"}
+                    alt={participant.user.username}
+                  />
+                  <AvatarFallback
+                    className="text-[10px] text-white rounded-lg font-bold"
+                    style={{ backgroundColor: stringToColor(participant.user.id) }}
+                  >
+                    {participant.user.username.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {isParticipantOnline && (
+                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
+                )}
+              </div>
+              
+              <HoverCard openDelay={200}>
+                <HoverCardTrigger asChild>
+                  <div className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                    <span className={cn(
+                      "text-sm font-medium truncate",
+                      isParticipantOnline ? "text-foreground" : "text-muted-foreground"
+                    )}>
                       {participant.user.username}
-                    </p>
+                    </span>
+                    {isParticipantOwner && (
+                      <Crown className="size-3 text-amber-500 fill-amber-500 shrink-0" />
+                    )}
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-64 p-3 shadow-xl border-border/50">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="h-12 w-12 rounded-xl">
+                      <AvatarImage src={participant.user.avatar || ""} />
+                      <AvatarFallback 
+                        style={{ backgroundColor: stringToColor(participant.user.id) }}
+                        className="text-white font-bold rounded-xl"
+                      >
+                        {participant.user.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-base leading-tight">
+                          {participant.user.username}
+                        </p>
+                        {isParticipantOwner && <Crown className="size-3 text-amber-500" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5">
+                        {isParticipantOwner ? "Pemilik Channel" : "Anggota"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
                     {participant.user.id !== currentUserId && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
-                        className="mt-2 w-full gap-2 h-8 text-xs"
+                        className="w-full justify-start gap-2 h-9 text-xs font-semibold"
                         onClick={() => handleStartDM(participant.user.id)}
                       >
-                        <MessageSquare className="w-3 h-3" />
-                        Kirim Pesan
+                        <MessageSquare className="size-3.5 text-primary" />
+                        Kirim Pesan Langsung
+                      </Button>
+                    )}
+
+                    {/* Kick/Leave Actions */}
+                    {isOwner && participant.user.id !== currentUserId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 h-9 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleKick(participant.user.id)}
+                      >
+                        <UserMinus className="size-3.5" />
+                        Keluarkan dari Channel
+                      </Button>
+                    )}
+
+                    {participant.user.id === currentUserId && roomData.id !== "general-channel" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 h-9 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleKick(participant.user.id)}
+                      >
+                        <LogOut className="size-3.5" />
+                        Keluar dari Channel
                       </Button>
                     )}
                   </div>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          </li>
-        ))}
+                </HoverCardContent>
+              </HoverCard>
+            </li>
+          );
+        })}
       </ul>
     </aside>
+
+    {/* Invite Member Dialog */}
+    <InviteMemberDialog
+      open={showInvite}
+      onOpenChange={setShowInvite}
+      roomId={roomData.id}
+      roomName={roomData.name}
+      currentUserId={currentUserId}
+    />
+  </>
   );
 }

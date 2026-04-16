@@ -91,10 +91,10 @@ export class UserRepository implements IUserRepository {
     await client.transaction(async (innerTx: any) => {
       await innerTx.insert(users).values(user);
 
-      // Fixed room ID from the original repository
+      // Pastikan roomId sama dengan yang ada di migration (general-channel)
       await innerTx.insert(roomParticipants).values({
         id: createId(),
-        roomId: "cmak9alli0000i5sei9vn5szl",
+        roomId: "general-channel",
         userId: user.id,
         lastReadAt: new Date(),
       });

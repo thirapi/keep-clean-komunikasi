@@ -40,6 +40,8 @@ import { useRouter } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
 import { pusher } from "@/lib/pusher/pusher.client";
+import { CreateChannelDialog } from "./create-channel-dialog";
+import { ExploreChannelsDialog } from "./explore-channels-dialog";
 
 const brand = {
   name: "Komunikasi",
@@ -76,6 +78,8 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const router = useRouter();
+  const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
+  const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
   const groups = groupRooms.map((room) => {
     const currentUserParticipant = room.participants.find(
       (participant) => participant.user.id === user.id,
@@ -171,7 +175,12 @@ export function AppSidebar({
         <NavBrand brand={brand} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain groups={groups} type="Channels" />
+        <NavMain
+          groups={groups}
+          type="Channels"
+          onCreate={() => setOpenCreateChannel(true)}
+          onExplore={() => setOpenExploreChannels(true)}
+        />
         <NavMainDirectMessage
           groups={directMessages}
           type="Direct Messages"
@@ -183,6 +192,16 @@ export function AppSidebar({
         <NavUser user={user} checkRole={checkRole} />
       </SidebarFooter>
       <SidebarRail />
+      <CreateChannelDialog
+        open={openCreateChannel}
+        onOpenChange={setOpenCreateChannel}
+        userId={user.id}
+      />
+      <ExploreChannelsDialog
+        open={openExploreChannels}
+        onOpenChange={setOpenExploreChannels}
+        userId={user.id}
+      />
     </Sidebar>
   );
 }

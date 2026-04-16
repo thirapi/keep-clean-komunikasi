@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HashIcon, Users, X } from "lucide-react";
+import { HashIcon, Users, X, Settings } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +15,7 @@ import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { stringToColor } from "@/utils/background-avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ChannelSettingsDialog } from "./channel-settings-dialog";
 
 interface ChatHeaderProps {
   roomData: RoomWithParticipantsDTO;
@@ -36,6 +37,9 @@ export function ChatHeader({
     id: string;
     username: string;
   } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const isOwner = currentUserId === roomData.ownerId;
 
   useEffect(() => {
     if (roomData.isDirect) {
@@ -181,7 +185,36 @@ export function ChatHeader({
             <p>{membersVisible ? "Hide" : "Show"} member list</p>
           </TooltipContent>
         </Tooltip>
+
+        {/* Channel Settings — only for group channels where user is owner */}
+        {!roomData.isDirect && isOwner && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSettings(true)}
+                className="transition-colors duration-200 flex-shrink-0"
+              >
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Pengaturan Channel</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </TooltipProvider>
+
+      {/* Channel Settings Dialog */}
+      {!roomData.isDirect && (
+        <ChannelSettingsDialog
+          open={showSettings}
+          onOpenChange={setShowSettings}
+          roomData={roomData}
+          currentUserId={currentUserId}
+        />
+      )}
     </div>
   );
 }
