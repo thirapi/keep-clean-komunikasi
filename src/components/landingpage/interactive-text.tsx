@@ -70,11 +70,11 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
     return (
       <div
         className={cn(
-          "relative cursor-default py-10 px-20 select-none",
+          "relative cursor-default py-10 px-4 sm:px-20 select-none",
           className,
         )}
       >
-        <h1 className="text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] text-foreground opacity-0">
+        <h1 className="text-[12vw] sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] text-foreground opacity-0 whitespace-nowrap">
           {text}
         </h1>
       </div>
@@ -87,7 +87,7 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative cursor-default py-10 px-20 select-none group",
+        "relative cursor-default py-10 px-4 sm:px-20 select-none group w-full flex justify-center",
         className,
       )}
     >
@@ -101,7 +101,7 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
         }}
         className="absolute inset-0 flex items-center justify-center filter blur-xl text-primary/30 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
       >
-        <span className="text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)]">
+        <span className="text-[12vw] sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] whitespace-nowrap">
           {text}
         </span>
       </motion.div>
@@ -115,7 +115,7 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
         }}
         className="absolute inset-0 flex items-center justify-center text-foreground/5 pointer-events-none"
       >
-        <span className="text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)]">
+        <span className="text-[12vw] sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] whitespace-nowrap">
           {text}
         </span>
       </motion.div>
@@ -126,7 +126,7 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
           x: textX,
           y: textY,
         }}
-        className="relative text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] text-foreground z-10"
+        className="relative text-[12vw] sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] text-foreground z-10 whitespace-nowrap"
       >
         {text.split("").map((char, i) => (
           <motion.span
@@ -158,7 +158,7 @@ export function InteractiveText({ text, className }: InteractiveTextProps) {
         }}
         className="absolute inset-0 flex items-center justify-center text-foreground/20 pointer-events-none"
       >
-        <span className="text-5xl sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)]">
+        <span className="text-[12vw] sm:text-8xl font-black tracking-tighter font-[family-name:var(--font-doto)] whitespace-nowrap">
           {text}
         </span>
       </motion.div>
