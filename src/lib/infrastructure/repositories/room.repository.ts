@@ -4,6 +4,7 @@ import { eq, and, asc, desc, not, sql, exists, inArray } from "drizzle-orm";
 import { IRoomRepository } from "@/lib/application/repositories/room.repository.interface";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { createId } from "@paralleldrive/cuid2";
+import { avatarService } from "@/lib/infrastructure/services/avatar.service";
 
 export class RoomRepository implements IRoomRepository {
   constructor(private client: typeof db) { }
@@ -37,6 +38,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
+      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
@@ -109,6 +111,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
+      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
@@ -240,6 +243,7 @@ export class RoomRepository implements IRoomRepository {
         name: newRoom.name,
         isDirect: newRoom.isDirect,
         description: newRoom.description ?? null,
+        avatar: newRoom.avatar || avatarService.generateAvatarUrl(newRoom.name),
         isPublic: newRoom.isPublic,
         ownerId: newRoom.ownerId,
         participants: newRoom.participants.map((p) => ({
@@ -292,6 +296,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
+      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({

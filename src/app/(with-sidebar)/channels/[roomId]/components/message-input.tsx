@@ -56,19 +56,20 @@ export function MessageInput({
   ).current;
 
   const handleTyping = useCallback(() => {
+    if (!userId) return;
     sendTypingEvent();
     sendStopTypingEvent();
-  }, [sendTypingEvent, sendStopTypingEvent]);
+  }, [sendTypingEvent, sendStopTypingEvent, userId]);
 
   const handleSend = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
 
-      if (!content.trim() || isSending) return;
+      if (!content.trim() || isSending || !userId) return;
 
       setIsSending(true);
       sendStopTypingEvent.cancel();
-      setTypingStatusAction(userId, roomData.id, false);
+      if (userId) setTypingStatusAction(userId, roomData.id, false);
 
       // Optimistic message
       const optimisticId = `optimistic-${Date.now()}`;
@@ -149,7 +150,7 @@ export function MessageInput({
             <CornerLeftUp className="h-3.5 w-3.5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-primary uppercase tracking-wider mb-0.5">
+            <div className="text-[11px] font-bold text-primary mb-0.5">
               Replying to {replyingTo.user.username}
             </div>
             <div className="text-sm text-muted-foreground/80 line-clamp-1 italic">

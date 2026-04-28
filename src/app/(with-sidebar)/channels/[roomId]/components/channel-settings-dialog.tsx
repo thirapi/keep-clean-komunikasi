@@ -37,6 +37,7 @@ interface ChannelSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   roomData: RoomWithParticipantsDTO;
   currentUserId: string;
+  onUpdateRoom?: (data: Partial<RoomWithParticipantsDTO>) => void;
 }
 
 export function ChannelSettingsDialog({
@@ -44,6 +45,7 @@ export function ChannelSettingsDialog({
   onOpenChange,
   roomData,
   currentUserId,
+  onUpdateRoom,
 }: ChannelSettingsDialogProps) {
   const [name, setName] = useState(roomData.name);
   const [description, setDescription] = useState(roomData.description ?? "");
@@ -59,6 +61,11 @@ export function ChannelSettingsDialog({
     if (!name.trim()) {
       toast.error("Nama channel tidak boleh kosong");
       return;
+    }
+
+    // Optimistic Update
+    if (onUpdateRoom) {
+      onUpdateRoom({ name: name.trim(), description: description.trim(), isPublic });
     }
 
     setIsSaving(true);

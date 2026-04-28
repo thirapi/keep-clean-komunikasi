@@ -14,6 +14,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface MemberListProps {
   roomData: RoomWithParticipantsDTO;
@@ -39,14 +49,19 @@ export function MemberList({
     }
   };
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState<{ userId: string, isSelf: boolean } | null>(null);
+
   const handleKick = async (targetUserId: string) => {
     const isSelf = targetUserId === currentUserId;
-    const confirmMsg = isSelf 
-      ? "Apakah Anda yakin ingin keluar dari channel ini?" 
-      : "Apakah Anda yakin ingin mengeluarkan anggota ini?";
-    
-    if (!confirm(confirmMsg)) return;
+    setConfirmData({ userId: targetUserId, isSelf });
+    setConfirmOpen(true);
+  };
 
+  const executeAction = async () => {
+    if (!confirmData) return;
+    const { userId: targetUserId, isSelf } = confirmData;
+    
     try {
       const response = await removeParticipant(roomData.id, targetUserId, currentUserId);
       if (response.status === "success") {
@@ -62,6 +77,8 @@ export function MemberList({
       }
     } catch (error) {
       toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setConfirmOpen(false);
     }
   };
 
@@ -71,8 +88,8 @@ export function MemberList({
   return (
     <>
     <aside className="w-64 h-full border-l border-border p-4 hidden lg:block bg-card/30">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-sm font-medium text-muted-foreground">
           Anggota — {roomData.participants.length}
         </h3>
         {isOwner && (
@@ -95,7 +112,7 @@ export function MemberList({
               <div className="relative">
                 <Avatar className="h-8 w-8 rounded-lg shadow-sm">
                   <AvatarImage
-                    src={participant.user.avatar || "/placeholder.svg"}
+                    src={participant.user.avatar || undefined}
                     alt={participant.user.username}
                   />
                   <AvatarFallback
@@ -127,7 +144,7 @@ export function MemberList({
                 <HoverCardContent className="w-64 p-3 shadow-xl border-border/50">
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-12 w-12 rounded-xl">
-                      <AvatarImage src={participant.user.avatar || ""} />
+                      <AvatarImage src={participant.user.avatar || undefined} />
                       <AvatarFallback 
                         style={{ backgroundColor: stringToColor(participant.user.id) }}
                         className="text-white font-bold rounded-xl"
@@ -142,7 +159,7 @@ export function MemberList({
                         </p>
                         {isParticipantOwner && <Crown className="size-3 text-amber-500" />}
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5">
+                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
                         {isParticipantOwner ? "Pemilik Channel" : "Anggota"}
                       </p>
                     </div>
@@ -202,6 +219,30 @@ export function MemberList({
       roomName={roomData.name}
       currentUserId={currentUserId}
     />
-  </>
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmData?.isSelf ? "Keluar dari Channel" : "Keluarkan Anggota"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmData?.isSelf 
+                ? "Apakah Anda yakin ingin keluar dari channel ini? Anda perlu undangan kembali jika channel ini privat."
+                : "Apakah Anda yakin ingin mengeluarkan anggota ini dari channel?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={executeAction}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Ya, Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

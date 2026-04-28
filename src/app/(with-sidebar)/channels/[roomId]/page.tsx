@@ -1,11 +1,8 @@
 // src/app/(with-sidebar)/channels/[roomId]/page.tsx
-import { getUserSession, sidaBarUserInfo } from "@/app/auth.action";
-import { getLastReadAt, getMessage } from "./messages.action";
-import { ChatRoom } from "./components/chat-room";
-import { getRoom } from "./room.action";
-import { AlertTriangle, MessageCircle, MessageSquare } from "lucide-react";
-import K from "@/components/icons/k";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { MessageSquare } from "lucide-react";
+import K from "@/components/icons/k";
+import { ChatRoomClientWrapper } from "@/app/(with-sidebar)/channels/[roomId]/components/chat-room-client-wrapper";
 
 export default async function ChatPage({
   params,
@@ -17,7 +14,6 @@ export default async function ChatPage({
   if (roomId === "default") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center space-y-4 relative">
-        {/* Sidebar Trigger - Mobile only */}
         <div className="absolute top-4 left-4 md:hidden z-10">
           <SidebarTrigger />
         </div>
@@ -39,61 +35,9 @@ export default async function ChatPage({
     );
   }
 
-  const session = await getUserSession();
-  const [roomResponse, initialMessagesResponse, lastReadAtResponse, userInfo] =
-    await Promise.all([
-      getRoom(roomId),
-      getMessage(roomId, 50),
-      getLastReadAt(session?.user?.id ?? "", roomId),
-      sidaBarUserInfo(),
-    ]);
-
-  const roomData = roomResponse.status === "success" ? roomResponse.data : null;
-  const initialMessages =
-    initialMessagesResponse.status === "success"
-      ? initialMessagesResponse.data
-      : [];
-  const lastReadAt =
-    lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null;
-
-  if (!roomData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center space-y-4 relative">
-        {/* Sidebar Trigger - Mobile only */}
-        <div className="absolute top-4 left-4 md:hidden z-10">
-          <SidebarTrigger />
-        </div>
-
-        <div className="flex flex-col items-center space-y-4 animate-fade-in">
-          <AlertTriangle className="text-red-500 dark:text-red-400 w-20 h-20" />
-
-          <div className="bg-accent/50 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-sm max-w-lg">
-            <h1 className="text-xl font-semibold text-foreground mb-2">
-              Room Tidak Ditemukan
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Room yang kamu cari tidak tersedia atau mungkin sudah dihapus.
-              Pastikan URL-nya benar atau coba pilih room lain.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col flex-1 h-full min-h-0">
-      <ChatRoom
-        userId={session?.user?.id ?? ""}
-        roomData={roomData}
-        initialMessages={initialMessages ?? []}
-        lastReadAt={lastReadAt}
-        user={{
-          id: session?.user?.id ?? "",
-          username: userInfo.name,
-          avatar: userInfo.avatar,
-        }}
-      />
+      <ChatRoomClientWrapper roomId={roomId} />
     </div>
   );
 }

@@ -43,6 +43,7 @@ export const rooms = pgTable("Room", {
     name: text("name").notNull(),
     isDirect: boolean("isDirect").default(false).notNull(),
     description: text("description"),
+    avatar: text("avatar"),
     isPublic: boolean("isPublic").default(false).notNull(),
     ownerId: text("ownerId").references(() => users.id),
 });

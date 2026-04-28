@@ -5,12 +5,13 @@ import {
 } from "@/lib/entities/models/message.model";
 import { MessageItem } from "./message-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Hash, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DateSeparator } from "./date-separator";
 import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 
 export function MessageList({
   messages,
@@ -24,6 +25,7 @@ export function MessageList({
   hasMore,
   isLoadingMore,
   viewportRef,
+  roomData,
 }: {
   messages: MessageWithUserDTO[];
   bottomRef: React.RefObject<HTMLDivElement | null>;
@@ -36,6 +38,7 @@ export function MessageList({
   hasMore: boolean;
   isLoadingMore: boolean;
   viewportRef?: React.RefObject<HTMLDivElement | null>;
+  roomData: RoomWithParticipantsDTO;
 }) {
   let lastDate: string | null = null;
 
@@ -45,9 +48,18 @@ export function MessageList({
       new Date(msg.createdAt) > lastReadAt &&
       msg.userId !== userId,
   );
+  const formattedFullDate = (date: Date) => {
+    return date.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   return (
     <ScrollArea viewportRef={viewportRef} className="h-full w-full px-4 pt-3">
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col">
         {hasMore && (
           <div className="flex justify-center pb-2">
             <Button
@@ -68,30 +80,71 @@ export function MessageList({
             </Button>
           </div>
         )}
-        {messages.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center space-y-4 text-muted-foreground min-h-[60vh]">
-            <MessageSquare className="w-20 h-20 text-gray-400 animate-bounce" />
-            <div className=" bg-accent rounded-2xl p-2">
-              <h2 className="text-xl font-semibold">Belum ada pesan</h2>
-              <p className="text-base max-w-sm">
-                Mulai percakapan pertamamu dengan mengirimkan pesan ke room ini.
+        {!hasMore && (
+          <div className="flex flex-col items-start px-4 pt-8 space-y-4">
+            <Avatar className="h-16 w-16 rounded-2xl shadow-sm border-2 border-background">
+              <AvatarImage
+                src={roomData.isDirect 
+                  ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.avatar || undefined
+                  : roomData.avatar || undefined
+                }
+              />
+              <AvatarFallback
+                className="text-xl rounded-2xl font-bold text-white"
+                style={{
+                  backgroundColor: roomData.isDirect
+                    ? "#8b5cf6" 
+                    : "#3b82f6"
+                }}
+              >
+                {roomData.isDirect 
+                   ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.username.charAt(0).toUpperCase()
+                   : roomData.name.charAt(0).toUpperCase()
+                }
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold tracking-tight">
+                Welcome to #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name}!
+              </h1>
+              <p className="text-muted-foreground">
+                This is the start of the #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name} channel.
               </p>
             </div>
+            {messages.length > 0 && (
+              <div className="w-full">
+                <DateSeparator date={new Date(messages[0].createdAt)} />
+              </div>
+            )}
+            {messages.length === 0 && (
+              <div className="w-full pt-4 opacity-50 italic text-[11px]">
+                Belum ada pesan di sini. Jadilah yang pertama!
+              </div>
+            )}
           </div>
-        ) : (
-          messages.map((msg, index) => {
-            const currentDate = new Date(msg.createdAt).toDateString();
-            const shouldShowDate = currentDate !== lastDate;
-            const isUnread =
-              unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
-            const showDateSeparator = shouldShowDate && !isUnread;
-            const showUnreadAndDate = shouldShowDate && isUnread;
+        )}
 
-            lastDate = currentDate;
+        {messages.map((msg, index) => {
+          const currentDate = new Date(msg.createdAt).toDateString();
+          const shouldShowDate = currentDate !== lastDate;
+          const isUnread =
+            unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
+          const showDateSeparator = shouldShowDate && !isUnread;
+          const showUnreadAndDate = shouldShowDate && isUnread;
 
-            return (
-              <div key={msg.id} ref={unreadRef}>
-                {showDateSeparator && (
+          const prevMsg = index > 0 ? messages[index - 1] : null;
+          const isSameSender = prevMsg?.userId === msg.userId;
+          const msgTime = new Date(msg.createdAt).getTime();
+          const prevTime = prevMsg ? new Date(prevMsg.createdAt).getTime() : 0;
+          const isRecent = msgTime - prevTime < 5 * 60 * 1000; // 5 minutes
+          const isContinuation = isSameSender && isRecent && !shouldShowDate && !isUnread;
+
+          lastDate = currentDate;
+
+          return (
+            <div key={msg.id} ref={isUnread ? unreadRef : null}>
+              <>
+                {showDateSeparator && index > 0 && (
                   <DateSeparator date={new Date(msg.createdAt)} />
                 )}
 
@@ -102,18 +155,20 @@ export function MessageList({
                 {!showDateSeparator && !showUnreadAndDate && isUnread && (
                   <UnreadSeparator />
                 )}
+              </>
 
-                <MessageItem
-                  message={msg}
-                  onlineUserIds={onlineUserIds}
-                  onReply={onReply}
-                  currentUserId={userId}
-                />
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
+              <MessageItem
+                message={msg}
+                onlineUserIds={onlineUserIds}
+                onReply={onReply}
+                currentUserId={userId}
+                isContinuation={isContinuation}
+                isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isUnread)}
+              />
+            </div>
+          );
+        })}
+        <div ref={bottomRef} className="h-4" />
       </div>
     </ScrollArea>
   );

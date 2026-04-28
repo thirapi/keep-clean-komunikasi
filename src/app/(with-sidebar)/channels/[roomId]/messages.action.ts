@@ -91,6 +91,8 @@ export const getMessage = async (roomId: string, limit?: number, before?: Date, 
   }
 };
 
+import { revalidatePath } from "next/cache";
+
 export const updateLastReadAt = async (
   userId: string,
   roomId: string,
@@ -98,6 +100,8 @@ export const updateLastReadAt = async (
 ): Promise<ServerResponse<null>> => {
   try {
     await updateLastReadAtController(userId, roomId, date);
+
+    revalidatePath("/", "layout");
 
     return {
       status: "success",

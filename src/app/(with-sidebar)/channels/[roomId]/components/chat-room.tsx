@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt } from "../messages.action";
@@ -41,6 +41,7 @@ export function ChatRoom({
   user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
+  const [localRoomData, setLocalRoomData] = useState(roomData);
   const { onlineUserIds } = usePresence();
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
@@ -52,22 +53,99 @@ export function ChatRoom({
   const router = useRouter();
 
   const messagesRef = useRef(messages);
+  const isInitialLoadRef = useRef(true); // Prevent notification on initial/sync load
+
   useEffect(() => {
     messagesRef.current = messages;
-  }, [messages]);
+    // Save to cache for offline/instant load
+    import("@/lib/infrastructure/cache/client-cache").then(m => {
+      m.clientChatCache.setMessages(localRoomData.id, messages);
+    });
+  }, [messages, localRoomData.id]);
+
+  // Mark initial load as done after first render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 1500); // Grace period for initial sync
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Sync initialMessages when it change (e.g. from cache to server sync)
+  useEffect(() => {
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const markAsRead = debounce(async () => {
+  // markAsRead: update state immediately, debounce the API call only
+  const markAsReadApi = useMemo(() => debounce(async () => {
+    if (!userId || userId === "") return;
     await updateLastReadAt(userId, roomData.id, new Date());
-    setLastReadAt(new Date());
-    router.refresh(); // Sync sidebar
-  }, 2000);
+    router.refresh(); // Sync sidebar unread count
+  }, 1500), [userId, roomData.id, router]);
 
-  const handleNewMessage = useCallback((msg: MessageWithUserDTO) => {
+  const markAsRead = useCallback(() => {
+    if (!userId || userId === "") return;
+    // Update visually immediately
+    setLastReadAt(new Date());
+    // Debounce the actual API call
+    markAsReadApi();
+  }, [userId, markAsReadApi]);
+
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  const sendNotification = useCallback((msg: MessageWithUserDTO) => {
+    // 1. Play in-app sound
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.08);
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {
+      console.warn("Audio context failed", e);
+    }
+
+    // 2. Show browser notification only when tab is not focused
+    if (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "granted" &&
+      !document.hasFocus()
+    ) {
+      new Notification(`${msg.user?.username ?? "Seseorang"} di #${roomData.name}`, {
+        body: msg.content,
+        icon: msg.user?.avatar || "/favicon.ico",
+        tag: `msg-${roomData.id}`, // Group by channel to avoid spam
+        silent: true, // We already played our own sound
+      });
+    }
+  }, [roomData.name, roomData.id]);
+
+  const handleNewMessage = useCallback((msg: MessageWithUserDTO, isFromSync = false) => {
+    if (msg.userId !== userId && !isFromSync && !isInitialLoadRef.current) {
+      sendNotification(msg);
+    }
     setMessages((prev) => {
       // Check if we already have this message (real or optimistic)
       const existingIndex = prev.findIndex((m) => {
@@ -110,7 +188,8 @@ export function ChatRoom({
     if (response.status === "success" && response.data) {
       const newMessages = response.data;
       if (newMessages.length > 0) {
-        newMessages.forEach((msg) => handleNewMessage(msg));
+        // Pass isFromSync=true to suppress notification sound
+        newMessages.forEach((msg) => handleNewMessage(msg, true));
       }
     }
   }, [roomData.id, handleNewMessage]);
@@ -152,7 +231,7 @@ export function ChatRoom({
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
   useAutoFocusInput(inputRef);
-  useMarkAsRead(bottomRef, setIsAtBottom, markAsRead);
+  useMarkAsRead(bottomRef, unreadRef, setIsAtBottom, markAsRead);
 
   useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
@@ -187,11 +266,12 @@ export function ChatRoom({
       {" "}
       {/* full height layout */}
       <ChatHeader
-        roomData={roomData}
+        roomData={localRoomData}
         currentUserId={userId}
         onToggleMembers={() => setShowMembers((prev) => !prev)}
         membersVisible={showMembers}
         onlineUserIds={onlineUserIds}
+        onUpdateRoom={(data) => setLocalRoomData(prev => ({ ...prev, ...data }))}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -208,6 +288,7 @@ export function ChatRoom({
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}
               viewportRef={viewportRef}
+              roomData={localRoomData}
             />
           </div>
           <MessageInput
@@ -238,6 +319,7 @@ export function ChatRoom({
         onlineUserIds={onlineUserIds}
         isOpen={showMembers && isMobile}
         onClose={() => setShowMembers(false)}
+        currentUserId={userId}
       />
     </div>
   );

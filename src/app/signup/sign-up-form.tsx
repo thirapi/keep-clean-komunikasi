@@ -23,8 +23,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { signInUser, signUpUser } from "@/app/auth.action";
+import { useSearchParams } from "next/navigation";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import {
   CircleX,
@@ -50,6 +51,9 @@ export function SignUpForm({
   );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,7 +77,8 @@ export function SignUpForm({
     const response = await signUpUser(
       values.username,
       values.password,
-      values.confirm_password
+      values.confirm_password,
+      callbackUrl ?? undefined
     );
 
     if (response?.status === "error") {
@@ -212,13 +217,16 @@ export function SignUpForm({
                       <LoaderCircle className="h-4 w-4 animate-spin" />
                     </>
                   ) : (
-                    "Sign In"
+                    "Sign Up"
                   )}
                 </Button>
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
-                <a href="/signin" className="underline underline-offset-4">
+                <a 
+                  href={callbackUrl ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signin"} 
+                  className="underline underline-offset-4"
+                >
                   Sign in
                 </a>
               </div>

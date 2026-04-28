@@ -38,11 +38,15 @@ export function MessageItem({
   onlineUserIds,
   onReply,
   currentUserId,
+  isContinuation,
+  isAfterSeparator,
 }: {
   message: MessageWithUserDTO;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
   currentUserId: string;
+  isContinuation?: boolean;
+  isAfterSeparator?: boolean;
 }) {
   const router = useRouter();
 
@@ -56,91 +60,130 @@ export function MessageItem({
       toast.error(response.error?.message || "Gagal membuat percakapan");
     }
   };
-  const bgColor = stringToColor(message.userId);
+
+  const isToday = (date: Date) => {
+    const now = new Date();
+    return date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+  };
+
+  const formatTimestamp = (date: Date, includeDate = false) => {
+    const time = date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    if (includeDate || !isToday(date)) {
+      const dateStr = date.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+      });
+      return `${dateStr}, ${time}`;
+    }
+    return time;
+  };
+
+  const bgColor = stringToColor(message.user?.username ?? "");
   const isOnline = onlineUserIds.includes(message.userId);
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
-      className="relative group flex items-start gap-4 hover:bg-muted/40 px-4 py-1.5 transition-all duration-200 ease-in-out border-l-2 border-transparent hover:border-primary/30"
+      className={cn(
+        "relative group flex items-start gap-4 px-4 transition-all duration-200 ease-in-out border-l-2 border-transparent hover:border-primary/30",
+        isContinuation 
+          ? "pt-0" 
+          : cn("pt-2 hover:bg-muted/40 first:mt-0", isAfterSeparator ? "mt-1" : "mt-4"),
+        isHovered && isContinuation && "bg-muted/30"
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative pt-0.5">
-        <Avatar className="w-9 h-9 rounded-md flex items-center justify-center font-bold ring-1 ring-border/50">
-          <AvatarImage src={message.user?.avatar ?? undefined} />
-          <AvatarFallback
-            className="rounded-md text-white dark:text-white text-xs"
-            style={{ backgroundColor: bgColor }}
-          >
-            {message.user?.username.charAt(0).toUpperCase() ?? "?"}
-          </AvatarFallback>
-        </Avatar>
-        <div
-          className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${
-            isOnline
-              ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-              : "bg-muted-foreground/30"
-          }`}
-        ></div>
+      <div className="relative pt-0.5 w-9 shrink-0 flex justify-center">
+        {!isContinuation ? (
+          <>
+            <Avatar className="w-9 h-9 rounded-md flex items-center justify-center font-bold ring-1 ring-border/50">
+              <AvatarImage src={message.user?.avatar ?? undefined} />
+              <AvatarFallback
+                className="rounded-md text-white dark:text-white text-xs"
+                style={{ backgroundColor: bgColor }}
+              >
+                {message.user?.username.charAt(0).toUpperCase() ?? "?"}
+              </AvatarFallback>
+            </Avatar>
+            <div
+              className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${
+                isOnline
+                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  : "bg-muted-foreground/30"
+              }`}
+            ></div>
+          </>
+        ) : (
+          <span className={cn(
+            "text-[9px] text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-opacity mt-1.5 font-medium",
+            isHovered && "opacity-100"
+          )}>
+            {formatTimestamp(new Date(message.createdAt))}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         {/* Username + Timestamp */}
-        <div className="flex items-baseline gap-2">
-          <HoverCard openDelay={200}>
-            <HoverCardTrigger asChild>
-              <span className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2">
-                {message.user?.username ?? "Unknown User"}
-              </span>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-64 glass shadow-xl border-border/50">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 rounded-lg ring-2 ring-primary/20">
-                    <AvatarImage
-                      src={message.user?.avatar || "/placeholder.svg"}
-                      alt="Avatar"
-                    />
-                    <AvatarFallback
-                      className="rounded-md text-white font-bold"
-                      style={{ backgroundColor: bgColor }}
-                    >
-                      {message.user?.username.charAt(0).toUpperCase() ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground">
-                      {message.user?.username ?? "Unknown User"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
-                      {isOnline ? "Online" : "Offline"}
-                    </p>
+        {!isContinuation && (
+          <div className="flex items-baseline gap-2">
+            <HoverCard openDelay={200}>
+              <HoverCardTrigger asChild>
+                <span className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2">
+                  {message.user?.username ?? "Unknown User"}
+                </span>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-64 glass shadow-xl border-border/50">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-12 h-12 rounded-lg ring-2 ring-primary/20">
+                      <AvatarImage
+                        src={message.user?.avatar || "/placeholder.svg"}
+                        alt="Avatar"
+                      />
+                      <AvatarFallback
+                        className="rounded-md text-white font-bold"
+                        style={{ backgroundColor: bgColor }}
+                      >
+                        {message.user?.username.charAt(0).toUpperCase() ?? "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground">
+                        {message.user?.username ?? "Unknown User"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                        {isOnline ? "Online" : "Offline"}
+                      </p>
+                    </div>
                   </div>
+                  {message.userId !== currentUserId && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full gap-2 h-9 text-xs font-semibold shadow-lg shadow-primary/20"
+                      onClick={() => handleStartDM(message.userId)}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Kirim Pesan
+                    </Button>
+                  )}
                 </div>
-                {message.userId !== currentUserId && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full gap-2 h-9 text-xs font-semibold shadow-lg shadow-primary/20"
-                    onClick={() => handleStartDM(message.userId)}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Kirim Pesan
-                  </Button>
-                )}
-              </div>
-            </HoverCardContent>
-          </HoverCard>
+              </HoverCardContent>
+            </HoverCard>
 
-          <span className="text-[10px] font-medium text-muted-foreground/60">
-            {new Date(message.createdAt).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
-          </span>
-        </div>
+            <span className="text-[10px] font-medium text-muted-foreground/60">
+              {formatTimestamp(new Date(message.createdAt))}
+            </span>
+          </div>
+        )}
 
         {/* Reply Preview */}
         {message.replyToMessage && (

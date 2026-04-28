@@ -19,7 +19,8 @@ import { NextRequest } from "next/server";
 
 export const signInUser = async (
   username: string,
-  password: string
+  password: string,
+  callbackUrl?: string
 ): Promise<ServerResponse<null>> => {
   try {
     const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -34,7 +35,12 @@ export const signInUser = async (
     } else {
       throw new AuthenticationError("Error creating session!");
     }
-    redirect("/channels/default");
+    
+    if (callbackUrl && callbackUrl.startsWith("/")) {
+      redirect(callbackUrl);
+    } else {
+      redirect("/channels/default");
+    }
   } catch (err: any) {
     if (err.message === "NEXT_REDIRECT") throw err;
     if (err instanceof AuthenticationError) {
@@ -74,7 +80,8 @@ export const signInUser = async (
 export const signUpUser = async (
   username: string,
   password: string,
-  confirm_password: string
+  confirm_password: string,
+  callbackUrl?: string
 ): Promise<ServerResponse<null>> => {
   try {
     const signUpData: SignUpUserDTO = {
@@ -83,7 +90,11 @@ export const signUpUser = async (
       confirm_password,
     };
     await signUpController(signUpData);
-    redirect("/signin");
+    if (callbackUrl) {
+      redirect(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    } else {
+      redirect("/signin");
+    }
   } catch (err: any) {
     if (err.message === "NEXT_REDIRECT") throw err;
     if (err instanceof AuthenticationError) {

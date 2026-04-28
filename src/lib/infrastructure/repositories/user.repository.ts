@@ -4,6 +4,7 @@ import { eq, and, sql, like } from "drizzle-orm";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { createId } from "@paralleldrive/cuid2";
+import { avatarService } from "@/lib/infrastructure/services/avatar.service";
 
 export class UserRepository implements IUserRepository {
   constructor(private client: typeof db) { }
@@ -30,7 +31,7 @@ export class UserRepository implements IUserRepository {
     return {
       id: user.id,
       username: user.username,
-      avatar: user.avatar,
+      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -62,7 +63,7 @@ export class UserRepository implements IUserRepository {
       id: user.id,
       username: user.username,
       password: user.password,
-      avatar: user.avatar,
+      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -131,7 +132,7 @@ export class UserRepository implements IUserRepository {
     return allUsers.map((user) => ({
       id: user.id,
       username: user.username,
-      avatar: user.avatar,
+      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -158,6 +159,9 @@ export class UserRepository implements IUserRepository {
         avatar: true,
       }
     });
-    return results;
+    return results.map(user => ({
+      ...user,
+      avatar: user.avatar || avatarService.generateAvatarUrl(user.username)
+    }));
   }
 }

@@ -19,7 +19,7 @@ INSERT INTO "RolePermission" (id, "roleId", "permissionId") VALUES
 
 -- 4. Insert Default Admin User: raph (Password: matakokmerem)
 INSERT INTO "User" (id, username, password, "createdAt") VALUES 
-('user_admin_01', 'raph', '$2b$10$UZ1U4rr7JYnommsySPL7FuS2LB8v2OoJ2MmzoyrnCAtsmWHr2lwwC', NOW());
+('user_admin_01', 'insomeniac', '$2b$10$UZ1U4rr7JYnommsySPL7FuS2LB8v2OoJ2MmzoyrnCAtsmWHr2lwwC', NOW());
 
 -- 5. Assign Admin Role to raph
 INSERT INTO "UserRole" (id, "userId", "roleId") VALUES 

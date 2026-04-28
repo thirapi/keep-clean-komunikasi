@@ -33,6 +33,7 @@ type Groups = {
   avatar: string | null;
   url: string;
   icon: React.ElementType;
+  hasUnread: boolean;
 };
 
 type User = {
@@ -65,7 +66,7 @@ export function NavMainDirectMessage({
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wider flex items-center justify-between">
+        <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50 flex items-center justify-between">
           {type}
           <TooltipProvider>
             <Tooltip>
@@ -130,9 +131,9 @@ export function NavMainDirectMessage({
                         <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
                       )}
                       <div className="relative flex-shrink-0">
-                        <Avatar className="h-6 w-6 rounded-md">
+                        <Avatar className="h-7 w-7 rounded-md border shadow-sm flex-shrink-0">
                           <AvatarImage
-                            src={item.avatar || "/placeholder.svg"}
+                            src={item.avatar || undefined}
                             alt={item.name}
                           />
                           <AvatarFallback
@@ -150,13 +151,18 @@ export function NavMainDirectMessage({
                           </span>
                         )}
                       </div>
+
                       {!isCollapsed && (
-                        <span className="truncate flex-1 text-sm">
+                        <span className={cn("truncate flex-1 text-sm ml-2", item.hasUnread && "font-semibold text-foreground")}>
                           {item.name}
                         </span>
                       )}
                     </Link>
                   </SidebarMenuButton>
+
+                  {item.hasUnread && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary animate-pulse pointer-events-none" />
+                  )}
                 </SidebarMenuItem>
               );
             })

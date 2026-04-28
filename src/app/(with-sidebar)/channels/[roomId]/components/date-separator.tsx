@@ -7,7 +7,7 @@ export function DateSeparator({ date }: { date: Date }) {
   });
 
   return (
-    <div className="flex items-center justify-center px-4 py-2">
+    <div className="flex items-center justify-center px-4 py-1">
       <hr className="flex-grow border-t border-border" />
       <span className="mx-4 text-sm text-muted-foreground whitespace-nowrap">
         {formattedDate}

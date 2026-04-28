@@ -93,31 +93,39 @@ export function AppSidebar({
       ? new Date(room.messages[0].createdAt)
       : null;
 
-    const unreadMessages = room.messages.filter((message) => {
-      const createdAt = new Date(message.createdAt);
-      const isUnread = !lastReadAt || createdAt > lastReadAt;
-
-      return isUnread;
-    });
-
-    const unreadCount = unreadMessages.length;
-
-    const hasUnread =
-      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt);
+    // hasUnread: compare timestamps only — not loop through messages (only 1 loaded)
+    const hasUnread = Boolean(
+      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt)
+    );
 
     return {
       id: room.id,
       name: room.name,
       url: `/channels/${room.id}`,
+      avatar: room.avatar,
       icon: Hash,
-      unreadCount,
       hasUnread,
     };
   });
 
   const directMessages = directRooms.map((room) => {
+    const currentUserParticipant = room.participants.find(
+      (participant) => participant.user.id === user.id,
+    );
     const otherUser = room.participants.find(
       (participant) => participant.user.id !== user.id,
+    );
+    
+    const lastReadAt = currentUserParticipant?.lastReadAt
+      ? new Date(currentUserParticipant.lastReadAt)
+      : null;
+
+    const latestMessageAt = room.messages[0]?.createdAt
+      ? new Date(room.messages[0].createdAt)
+      : null;
+
+    const hasUnread = Boolean(
+      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt)
     );
 
     return {
@@ -127,6 +135,7 @@ export function AppSidebar({
       avatar: otherUser?.user.avatar || null,
       url: `/channels/${room.id}`,
       icon: User,
+      hasUnread,
     };
   });
 

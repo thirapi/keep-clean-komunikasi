@@ -3,6 +3,7 @@ export interface RoomRecord {
   name: string;
   isDirect: boolean;
   description: string | null;
+  avatar: string | null;
   isPublic: boolean;
   ownerId: string | null;
 }

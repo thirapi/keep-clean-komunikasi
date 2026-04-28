@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { UserPlus, Search, Loader2, Check, X } from "lucide-react";
+import { UserPlus, Search, Loader2, Check, X, Link as LinkIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -119,7 +119,7 @@ export function InviteMemberDialog({
         </div>
 
         {/* Results */}
-        <div className="min-h-[140px] space-y-1.5">
+        <div className="min-h-[140px] max-h-[240px] overflow-y-auto space-y-1.5 pr-1">
           {query.length < 2 && (
             <div className="flex flex-col items-center justify-center h-[140px] text-center text-muted-foreground">
               <Search className="w-8 h-8 mb-2 opacity-30" />
@@ -185,6 +185,49 @@ export function InviteMemberDialog({
               </div>
             );
           })}
+        </div>
+
+        {/* Invitation Link Section */}
+        <div className="pt-4 border-t space-y-3">
+          <div className="flex flex-col gap-1.5">
+            <h4 className="text-sm font-medium text-foreground">Tautan Undangan</h4>
+            <p className="text-xs text-muted-foreground">Bagikan tautan ini kepada orang lain agar mereka dapat bergabung.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Input
+                readOnly
+                value={`${typeof window !== "undefined" ? window.location.origin : ""}/join/${roomId}`}
+                className="pr-10 bg-muted/50 text-xs font-mono"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => {
+                  const link = `${window.location.origin}/join/${roomId}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Tautan disalin ke papan klip");
+                }}
+              >
+                <LinkIcon className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                const link = `${window.location.origin}/join/${roomId}`;
+                navigator.clipboard.writeText(link);
+                toast.success("Tautan disalin ke papan klip");
+              }}
+            >
+              Salin
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground/60 italic">
+            * {roomName} bersifat {roomName.toLowerCase() === "general" ? "publik" : "privat"}. Pastikan Anda mengundang orang yang tepat.
+          </p>
         </div>
       </DialogContent>
     </Dialog>

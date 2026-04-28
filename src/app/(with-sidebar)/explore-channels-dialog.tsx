@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Search, Loader2, Globe, Plus, MessageSquare } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { stringToColor } from "@/utils/background-avatar";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +58,7 @@ export function ExploreChannelsDialog({
 
   const filteredChannels = channels.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.description?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   const handleJoin = async (channelId: string) => {
@@ -119,12 +121,21 @@ export function ExploreChannelsDialog({
               filteredChannels.map((channel) => (
                 <div
                   key={channel.id}
-                  className="group flex items-start justify-between p-4 rounded-xl border bg-card hover:bg-accent/40 transition-all duration-200"
+                  className="group flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-accent/40 transition-all duration-200"
                 >
+                  <Avatar className="h-10 w-10 rounded-lg shrink-0 border">
+                    <AvatarImage src={channel.avatar || undefined} />
+                    <AvatarFallback 
+                      className="rounded-lg text-white font-bold"
+                      style={{ backgroundColor: stringToColor(channel.id) }}
+                    >
+                      {channel.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="space-y-1 flex-1 pr-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-foreground">#{channel.name}</h3>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                       <h3 className="font-bold text-foreground">#{channel.name}</h3>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
                          Publik
                       </span>
                     </div>

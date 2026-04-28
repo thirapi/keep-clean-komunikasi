@@ -1,6 +1,8 @@
 import K from "@/components/icons/k";
 import { SignUpForm } from "./sign-up-form";
 import Link from "next/link";
+import { Suspense } from "react";
+import { LoaderCircle } from "lucide-react";
 
 export default function Home() {
   return (
@@ -13,7 +15,9 @@ export default function Home() {
       </Link>
 
       <div className="w-full max-w-md">
-        <SignUpForm />
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+          <SignUpForm />
+        </Suspense>
       </div>
     </div>
   );

@@ -15,6 +15,13 @@
       "when": 1776355939667,
       "tag": "0001_seed_initial_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777398469407,
+      "tag": "0002_gifted_legion",
+      "breakpoints": true
     }
   ]
 }
