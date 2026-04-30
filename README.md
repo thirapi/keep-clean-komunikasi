@@ -16,9 +16,6 @@ cd komunikasi-clean-architecture
 # Install dependensi
 npm install
 
-# Generate Prisma Client
-npx prisma generate
-
 # Jalankan development server
 npm run dev
 ```
@@ -26,7 +23,7 @@ npm run dev
 ## ⚙️ Tech Stack
 
 - **Next.js 15**
-- **Prisma ORM**
+- **Drizzle ORM**
 - **React 19**
 - **TailwindCSS v4**
 - **shadcn/ui** (UI Components)
