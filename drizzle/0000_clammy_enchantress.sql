@@ -46,6 +46,7 @@ CREATE TABLE "Room" (
 	"name" text NOT NULL,
 	"isDirect" boolean DEFAULT false NOT NULL,
 	"description" text,
+	"avatar" text DEFAULT '/avatars/avatar6.png' NOT NULL,
 	"isPublic" boolean DEFAULT false NOT NULL,
 	"ownerId" text
 );
@@ -68,7 +69,7 @@ CREATE TABLE "User" (
 	"id" text PRIMARY KEY NOT NULL,
 	"username" text NOT NULL,
 	"password" text NOT NULL,
-	"avatar" text,
+	"avatar" text DEFAULT '/avatars/avatar1.png' NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "User_username_unique" UNIQUE("username")
 );

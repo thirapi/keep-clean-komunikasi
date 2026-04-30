@@ -263,7 +263,6 @@ export function ChatRoom({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {" "}
       {/* full height layout */}
       <ChatHeader
         roomData={localRoomData}

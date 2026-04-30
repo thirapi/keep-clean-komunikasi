@@ -5,29 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1776355933383,
-      "tag": "0000_normal_randall_flagg",
+      "when": 1777554042086,
+      "tag": "0000_clammy_enchantress",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1776355939667,
-      "tag": "0001_seed_initial_data",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1777398469407,
-      "tag": "0002_gifted_legion",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1777542438579,
-      "tag": "0003_nervous_shockwave",
+      "when": 1777554067695,
+      "tag": "0001_init-seed-data",
       "breakpoints": true
     }
   ]
