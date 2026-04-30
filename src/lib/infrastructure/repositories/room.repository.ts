@@ -249,7 +249,7 @@ export class RoomRepository implements IRoomRepository {
         isPublic: newRoom.isPublic,
         ownerId: newRoom.ownerId,
         participants: newRoom.participants.map((p) => ({
-          lastReadAt: p.lastReadAt,
+          lastReadMessageId: p.lastReadMessageId,
           user: {
             id: p.user.id,
             username: p.user.username,
@@ -302,7 +302,7 @@ export class RoomRepository implements IRoomRepository {
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
-        lastReadAt: p.lastReadAt,
+        lastReadMessageId: p.lastReadMessageId,
         user: {
           id: p.user.id,
           username: p.user.username,
