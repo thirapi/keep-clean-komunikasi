@@ -42,7 +42,7 @@ export class RoomRepository implements IRoomRepository {
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
-        lastReadAt: p.lastReadAt,
+        lastReadMessageId: p.lastReadMessageId,
         user: {
           id: p.user.id,
           username: p.user.username,
@@ -115,7 +115,7 @@ export class RoomRepository implements IRoomRepository {
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
-        lastReadAt: p.lastReadAt,
+        lastReadMessageId: p.lastReadMessageId,
         user: {
           id: p.user.id,
           username: p.user.username,
@@ -145,11 +145,11 @@ export class RoomRepository implements IRoomRepository {
   async updateLastReadAt(
     userId: string,
     roomId: string,
-    date: Date
+    messageId: string
   ): Promise<void> {
     await this.client
       .update(roomParticipants)
-      .set({ lastReadAt: date })
+      .set({ lastReadMessageId: messageId })
       .where(
         and(
           eq(roomParticipants.roomId, roomId),
@@ -158,18 +158,18 @@ export class RoomRepository implements IRoomRepository {
       );
   }
 
-  async getLastReadAt(userId: string, roomId: string): Promise<Date | null> {
+  async getLastReadAt(userId: string, roomId: string): Promise<string | null> {
     const participant = await this.client.query.roomParticipants.findFirst({
       where: and(
         eq(roomParticipants.roomId, roomId),
         eq(roomParticipants.userId, userId)
       ),
       columns: {
-        lastReadAt: true,
+        lastReadMessageId: true,
       },
     });
 
-    return participant?.lastReadAt ?? null;
+    return participant?.lastReadMessageId ?? null;
   }
 
   async getOtherParticipants(

@@ -15,6 +15,13 @@
       "when": 1777554067695,
       "tag": "0001_init-seed-data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777565588500,
+      "tag": "0002_happy_cargill",
+      "breakpoints": true
     }
   ]
 }

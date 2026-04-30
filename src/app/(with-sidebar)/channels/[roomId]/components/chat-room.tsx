@@ -25,7 +25,7 @@ interface ChatRoomProps {
   userId: string;
   roomData: RoomWithParticipantsDTO;
   initialMessages: MessageWithUserDTO[];
-  lastReadAt: Date | null;
+  lastReadMessageId: string | null;
   user: {
     id: string;
     username: string;
@@ -37,7 +37,7 @@ export function ChatRoom({
   userId,
   roomData,
   initialMessages,
-  lastReadAt,
+  lastReadMessageId,
   user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
@@ -48,7 +48,7 @@ export function ChatRoom({
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length === 50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [lastReadState, setLastReadAt] = useState<Date | null>(lastReadAt);
+  const [lastReadIdState, setLastReadIdState] = useState<string | null>(lastReadMessageId);
   const isMobile = useIsMobile();
   const router = useRouter();
 
@@ -86,14 +86,18 @@ export function ChatRoom({
   // markAsRead: update state immediately, debounce the API call only
   const markAsReadApi = useMemo(() => debounce(async () => {
     if (!userId || userId === "") return;
-    await updateLastReadAt(userId, roomData.id, new Date());
+    const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+    if (!lastMessage) return;
+    await updateLastReadAt(userId, roomData.id, lastMessage.id);
     router.refresh(); // Sync sidebar unread count
   }, 1500), [userId, roomData.id, router]);
 
   const markAsRead = useCallback(() => {
     if (!userId || userId === "") return;
+    const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+    if (!lastMessage) return;
     // Update visually immediately
-    setLastReadAt(new Date());
+    setLastReadIdState(lastMessage.id);
     // Debounce the actual API call
     markAsReadApi();
   }, [userId, markAsReadApi]);
@@ -282,7 +286,7 @@ export function ChatRoom({
               unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
-              lastReadAt={lastReadState}
+              lastReadMessageId={lastReadIdState}
               onLoadMore={loadMoreMessages}
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}
@@ -296,7 +300,10 @@ export function ChatRoom({
             replyingTo={replyingTo}
             onCancelReply={handleCancelReply}
             inputRef={inputRef}
-            onNewMessage={handleNewMessage}
+            onNewMessage={(msg) => {
+              handleNewMessage(msg);
+              markAsRead();
+            }}
             user={user}
           />
         </div>

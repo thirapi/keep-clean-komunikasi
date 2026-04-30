@@ -51,20 +51,24 @@ export function MessageItem({
     }
   };
 
-  const isToday = (date: Date) => {
-    const now = new Date();
-    return date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear();
-  };
-
-  const formatTimestamp = (date: Date, includeDate = false) => {
-    const time = date.toLocaleTimeString("en-US", {
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     });
-    if (includeDate || !isToday(date)) {
+  };
+
+  const formatTimestamp = (date: Date) => {
+    const isToday = (d: Date) => {
+        const now = new Date();
+        return d.getDate() === now.getDate() &&
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear();
+    };
+
+    const time = formatTime(date);
+    if (!isToday(date)) {
       const dateStr = date.toLocaleDateString("id-ID", {
         day: "numeric",
         month: "short",
@@ -110,7 +114,7 @@ export function MessageItem({
             "text-[9px] text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-opacity mt-1.5 font-medium",
             isHovered && "opacity-100"
           )}>
-            {formatTimestamp(new Date(message.createdAt))}
+            {formatTime(new Date(message.createdAt))}
           </span>
         )}
       </div>
@@ -164,7 +168,7 @@ export function MessageItem({
         )}
 
         {/* Reply Preview */}
-        {message.replyToMessage && (
+        {message.replyToMessage && !isContinuation && (
           <div className="flex items-center gap-2 mt-0.5 mb-1 group/reply cursor-pointer hover:bg-primary/5 p-1 rounded-sm transition-colors border-l-2 border-primary/20 pl-2">
             <CornerLeftUp className="h-3 w-3 text-primary/60" />
             <div className="text-[11px] text-muted-foreground line-clamp-1">

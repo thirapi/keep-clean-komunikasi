@@ -96,12 +96,12 @@ import { revalidatePath } from "next/cache";
 export const updateLastReadAt = async (
   userId: string,
   roomId: string,
-  date: Date
+  messageId: string
 ): Promise<ServerResponse<null>> => {
   try {
-    await updateLastReadAtController(userId, roomId, date);
+    await updateLastReadAtController(userId, roomId, messageId);
 
-    revalidatePath("/", "layout");
+    revalidatePath("/(with-sidebar)", "layout");
 
     return {
       status: "success",
@@ -124,7 +124,7 @@ export const updateLastReadAt = async (
 export const getLastReadAt = async (
   userId: string,
   roomId: string
-): Promise<ServerResponse<Date | null>> => {
+): Promise<ServerResponse<string | null>> => {
   try {
     const lastReadAt = await getLastReadAtController(userId, roomId);
 

@@ -16,16 +16,14 @@ export class GetSidebarDataUseCase {
         (participant) => participant.user.id === userId
       );
 
-      const lastReadAt = currentUserParticipant?.lastReadAt
-        ? new Date(currentUserParticipant.lastReadAt)
-        : null;
+      const lastReadMessageId = currentUserParticipant?.lastReadMessageId ?? null;
+      const latestMessage = room.messages[0];
 
-      const latestMessageAt = room.messages[0]?.createdAt
-        ? new Date(room.messages[0].createdAt)
-        : null;
-
+      // A room has unread if:
+      // 1. There is at least one message.
+      // 2. The latest message ID is not the lastReadMessageId.
       const hasUnread = Boolean(
-        latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt)
+        latestMessage && (!lastReadMessageId || latestMessage.id !== lastReadMessageId)
       );
 
       if (room.isDirect) {

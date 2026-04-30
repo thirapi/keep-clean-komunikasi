@@ -11,6 +11,7 @@ import { createRoom, getRoomsByUserId } from "./channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
 import { getSidebarData } from "./channels/[roomId]/room.action";
 import { PresenceProvider } from "@/components/presence-provider";
+import { UnreadProvider } from "@/components/unread-provider";
 
 export default async function layout({
   children,
@@ -57,26 +58,28 @@ export default async function layout({
     <div className="flex flex-col h-screen overflow-hidden">
       <SidebarProvider>
         <PresenceProvider userId={user.id}>
-          <RealtimeNotificationListener
-            user={{ id: user.id, username: user.name }}
-          />
-          {/* <BreadcrumbProvider> */}
-          <AppSidebar
-            user={user}
-            checkRole={role}
-            directRooms={directRooms}
-            groupRooms={groupRooms}
-          />
+          <UnreadProvider>
+            <RealtimeNotificationListener
+              user={{ id: user.id, username: user.name }}
+            />
+            {/* <BreadcrumbProvider> */}
+            <AppSidebar
+              user={user}
+              checkRole={role}
+              directRooms={directRooms}
+              groupRooms={groupRooms}
+            />
 
-          <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-            {/* Main content */}
-            <main className="flex-1 min-h-0 overflow-hidden w-full">
-              <div className="h-full w-full rounded-xl overflow-hidden">
-                <div className="h-full w-full overflow-y-auto">{children}</div>
-              </div>
-            </main>
-          </SidebarInset>
-          {/* </BreadcrumbProvider> */}
+            <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+              {/* Main content */}
+              <main className="flex-1 min-h-0 overflow-hidden w-full">
+                <div className="h-full w-full rounded-xl overflow-hidden">
+                  <div className="h-full w-full overflow-y-auto">{children}</div>
+                </div>
+              </main>
+            </SidebarInset>
+            {/* </BreadcrumbProvider> */}
+          </UnreadProvider>
         </PresenceProvider>
       </SidebarProvider>
     </div>

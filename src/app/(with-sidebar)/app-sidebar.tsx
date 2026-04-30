@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { CreateChannelDialog } from "./create-channel-dialog";
 import { ExploreChannelsDialog } from "./explore-channels-dialog";
+import { useUnread } from "@/components/unread-provider";
 
 const brand = {
   name: "Komunikasi",
@@ -61,12 +62,18 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const router = useRouter();
+  const { unreadRooms, initializeUnread } = useUnread();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
+
+  React.useEffect(() => {
+    initializeUnread([...groupRooms, ...directRooms].map(r => ({ id: r.id, hasUnread: r.hasUnread })));
+  }, [groupRooms, directRooms, initializeUnread]);
 
   const groups = groupRooms.map((room) => ({
     ...room,
     icon: Hash,
+    hasUnread: unreadRooms[room.id] ?? room.hasUnread,
   }));
 
   const directMessages = directRooms.map((room) => ({
@@ -76,7 +83,7 @@ export function AppSidebar({
     avatar: room.avatar,
     url: room.url,
     icon: User,
-    hasUnread: room.hasUnread,
+    hasUnread: unreadRooms[room.id] ?? room.hasUnread,
   }));
 
   async function handleCreateRoom(participantId: string) {

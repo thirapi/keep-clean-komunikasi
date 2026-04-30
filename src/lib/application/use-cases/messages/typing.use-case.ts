@@ -8,6 +8,7 @@ export class TypingUseCase {
   ) {}
 
   async startTyping(userId: string, roomId: string): Promise<void> {
+    if (!userId) return; // Prevent unnecessary calls if userId is empty
     try {
       const user = await this.userRepository.findById(userId);
       if (!user) throw new Error("User not found");
@@ -23,6 +24,7 @@ export class TypingUseCase {
   }
 
   async stopTyping(userId: string, roomId: string): Promise<void> {
+    if (!userId) return; // Prevent unnecessary calls if userId is empty
     try {
       await this.pusherService.trigger(`chat-${roomId}`, "user-typing", {
         userId,

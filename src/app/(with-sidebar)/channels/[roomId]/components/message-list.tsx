@@ -12,6 +12,7 @@ import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 import { Button } from "@/components/ui/button";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import { useMemo } from "react";
 
 export function MessageList({
   messages,
@@ -19,7 +20,7 @@ export function MessageList({
   unreadRef,
   onlineUserIds,
   onReply,
-  lastReadAt,
+  lastReadMessageId,
   userId,
   onLoadMore,
   hasMore,
@@ -32,7 +33,7 @@ export function MessageList({
   unreadRef: React.RefObject<HTMLDivElement | null>;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
-  lastReadAt: Date | null;
+  lastReadMessageId: string | null;
   userId: string;
   onLoadMore: () => void;
   hasMore: boolean;
@@ -40,22 +41,25 @@ export function MessageList({
   viewportRef?: React.RefObject<HTMLDivElement | null>;
   roomData: RoomWithParticipantsDTO;
 }) {
-  let lastDate: string | null = null;
+  // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
+  const unreadSeparatorIndex = useMemo(() => {
+    if (!lastReadMessageId) return -1;
+    
+    const lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
+    
+    // If message not found (e.g., deleted), or last, no separator
+    if (lastReadIndex === -1 || lastReadIndex >= messages.length - 1) return -1;
 
-  const unreadSeparatorIndex = messages.findIndex(
-    (msg) =>
-      lastReadAt &&
-      new Date(msg.createdAt) > lastReadAt &&
-      msg.userId !== userId,
-  );
-  const formattedFullDate = (date: Date) => {
-    return date.toLocaleDateString("id-ID", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
+    // Find first message after lastRead that is not from the current user
+    for (let i = lastReadIndex + 1; i < messages.length; i++) {
+      if (messages[i].userId !== userId) {
+        return i;
+      }
+    }
+    return -1;
+  }, [messages, lastReadMessageId, userId]);
+
+  let lastDate: string | null = null;
 
   return (
     <ScrollArea viewportRef={viewportRef} className="h-full w-full px-4 pt-3">

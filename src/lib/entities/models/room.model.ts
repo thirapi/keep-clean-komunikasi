@@ -20,7 +20,7 @@ export interface SidebarRoomDTO {
 
 export interface RoomWithParticipantsDTO extends RoomRecord {
   participants: {
-    lastReadAt: Date | null;
+    lastReadMessageId: string | null;
     user: {
       id: string;
       username: string;

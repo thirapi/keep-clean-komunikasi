@@ -1,0 +1,2 @@
+ALTER TABLE "RoomParticipant" ADD COLUMN "lastReadMessageId" text;--> statement-breakpoint
+ALTER TABLE "RoomParticipant" ADD CONSTRAINT "RoomParticipant_lastReadMessageId_Message_id_fk" FOREIGN KEY ("lastReadMessageId") REFERENCES "public"."Message"("id") ON DELETE no action ON UPDATE no action;

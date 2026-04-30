@@ -58,6 +58,7 @@ export const roomParticipants = pgTable("RoomParticipant", {
     roomId: text("roomId").notNull(),
     userId: text("userId").notNull(),
     lastReadAt: timestamp("lastReadAt"),
+    lastReadMessageId: text("lastReadMessageId").references(() => messages.id),
     joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 }, (t) => ({
     unq: unique().on(t.roomId, t.userId),

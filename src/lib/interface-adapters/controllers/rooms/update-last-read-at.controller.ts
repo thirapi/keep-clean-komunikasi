@@ -8,11 +8,11 @@ const updateLastReadAtUseCase = new UpdateLastReadAtUseCase(roomRepository);
 export async function updateLastReadAtController(
   userId: string,
   roomId: string,
-  date: Date
+  messageId: string
 ): Promise<void> {
-  if (!userId || !roomId || !date) {
+  if (!userId || !roomId || !messageId) {
     throw new Error("Invalid input parameters");
   }
 
-  await updateLastReadAtUseCase.execute(userId, roomId, date);
+  await updateLastReadAtUseCase.execute(userId, roomId, messageId);
 }

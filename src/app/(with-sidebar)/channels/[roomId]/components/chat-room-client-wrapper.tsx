@@ -18,13 +18,13 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
     userId: string;
     roomData: any;
     initialMessages: any[];
-    lastReadAt: any;
+    lastReadMessageId: string | null;
     user: any;
   } | null>(cachedRoom ? {
     userId: "", // Placeholder
     roomData: cachedRoom,
     initialMessages: messages,
-    lastReadAt: null,
+    lastReadMessageId: null,
     user: { id: "", username: "...", avatar: null }
   } : null);
 
@@ -56,7 +56,7 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
             userId: session?.user?.id ?? "",
             roomData: roomResponse.data,
             initialMessages: fetchedMessages,
-            lastReadAt: lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null,
+            lastReadMessageId: lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null,
             user: {
               id: session?.user?.id ?? "",
               username: userInfo.name,
@@ -97,7 +97,7 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
       userId={data.userId}
       roomData={data.roomData}
       initialMessages={messages} // Use the state that could come from cache
-      lastReadAt={data.lastReadAt}
+      lastReadMessageId={data.lastReadMessageId}
       user={data.user}
     />
   );

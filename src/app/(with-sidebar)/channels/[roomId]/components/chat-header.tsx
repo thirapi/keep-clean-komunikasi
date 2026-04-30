@@ -39,6 +39,11 @@ export function ChatHeader({
     username: string;
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isOwner = currentUserId === roomData.ownerId;
 
@@ -80,7 +85,11 @@ export function ChatHeader({
     <div className="flex items-center justify-between border-b bg-background/60 backdrop-blur-xl sticky top-0 z-10 px-4 py-3 md:px-6 h-16">
       <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
         {/* Sidebar Trigger - Mobile only */}
-        <SidebarTrigger className="md:hidden" />
+        {isMounted && (
+          <div className="md:hidden">
+            <SidebarTrigger />
+          </div>
+        )}
 
         {roomData.isDirect ? (
           <>
