@@ -10,7 +10,7 @@ const inviteToRoomUseCase = new InviteToRoomUseCase(roomRepository, userReposito
 export const searchInvitableUsersController = async (
   roomId: string,
   query: string
-): Promise<{ id: string; username: string; avatar: string | null }[]> => {
+): Promise<{ id: string; username: string; avatar: string }[]> => {
   return inviteToRoomUseCase.searchInvitableUsers(roomId, query);
 };
 

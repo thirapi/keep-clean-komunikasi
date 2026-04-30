@@ -11,11 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { searchInvitableUsers, inviteToChannel } from "../room.action";
 import { toast } from "sonner";
-import { stringToColor } from "@/utils/background-avatar";
 import { useRouter } from "next/navigation";
 
 interface InviteMemberDialogProps {
@@ -26,7 +25,7 @@ interface InviteMemberDialogProps {
   currentUserId: string;
 }
 
-type UserResult = { id: string; username: string; avatar: string | null };
+type UserResult = { id: string; username: string; avatar: string };
 
 export function InviteMemberDialog({
   open,
@@ -144,15 +143,11 @@ export function InviteMemberDialog({
                 key={user.id}
                 className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <Avatar className="h-9 w-9 rounded-lg shrink-0">
-                  <AvatarImage src={user.avatar ?? ""} />
-                  <AvatarFallback
-                    className="rounded-lg text-white text-xs font-bold"
-                    style={{ backgroundColor: stringToColor(user.id) }}
-                  >
-                    {user.username.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  src={user.avatar} 
+                  alt={user.username}
+                  className="h-9 w-9 rounded-lg"
+                />
 
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{user.username}</p>

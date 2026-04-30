@@ -2,23 +2,8 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-  Fingerprint,
-  Briefcase,
-  Home,
-  Users,
   User,
   Hash,
-  FlameKindling,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -31,11 +16,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { getUserSession } from "../auth.action";
-import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
 import K from "@/components/icons/k";
-import { AllUsers } from "../admin/(with-sidebar)/users/types";
 import { useRouter } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
@@ -50,8 +33,8 @@ const brand = {
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  groupRooms: RoomWithParticipantsDTO[];
-  directRooms: RoomWithParticipantsDTO[];
+  groupRooms: SidebarRoomDTO[];
+  directRooms: SidebarRoomDTO[];
   user: {
     id: string;
     name: string;
@@ -80,64 +63,21 @@ export function AppSidebar({
   const router = useRouter();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
-  const groups = groupRooms.map((room) => {
-    const currentUserParticipant = room.participants.find(
-      (participant) => participant.user.id === user.id,
-    );
 
-    const lastReadAt = currentUserParticipant?.lastReadAt
-      ? new Date(currentUserParticipant.lastReadAt)
-      : null;
+  const groups = groupRooms.map((room) => ({
+    ...room,
+    icon: Hash,
+  }));
 
-    const latestMessageAt = room.messages[0]?.createdAt
-      ? new Date(room.messages[0].createdAt)
-      : null;
-
-    // hasUnread: compare timestamps only — not loop through messages (only 1 loaded)
-    const hasUnread = Boolean(
-      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt)
-    );
-
-    return {
-      id: room.id,
-      name: room.name,
-      url: `/channels/${room.id}`,
-      avatar: room.avatar,
-      icon: Hash,
-      hasUnread,
-    };
-  });
-
-  const directMessages = directRooms.map((room) => {
-    const currentUserParticipant = room.participants.find(
-      (participant) => participant.user.id === user.id,
-    );
-    const otherUser = room.participants.find(
-      (participant) => participant.user.id !== user.id,
-    );
-    
-    const lastReadAt = currentUserParticipant?.lastReadAt
-      ? new Date(currentUserParticipant.lastReadAt)
-      : null;
-
-    const latestMessageAt = room.messages[0]?.createdAt
-      ? new Date(room.messages[0].createdAt)
-      : null;
-
-    const hasUnread = Boolean(
-      latestMessageAt && (!lastReadAt || latestMessageAt > lastReadAt)
-    );
-
-    return {
-      id: room.id,
-      userId: otherUser?.user.id || "",
-      name: otherUser?.user.username || "unknown",
-      avatar: otherUser?.user.avatar || null,
-      url: `/channels/${room.id}`,
-      icon: User,
-      hasUnread,
-    };
-  });
+  const directMessages = directRooms.map((room) => ({
+    id: room.id,
+    userId: room.userId ?? "",
+    name: room.name,
+    avatar: room.avatar,
+    url: room.url,
+    icon: User,
+    hasUnread: room.hasUnread,
+  }));
 
   async function handleCreateRoom(participantId: string) {
     const response = await createRoom(user.id, participantId);

@@ -9,6 +9,7 @@ import {
 } from "../auth.action";
 import { createRoom, getRoomsByUserId } from "./channels/[roomId]/room.action";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
+import { getSidebarData } from "./channels/[roomId]/room.action";
 import { PresenceProvider } from "@/components/presence-provider";
 
 export default async function layout({
@@ -27,10 +28,11 @@ export default async function layout({
     );
   }
 
-  const userRooms = await getRoomsByUserId(userId.user.id);
-  const directRooms = (userRooms.data ?? []).filter((room) => room.isDirect);
-  const groupRooms = (userRooms.data ?? []).filter((room) => !room.isDirect);
+  const sidebarData = await getSidebarData(userId.user.id);
+  const directRooms = sidebarData.data?.directMessages ?? [];
+  const groupRooms = sidebarData.data?.channels ?? [];
   const session = await sidaBarUserInfo();
+
   const role = await getUserWithRolesFromSession();
 
   function getInitials(name: string) {

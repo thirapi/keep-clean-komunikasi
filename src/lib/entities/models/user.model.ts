@@ -2,7 +2,7 @@ export interface UserRecord {
   id: string;
   username: string;
   password: string;
-  avatar: string | null;
+  avatar: string;
 }
 
 export type SignInUserDTO = Pick<UserRecord, "username" | "password">;

@@ -1,10 +1,9 @@
 import { db } from "@/lib/db";
-import { users, userRoles, roles, roomParticipants } from "@/lib/infrastructure/drizzle/schema";
+import { users, userRoles, roomParticipants } from "@/lib/infrastructure/drizzle/schema";
 import { eq, and, sql, like } from "drizzle-orm";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { createId } from "@paralleldrive/cuid2";
-import { avatarService } from "@/lib/infrastructure/services/avatar.service";
 
 export class UserRepository implements IUserRepository {
   constructor(private client: typeof db) { }
@@ -12,7 +11,7 @@ export class UserRepository implements IUserRepository {
   async findByUsernameWithRoles(username: string): Promise<{
     id: string;
     username: string;
-    avatar: string | null;
+    avatar: string;
     roles: { id: string; name: string }[];
   } | null> {
     const user = await this.client.query.users.findFirst({
@@ -31,7 +30,7 @@ export class UserRepository implements IUserRepository {
     return {
       id: user.id,
       username: user.username,
-      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
+      avatar: user.avatar,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -43,7 +42,7 @@ export class UserRepository implements IUserRepository {
     id: string;
     username: string;
     password: string;
-    avatar: string | null;
+    avatar: string;
     roles: { id: string; name: string }[];
   } | null> {
     const user = await this.client.query.users.findFirst({
@@ -63,7 +62,7 @@ export class UserRepository implements IUserRepository {
       id: user.id,
       username: user.username,
       password: user.password,
-      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
+      avatar: user.avatar,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -117,7 +116,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getAllUsersWithRoles(): Promise<
-    { id: string; username: string; avatar: string | null; roles: { id: string; name: string }[] }[]
+    { id: string; username: string; avatar: string; roles: { id: string; name: string }[] }[]
   > {
     const allUsers = await this.client.query.users.findMany({
       with: {
@@ -132,7 +131,7 @@ export class UserRepository implements IUserRepository {
     return allUsers.map((user) => ({
       id: user.id,
       username: user.username,
-      avatar: user.avatar || avatarService.generateAvatarUrl(user.username),
+      avatar: user.avatar,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -149,7 +148,7 @@ export class UserRepository implements IUserRepository {
     await client.update(users).set(user).where(eq(users.id, userId));
   }
 
-  async searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string | null }[]> {
+  async searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string}[]> {
     const results = await this.client.query.users.findMany({
       where: like(users.username, `%${query}%`),
       limit: limit ?? 10,
@@ -161,7 +160,7 @@ export class UserRepository implements IUserRepository {
     });
     return results.map(user => ({
       ...user,
-      avatar: user.avatar || avatarService.generateAvatarUrl(user.username)
+      avatar: user.avatar
     }));
   }
 }

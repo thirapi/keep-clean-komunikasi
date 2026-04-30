@@ -12,8 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { stringToColor } from "@/utils/background-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ChannelSettingsDialog } from "./channel-settings-dialog";
 
@@ -85,27 +84,11 @@ export function ChatHeader({
 
         {roomData.isDirect ? (
           <>
-            <Avatar className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm">
-              <AvatarImage
-                src={
-                  roomData.isDirect
-                    ? roomData.participants.find((p) => p.user.id !== currentUserId)?.user.avatar || undefined
-                    : roomData.avatar || undefined
-                }
-              />
-              <AvatarFallback
-                className="text-xs rounded-md font-bold text-white"
-                style={{
-                  backgroundColor: stringToColor(
-                    roomData.participants.find(
-                      (p) => p.user.id !== currentUserId,
-                    )?.user.id ?? "",
-                  ),
-                }}
-              >
-                {roomName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={roomData.participants.find((p) => p.user.id !== currentUserId)?.user.avatar || "/avatars/avatar1.png"} 
+              alt={roomName}
+              className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm"
+            />
             <div className="flex flex-col min-w-0">
               <h1 className="text-sm md:text-base font-bold text-foreground leading-tight truncate">
                 {roomName}
@@ -127,15 +110,11 @@ export function ChatHeader({
           </>
         ) : (
           <>
-            <Avatar className="h-8 w-8 rounded-md shrink-0 border shadow-sm">
-              <AvatarImage src={roomData.avatar || undefined} alt={roomName} />
-              <AvatarFallback
-                className="text-xs rounded-md font-bold text-white"
-                style={{ backgroundColor: stringToColor(roomData.id) }}
-              >
-                {roomName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={roomData.avatar} 
+              alt={roomName}
+              className="h-8 w-8 rounded-md shrink-0 border shadow-sm"
+            />
             <div className="flex flex-col min-w-0 ml-1">
               <div className="flex items-center gap-3">
                 <h2 className="text-base sm:text-lg font-semibold truncate leading-tight">

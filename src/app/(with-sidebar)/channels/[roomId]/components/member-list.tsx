@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { stringToColor } from "@/utils/background-avatar";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Crown, UserMinus, LogOut, UserPlus } from "lucide-react";
 import { createRoom, removeParticipant } from "../room.action";
@@ -110,18 +109,11 @@ export function MemberList({
           return (
             <li key={participant.user.id} className="group flex items-center gap-3">
               <div className="relative">
-                <Avatar className="h-8 w-8 rounded-lg shadow-sm">
-                  <AvatarImage
-                    src={participant.user.avatar || undefined}
-                    alt={participant.user.username}
-                  />
-                  <AvatarFallback
-                    className="text-[10px] text-white rounded-lg font-bold"
-                    style={{ backgroundColor: stringToColor(participant.user.id) }}
-                  >
-                    {participant.user.username.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  src={participant.user.avatar} 
+                  alt={participant.user.username}
+                  className="h-8 w-8 rounded-lg shadow-sm"
+                />
                 {isParticipantOnline && (
                   <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
                 )}
@@ -143,15 +135,11 @@ export function MemberList({
                 </HoverCardTrigger>
                 <HoverCardContent className="w-64 p-3 shadow-xl border-border/50">
                   <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-12 w-12 rounded-xl">
-                      <AvatarImage src={participant.user.avatar || undefined} />
-                      <AvatarFallback 
-                        style={{ backgroundColor: stringToColor(participant.user.id) }}
-                        className="text-white font-bold rounded-xl"
-                      >
-                        {participant.user.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      src={participant.user.avatar} 
+                      alt={participant.user.username}
+                      className="h-12 w-12 rounded-xl"
+                    />
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="font-bold text-base leading-tight">

@@ -10,15 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { stringToColor } from "@/utils/background-avatar";
 import { searchUsersAction } from "./user.action";
 
 interface User {
   id: string;
   username: string;
-  avatar?: string;
+  avatar: string;
 }
 
 type CurrentUser = {
@@ -55,7 +54,7 @@ export function DirectMessageDialog({
         .map((u) => ({
           id: u.id,
           username: u.username,
-          avatar: u.avatar ?? undefined,
+          avatar: u.avatar,
         }));
     }
     return [];
@@ -96,10 +95,6 @@ export function DirectMessageDialog({
   const handleUserSelect = (userId: string) => {
     onSelectUser(userId);
     onOpenChange(false);
-  };
-
-  const getUserInitials = (username: string) => {
-    return username.charAt(0).toUpperCase();
   };
 
   return (
@@ -147,18 +142,11 @@ export function DirectMessageDialog({
                       className="w-full justify-start h-auto p-3 hover:bg-accent"
                       onClick={() => handleUserSelect(user.id)}
                     >
-                      <Avatar className="h-8 w-8 mr-3 rounded-lg ring-4 ring-primary/20">
-                        <AvatarImage
-                          src={user.avatar || "/placeholder.svg"}
-                          alt={user.username}
-                        />
-                        <AvatarFallback
-                          className="text-xs text-white rounded-lg"
-                          style={{ backgroundColor: stringToColor(user.id) }}
-                        >
-                          {getUserInitials(user.username)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                        src={user.avatar} 
+                        alt={user.username}
+                        className="h-8 w-8 mr-3 rounded-lg ring-4 ring-primary/20"
+                      />
                       <span className="text-sm font-medium">
                         {user.username}
                       </span>

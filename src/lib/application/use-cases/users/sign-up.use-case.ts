@@ -1,5 +1,6 @@
 import { IRoleRepository } from "../../repositories/role.repository.interface";
 import { IUserRepository } from "../../repositories/user.repository.interface";
+import { IAvatarService } from "../../services/avatar.service.interface";
 import { IPasswordService } from "../../services/password.service.interface";
 import { AuthenticationError } from "@/lib/entities/errors/common";
 import { createId } from '@paralleldrive/cuid2';
@@ -8,7 +9,8 @@ export class SignUpUseCase {
     constructor(
         private userRepository: IUserRepository,
         private passwordService: IPasswordService,
-        private roleRepository: IRoleRepository
+        private roleRepository: IRoleRepository,
+        private avatarService: IAvatarService
     ) { }
 
     async execute(username: string, password: string): Promise<void> {
@@ -33,7 +35,7 @@ export class SignUpUseCase {
             id,
             username,
             password: hashPassword,
-            avatar: null
+            avatar: this.avatarService.generateAvatarUrl(username)
         })
 
 

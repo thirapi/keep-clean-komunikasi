@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { permissions as permissionsTable } from "@/lib/infrastructure/drizzle/schema";
 import { IPermissionRepository } from "@/lib/application/repositories/permission.repository.interface";
 import { PermissionRecord } from "@/lib/entities/models/permission.model";
 

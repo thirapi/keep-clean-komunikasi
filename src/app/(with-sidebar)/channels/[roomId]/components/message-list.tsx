@@ -6,7 +6,7 @@ import {
 import { MessageItem } from "./message-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Hash, Loader2 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { DateSeparator } from "./date-separator";
 import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
@@ -82,27 +82,17 @@ export function MessageList({
         )}
         {!hasMore && (
           <div className="flex flex-col items-start px-4 pt-8 space-y-4">
-            <Avatar className="h-16 w-16 rounded-2xl shadow-sm border-2 border-background">
-              <AvatarImage
-                src={roomData.isDirect 
-                  ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.avatar || undefined
-                  : roomData.avatar || undefined
-                }
-              />
-              <AvatarFallback
-                className="text-xl rounded-2xl font-bold text-white"
-                style={{
-                  backgroundColor: roomData.isDirect
-                    ? "#8b5cf6" 
-                    : "#3b82f6"
-                }}
-              >
-                {roomData.isDirect 
-                   ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.username.charAt(0).toUpperCase()
-                   : roomData.name.charAt(0).toUpperCase()
-                }
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={roomData.isDirect 
+                ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.avatar || "/avatars/avatar1.png")
+                : (roomData.avatar || "/avatars/avatar6.png")
+              }
+              alt={roomData.isDirect 
+                ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.username
+                : roomData.name
+              }
+              className="h-16 w-16 rounded-2xl shadow-sm border-2 border-background"
+            />
             <div className="space-y-1">
               <h1 className="text-3xl font-bold tracking-tight">
                 Welcome to #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name}!

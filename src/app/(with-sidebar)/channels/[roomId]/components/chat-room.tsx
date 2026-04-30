@@ -29,7 +29,7 @@ interface ChatRoomProps {
   user: {
     id: string;
     username: string;
-    avatar: string | null;
+    avatar: string;
   };
 }
 

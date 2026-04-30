@@ -30,7 +30,7 @@ export const updateUserAction = async (
   }
 };
 
-export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string | null }[]>> => {
+export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string}[]>> => {
   try {
     const users = await searchUserController(query);
     return {

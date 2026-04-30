@@ -54,8 +54,7 @@ import { CurrentAvatar } from "./current-avatar";
 import { updateUserAction } from "./user.action";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { stringToColor } from "@/utils/background-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const data = {
   nav: [
@@ -116,8 +115,6 @@ export function UserSettingsDialog({
       toast("Terjadi kesalahan saat memperbarui avatar");
     }
   };
-
-  const bgColor = stringToColor(user.id);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -245,22 +242,12 @@ export function UserSettingsDialog({
                         <div className="flex items-center gap-4 mb-4">
                           <div className="relative">
                             <div className="overflow-hidden flex items-center justify-center p-4 bg-card rounded-lg">
-                              <Avatar className="w-16 h-16 rounded-lg ring-4 ring-primary/20">
-                                <AvatarImage
-                                  src={user.avatar || "/placeholder.svg"}
-                                  alt="Current Avatar"
-                                />
-                                <AvatarFallback
-                                  className="text-2xl font-bold text-white rounded-lg"
-                                  style={{ backgroundColor: bgColor }}
-                                >
-                                  {user.initial}
-                                </AvatarFallback>
-                              </Avatar>
+                              <UserAvatar 
+                                src={user.avatar} 
+                                alt={user.name}
+                                className="w-16 h-16 rounded-lg ring-4 ring-primary/20"
+                              />
                             </div>
-                            {/* <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-card rounded-full flex items-center justify-center">
-                              <div className="w-2 h-2 bg-white rounded-full"></div>
-                            </div> */}
                           </div>
                           <div className="flex-1">
                             <h3 className="text-xl font-semibold text-foreground">
@@ -272,7 +259,7 @@ export function UserSettingsDialog({
                             </span>
                           </div>
                           <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors">
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-4 h-4 mr-2" />
                           </button>
                         </div>
                       </div>

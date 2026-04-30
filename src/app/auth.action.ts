@@ -169,14 +169,14 @@ export const sidaBarUserInfo = async () => {
       name: userData.username,
       role: getRolesAsString(userData.roles),
       email: "komunikasi.vercel.app",
-      avatar: userData.avatar || "",
+      avatar: userData.avatar || "/avatars/avatar1.png",
     };
   } else {
     return {
       name: "error",
       role: "",
       email: "",
-      avatar: "/avatars/shadcn.jpg",
+      avatar: "/avatars/avatar1.png",
     };
   }
 };

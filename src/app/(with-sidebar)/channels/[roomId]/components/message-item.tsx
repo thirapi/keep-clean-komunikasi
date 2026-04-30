@@ -1,5 +1,5 @@
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { CornerLeftUp, CornerUpLeft, MessageSquare } from "lucide-react";
 import {
   HoverCard,
@@ -18,16 +18,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-function stringToColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 50%)`;
-}
 
 function truncate(str: string, max = 100) {
   return str.length > max ? str.slice(0, max) + "..." : str;
@@ -84,7 +74,6 @@ export function MessageItem({
     return time;
   };
 
-  const bgColor = stringToColor(message.user?.username ?? "");
   const isOnline = onlineUserIds.includes(message.userId);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -103,15 +92,11 @@ export function MessageItem({
       <div className="relative pt-0.5 w-9 shrink-0 flex justify-center">
         {!isContinuation ? (
           <>
-            <Avatar className="w-9 h-9 rounded-md flex items-center justify-center font-bold ring-1 ring-border/50">
-              <AvatarImage src={message.user?.avatar ?? undefined} />
-              <AvatarFallback
-                className="rounded-md text-white dark:text-white text-xs"
-                style={{ backgroundColor: bgColor }}
-              >
-                {message.user?.username.charAt(0).toUpperCase() ?? "?"}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={message.user?.avatar || "/avatars/avatar1.png"} 
+              alt={message.user?.username}
+              className="w-9 h-9 rounded-md ring-1 ring-border/50"
+            />
             <div
               className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${
                 isOnline
@@ -143,18 +128,11 @@ export function MessageItem({
               <HoverCardContent className="w-64 glass shadow-xl border-border/50">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-12 h-12 rounded-lg ring-2 ring-primary/20">
-                      <AvatarImage
-                        src={message.user?.avatar || "/placeholder.svg"}
-                        alt="Avatar"
-                      />
-                      <AvatarFallback
-                        className="rounded-md text-white font-bold"
-                        style={{ backgroundColor: bgColor }}
-                      >
-                        {message.user?.username.charAt(0).toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      src={message.user?.avatar || "/avatars/avatar1.png"} 
+                      alt={message.user?.username}
+                      className="w-12 h-12 rounded-lg ring-2 ring-primary/20"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground">
                         {message.user?.username ?? "Unknown User"}

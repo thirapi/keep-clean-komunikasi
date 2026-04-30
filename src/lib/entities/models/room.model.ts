@@ -3,9 +3,19 @@ export interface RoomRecord {
   name: string;
   isDirect: boolean;
   description: string | null;
-  avatar: string | null;
+  avatar: string;
   isPublic: boolean;
   ownerId: string | null;
+}
+
+export interface SidebarRoomDTO {
+  id: string;
+  name: string;
+  url: string;
+  avatar: string;
+  hasUnread: boolean;
+  type: "channel" | "direct";
+  userId?: string;
 }
 
 export interface RoomWithParticipantsDTO extends RoomRecord {
@@ -14,7 +24,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
     user: {
       id: string;
       username: string;
-      avatar: string | null;
+      avatar: string;
       userRoles: {
         role: {
           name: string;

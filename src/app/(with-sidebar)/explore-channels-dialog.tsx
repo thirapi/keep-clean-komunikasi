@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Search, Loader2, Globe, Plus, MessageSquare } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { stringToColor } from "@/utils/background-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Dialog,
   DialogContent,
@@ -123,15 +122,11 @@ export function ExploreChannelsDialog({
                   key={channel.id}
                   className="group flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-accent/40 transition-all duration-200"
                 >
-                  <Avatar className="h-10 w-10 rounded-lg shrink-0 border">
-                    <AvatarImage src={channel.avatar || undefined} />
-                    <AvatarFallback 
-                      className="rounded-lg text-white font-bold"
-                      style={{ backgroundColor: stringToColor(channel.id) }}
-                    >
-                      {channel.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    src={channel.avatar} 
+                    alt={channel.name}
+                    className="h-10 w-10 rounded-lg shrink-0 border"
+                  />
                   <div className="space-y-1 flex-1 pr-4">
                     <div className="flex items-center gap-2">
                        <h3 className="font-bold text-foreground">#{channel.name}</h3>

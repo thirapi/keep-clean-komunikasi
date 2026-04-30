@@ -1,9 +1,8 @@
 import { db } from "@/lib/db";
-import { messages, users } from "@/lib/infrastructure/drizzle/schema";
+import { messages } from "@/lib/infrastructure/drizzle/schema";
 import { eq, asc, desc, lt, gt, and } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
-  MessageRecord,
   MessageWithUserDTO,
 } from "@/lib/entities/models/message.model";
 import { createId } from "@paralleldrive/cuid2";

@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { stringToColor } from "@/utils/background-avatar";
 import { MessageSquare, Crown, UserMinus, LogOut, UserPlus, X } from "lucide-react";
 import { createRoom, removeParticipant } from "../room.action";
 import { useRouter } from "next/navigation";
@@ -40,7 +39,7 @@ export function MobileMemberList({
   const [showInvite, setShowInvite] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState<{ userId: string, isSelf: boolean } | null>(null);
-  
+
   const isOwner = currentUserId === roomData.ownerId;
 
   const handleStartDM = async (targetUserId: string) => {
@@ -103,7 +102,7 @@ export function MobileMemberList({
               )}
             </SheetTitle>
           </SheetHeader>
-          
+
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {roomData.participants.map((participant) => {
               const isParticipantOnline = onlineUserIds.includes(participant.user.id);
@@ -114,15 +113,11 @@ export function MobileMemberList({
                 <div key={participant.user.id} className="p-3 bg-accent/30 rounded-2xl border border-border/50 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <Avatar className="h-10 w-10 rounded-xl shadow-sm border-2 border-background">
-                        <AvatarImage src={participant.user.avatar || undefined} />
-                        <AvatarFallback
-                          className="text-xs text-white rounded-xl font-bold"
-                          style={{ backgroundColor: stringToColor(participant.user.id) }}
-                        >
-                          {participant.user.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                        src={participant.user.avatar} 
+                        alt={participant.user.username}
+                        className="h-10 w-10 rounded-xl shadow-sm border-2 border-background"
+                      />
                       {isParticipantOnline && (
                         <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background" />
                       )}
@@ -153,7 +148,7 @@ export function MobileMemberList({
                         Pesan
                       </Button>
                     )}
-                    
+
                     {isOwner && !isSelf && (
                       <Button
                         variant="ghost"
@@ -219,3 +214,4 @@ export function MobileMemberList({
     </>
   );
 } 
+ 

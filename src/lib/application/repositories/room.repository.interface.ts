@@ -16,6 +16,7 @@ export interface IRoomRepository {
     name: string,
     isDirect: boolean,
     participantIds: string[],
+    avatar: string,
     description?: string,
     isPublic?: boolean,
     ownerId?: string

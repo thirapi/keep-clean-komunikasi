@@ -5,7 +5,7 @@ export const users = pgTable("User", {
     id: text("id").primaryKey(),
     username: text("username").unique().notNull(),
     password: text("password").notNull(),
-    avatar: text("avatar"),
+    avatar: text("avatar").default("/avatars/avatar1.png").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -43,7 +43,7 @@ export const rooms = pgTable("Room", {
     name: text("name").notNull(),
     isDirect: boolean("isDirect").default(false).notNull(),
     description: text("description"),
-    avatar: text("avatar"),
+    avatar: text("avatar").default("/avatars/avatar6.png").notNull(),
     isPublic: boolean("isPublic").default(false).notNull(),
     ownerId: text("ownerId").references(() => users.id),
 });

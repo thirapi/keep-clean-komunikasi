@@ -7,15 +7,18 @@ import { PasswordService } from "@/lib/infrastructure/services/password.service"
 import { z } from "zod";
 
 import { db } from "@/lib/db";
+import { DicebearAvatarService } from "@/lib/infrastructure/services/avatar.service";
 
 const userRepository = new UserRepository(db);
 const passwordService = new PasswordService();
 const roleRepository = new RoleRepository(db);
+const avatarService = new DicebearAvatarService();
 
 const signUpUseCase = new SignUpUseCase(
     userRepository,
     passwordService,
-    roleRepository
+    roleRepository,
+    avatarService
 
 )
 

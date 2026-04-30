@@ -38,7 +38,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
-      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
+      avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
@@ -111,7 +111,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
-      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
+      avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({
@@ -193,6 +193,7 @@ export class RoomRepository implements IRoomRepository {
     name: string,
     isDirect: boolean,
     participantIds: string[],
+    avatar: string,
     description?: string,
     isPublic: boolean = false,
     ownerId?: string
@@ -205,6 +206,7 @@ export class RoomRepository implements IRoomRepository {
         name,
         isDirect,
         description,
+        avatar,
         isPublic,
         ownerId,
       });
@@ -296,7 +298,7 @@ export class RoomRepository implements IRoomRepository {
       name: room.name,
       isDirect: room.isDirect,
       description: room.description ?? null,
-      avatar: room.avatar || avatarService.generateAvatarUrl(room.name),
+      avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
       participants: room.participants.map((p) => ({

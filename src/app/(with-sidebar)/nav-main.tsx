@@ -15,14 +15,13 @@ import clsx from "clsx"; // opsional jika mau bantu toggle class dengan clean
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { stringToColor } from "@/utils/background-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 type Groups = {
   id: string;
   name: string;
   url: string;
-  avatar: string | null;
+  avatar: string;
   icon: React.ElementType;
   hasUnread: boolean;
 };
@@ -92,15 +91,11 @@ export function NavMain({
                   {isActive && !isCollapsed && (
                     <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
                   )}
-                  <Avatar className="h-7 w-7 rounded-md shrink-0 border shadow-sm">
-                    <AvatarImage src={item.avatar || undefined} />
-                    <AvatarFallback 
-                      className="text-[8px] text-white font-bold"
-                      style={{ backgroundColor: stringToColor(item.id) }}
-                    >
-                      {item.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    src={item.avatar} 
+                    alt={item.name}
+                    className="h-7 w-7 rounded-md shrink-0 border shadow-sm"
+                  />
                   {!isCollapsed && (
                     <span className={cn("truncate flex-1", item.hasUnread && "font-semibold")}>{item.name}</span>
                   )}

@@ -11,7 +11,7 @@ export class InviteToRoomUseCase {
   async searchInvitableUsers(
     roomId: string,
     query: string
-  ): Promise<{ id: string; username: string; avatar: string | null }[]> {
+  ): Promise<{ id: string; username: string; avatar: string }[]> {
     const room = await this.roomRepository.getRoomById(roomId);
     if (!room) throw new Error("Channel tidak ditemukan");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
   SidebarGroup,
@@ -10,7 +10,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { stringToColor } from "@/utils/background-avatar";
 import { Plus, Hash, User } from "lucide-react";
 import { usePresence } from "@/components/presence-provider";
 import { usePathname } from "next/navigation";
@@ -30,7 +29,7 @@ type Groups = {
   id: string;
   userId: string;
   name: string;
-  avatar: string | null;
+  avatar: string;
   url: string;
   icon: React.ElementType;
   hasUnread: boolean;
@@ -131,20 +130,11 @@ export function NavMainDirectMessage({
                         <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
                       )}
                       <div className="relative flex-shrink-0">
-                        <Avatar className="h-7 w-7 rounded-md border shadow-sm flex-shrink-0">
-                          <AvatarImage
-                            src={item.avatar || undefined}
-                            alt={item.name}
-                          />
-                          <AvatarFallback
-                            className="text-[10px] rounded-md font-bold"
-                            style={{
-                              backgroundColor: stringToColor(item.userId),
-                            }}
-                          >
-                            {item.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          src={item.avatar} 
+                          alt={item.name}
+                          className="h-7 w-7 rounded-md border shadow-sm flex-shrink-0"
+                        />
                         {onlineUserIds.includes(item.userId) && (
                           <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-sidebar group-hover/btn:bg-sidebar-accent transition-colors">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />

@@ -7,6 +7,7 @@ export class CreateRoomUseCase {
     name: string,
     isDirect: boolean,
     participantIds: string[],
+    avatar: string,
     description?: string,
     isPublic: boolean = false,
     ownerId?: string
@@ -15,6 +16,7 @@ export class CreateRoomUseCase {
       name,
       isDirect,
       participantIds,
+      avatar,
       description,
       isPublic,
       ownerId

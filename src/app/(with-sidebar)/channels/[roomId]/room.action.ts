@@ -4,7 +4,33 @@ import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { createRoomController } from "@/lib/interface-adapters/controllers/rooms/create-room.controller";
 import { getRoomByIdController } from "@/lib/interface-adapters/controllers/rooms/get-room-by-id.controller";
 import { getRoomByUserIdController } from "@/lib/interface-adapters/controllers/rooms/get-room-by-user-id.controller";
+import { getSidebarDataController } from "@/lib/interface-adapters/controllers/rooms/get-sidebar-data.controller";
+import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { getPublicRoomsController } from "@/lib/interface-adapters/controllers/rooms/get-public-rooms.controller";
+
+export const getSidebarData = async (
+  userId: string
+): Promise<ServerResponse<{ channels: SidebarRoomDTO[]; directMessages: SidebarRoomDTO[] }>> => {
+  try {
+    const data = await getSidebarDataController(userId);
+
+    return {
+      status: "success",
+      data,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: { channels: [], directMessages: [] },
+      error: {
+        message: err.message,
+        type: err.name,
+        meta: err.fields,
+      },
+    };
+  }
+};
 import { joinRoomController } from "@/lib/interface-adapters/controllers/rooms/join-room.controller";
 import { removeParticipantController } from "@/lib/interface-adapters/controllers/rooms/remove-participant.controller";
 import { updateRoomController, deleteRoomController } from "@/lib/interface-adapters/controllers/rooms/room-settings.controller";
@@ -60,39 +86,20 @@ export const getRoomsByUserId = async (
   }
 };
 
+import { startDirectMessageController } from "@/lib/interface-adapters/controllers/rooms/start-direct-message.controller";
+
 export const createRoom = async (
   currentUserId: string,
   targetUserId: string
 ):  Promise<ServerResponse<RoomWithParticipantsDTO | null> & { meta?: { action: "existing" | "created" } }> => {
   try {
-    const existingRooms = await getRoomByUserIdController(currentUserId, {
-      isDirect: true,
-    });
-
-    const existingRoom = existingRooms.find((room) =>
-      room.participants.some((p) => p.user.id === targetUserId)
-    );
-
-    if (existingRoom) {
-      return {
-        status: "success",
-        data: existingRoom,
-        error: null,
-        meta: { action: "existing" },
-      };
-    }
-
-    const newRoom = await createRoomController({
-      name: `${currentUserId}-${targetUserId}`,
-      isDirect: true,
-      participantIds: [currentUserId, targetUserId],
-    });
+    const response = await startDirectMessageController(currentUserId, targetUserId);
 
     return {
       status: "success",
-      data: newRoom,
+      data: response.room,
       error: null,
-      meta: { action: "created" },
+      meta: { action: response.action },
     };
   } catch (err: any) {
     return {
@@ -259,7 +266,7 @@ export const deleteChannel = async (
 export const searchInvitableUsers = async (
   roomId: string,
   query: string
-): Promise<ServerResponse<{ id: string; username: string; avatar: string | null }[]>> => {
+): Promise<ServerResponse<{ id: string; username: string; avatar: string}[]>> => {
   try {
     const users = await searchInvitableUsersController(roomId, query);
     return { status: "success", data: users, error: null };
