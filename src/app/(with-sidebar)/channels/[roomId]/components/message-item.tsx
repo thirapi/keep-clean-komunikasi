@@ -125,12 +125,12 @@ export function MessageItem({
   return (
     <div
       className={cn(
-        "relative group flex items-start gap-4 px-4 transition-all duration-300 ease-in-out border-l-2 border-transparent",
+        "relative group flex items-start gap-4 px-4 transition-all duration-300 ease-in-out",
         isContinuation 
           ? "pt-0" 
           : cn("pt-2 hover:bg-muted/40 first:mt-0", isAfterSeparator ? "mt-1" : "mt-4"),
         isHovered && isContinuation && "bg-muted/30",
-        isHighlighted ? "bg-primary/10 border-primary/50 ring-1 ring-primary/20 scale-[1.01] z-10" : "hover:border-primary/30"
+        isHighlighted && "bg-primary/10 ring-1 ring-primary/20 scale-[1.01] z-10"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
