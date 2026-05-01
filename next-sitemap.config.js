@@ -1,4 +1,4 @@
 module.exports = {
-  siteUrl: 'https://komunikasi.vercel.app',
+  siteUrl: 'https://komunikasi.qzz.io',
   generateRobotsTxt: true,
 };

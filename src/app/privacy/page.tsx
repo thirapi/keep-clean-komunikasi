@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
-          content="https://komunikasi.vercel.app/privacy"
+          content="https://komunikasi.qzz.io/privacy"
         />
         <script
           type="application/ld+json"
@@ -32,7 +32,7 @@ export default function PrivacyPolicy() {
               "@context": "https://schema.org",
               "@type": "WebPage",
               name: "Kebijakan Privasi",
-              url: "https://komunikasi.vercel.app/privacy",
+              url: "https://komunikasi.qzz.io/privacy",
               description:
                 "Baca kebijakan privasi Komunikasi untuk memahami bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda.",
             }),

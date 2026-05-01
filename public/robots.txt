@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://komunikasi.vercel.app
+Host: https://komunikasi.qzz.io
 
 # Sitemaps
-Sitemap: https://komunikasi.vercel.app/sitemap.xml
+Sitemap: https://komunikasi.qzz.io/sitemap.xml

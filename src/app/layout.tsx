@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     title: "Komunikasi - Web Chat App",
     description:
       "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
-    url: "https://komunikasi.vercel.app/",
+    url: "https://komunikasi.qzz.io/",
     siteName: "Komunikasi",
     images: [
       {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
       "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman.",
     images: ["/og-image.png"],
   },
-  metadataBase: new URL("https://komunikasi.vercel.app/"),
+  metadataBase: new URL("https://komunikasi.qzz.io/"),
 };
 
 export default function RootLayout({
