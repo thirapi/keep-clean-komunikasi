@@ -26,9 +26,6 @@ export function useMarkAsRead(
       bottomObserver = new IntersectionObserver(
         ([entry]) => {
           setIsAtBottom(entry.isIntersecting);
-          if (entry.isIntersecting) {
-            markAsReadRef.current();
-          }
         },
         { threshold: 0 }
       );
@@ -40,7 +37,7 @@ export function useMarkAsRead(
             markAsReadRef.current();
           }
         },
-        { threshold: 0 }
+        { threshold: 0, rootMargin: "-10% 0px -10% 0px" } // Only mark read when it's well within the viewport
       );
 
       if (bottomRef.current) bottomObserver.observe(bottomRef.current);

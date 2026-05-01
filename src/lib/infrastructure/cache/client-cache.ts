@@ -7,55 +7,87 @@ class ClientChatCache {
 
   constructor() {
     if (typeof window !== "undefined") {
-      const savedMessages = localStorage.getItem("chat_cache_messages_v1");
-      const savedRooms = localStorage.getItem("chat_cache_rooms_v1");
-      
-      if (savedMessages) {
-        try {
-          const parsed = JSON.parse(savedMessages);
-          Object.entries(parsed).forEach(([key, val]) => {
-            this.messages.set(key, val as MessageWithUserDTO[]);
-          });
-        } catch (e) {}
-      }
-      if (savedRooms) {
-        try {
-          const parsed = JSON.parse(savedRooms);
-          Object.entries(parsed).forEach(([key, val]) => {
-            this.rooms.set(key, val);
-          });
-        } catch (e) {}
-      }
+      // Migrate old data if necessary (optional, but keep it simple for now)
+      // We will switch to individual keys.
+      // For now, we will load existing cache keys on demand or via explicit keys.
     }
   }
 
   setMessages(roomId: string, messages: MessageWithUserDTO[]) {
-    this.messages.set(roomId, messages.slice(0, 50));
-    this.persistMessages();
+    // Keep only last 50
+    const limited = messages.slice(-50);
+    this.messages.set(roomId, limited);
+    this.persistMessages(roomId, limited);
+  }
+
+  mergeMessages(roomId: string, newMessages: MessageWithUserDTO[]) {
+    const existing = this.getMessages(roomId) || [];
+    // Merge and deduplicate by ID
+    const map = new Map([...existing, ...newMessages].map(m => [m.id, m]));
+    const merged = Array.from(map.values())
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .slice(-50);
+    
+    this.messages.set(roomId, merged);
+    this.persistMessages(roomId, merged);
   }
 
   setRoom(roomId: string, roomData: any) {
     this.rooms.set(roomId, roomData);
-    this.persistRooms();
+    this.persistRoom(roomId, roomData);
   }
 
   getMessages(roomId: string): MessageWithUserDTO[] | undefined {
-    return this.messages.get(roomId);
+    if (this.messages.has(roomId)) return this.messages.get(roomId);
+    
+    // Fallback load from localStorage
+    const saved = localStorage.getItem(`chat_msg_${roomId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        this.messages.set(roomId, parsed);
+        return parsed;
+      } catch (e) {
+        return undefined;
+      }
+    }
+    return undefined;
   }
 
   getRoom(roomId: string): any | undefined {
-    return this.rooms.get(roomId);
+    if (this.rooms.has(roomId)) return this.rooms.get(roomId);
+    
+    const saved = localStorage.getItem(`chat_room_${roomId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        this.rooms.set(roomId, parsed);
+        return parsed;
+      } catch (e) {
+        return undefined;
+      }
+    }
+    return undefined;
   }
 
-  private persistMessages() {
+  invalidate(roomId: string) {
+    this.messages.delete(roomId);
+    this.rooms.delete(roomId);
     if (typeof window !== "undefined") {
-      localStorage.setItem("chat_cache_messages_v1", JSON.stringify(Object.fromEntries(this.messages)));
+      localStorage.removeItem(`chat_msg_${roomId}`);
+      localStorage.removeItem(`chat_room_${roomId}`);
     }
   }
 
-  private persistRooms() {
+  private persistMessages(roomId: string, messages: MessageWithUserDTO[]) {
     if (typeof window !== "undefined") {
-      localStorage.setItem("chat_cache_rooms_v1", JSON.stringify(Object.fromEntries(this.rooms)));
+      localStorage.setItem(`chat_msg_${roomId}`, JSON.stringify(messages));
+    }
+  }
+
+  private persistRoom(roomId: string, roomData: any) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`chat_room_${roomId}`, JSON.stringify(roomData));
     }
   }
 }
