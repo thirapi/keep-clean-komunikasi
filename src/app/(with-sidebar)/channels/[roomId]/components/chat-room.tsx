@@ -20,6 +20,7 @@ import { useAutoFocusInput } from "./hooks/use-auto-focus-input";
 import { useMarkAsRead } from "./hooks/use-mark-as-read";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePresence } from "@/components/presence-provider";
+import { useUnread } from "@/components/unread-provider";
 
 interface ChatRoomProps {
   userId: string;
@@ -43,6 +44,7 @@ export function ChatRoom({
   const [messages, setMessages] = useState(initialMessages);
   const [localRoomData, setLocalRoomData] = useState(roomData);
   const { onlineUserIds } = usePresence();
+  const { markAsRead: markSidebarAsRead } = useUnread();
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
@@ -82,18 +84,8 @@ export function ChatRoom({
 
   const sendNotification = useCallback((msg: MessageWithUserDTO) => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.08);
-      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.08);
+      const audio = new Audio("/sounds/message-notification.mp3");
+      audio.play().catch((e) => console.warn("Audio play failed", e));
     } catch (e) {
       console.warn("Audio context failed", e);
     }
@@ -117,6 +109,12 @@ export function ChatRoom({
     if (msg.userId !== userId && !isFromSync && !isInitialLoadRef.current) {
       sendNotification(msg);
     }
+    
+    // If the message is from the current user, treat it as read automatically
+    if (msg.userId === userId) {
+      setLastReadIdState(msg.id);
+    }
+
     setMessages((prev) => {
       const existingIndex = prev.findIndex((m) => {
         if (m.id === msg.id) return true;
@@ -146,17 +144,42 @@ export function ChatRoom({
     if (!userId || userId === "") return;
     const lastMessage = messagesRef.current[messagesRef.current.length - 1];
     if (!lastMessage) return;
-    await updateLastReadAt(userId, roomData.id, lastMessage.id);
-    router.refresh();
-  }, 1500), [userId, roomData.id, router]);
+    
+    // Update local state optimisticlly
+    setLastReadIdState(lastMessage.id);
+    markSidebarAsRead(roomData.id);
+    
+    // Fire and forget server update
+    updateLastReadAt(userId, roomData.id, lastMessage.id).catch(console.error);
+  }, 1000), [userId, roomData.id, markSidebarAsRead]);
+
+  // Ensure read state is flushed on unmount/visibility hidden
+  useEffect(() => {
+    const flushReadState = async () => {
+      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+      if (lastMessage && lastMessage.id !== lastReadIdState) {
+        markSidebarAsRead(roomData.id);
+        await updateLastReadAt(userId, roomData.id, lastMessage.id);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushReadState();
+      }
+    };
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      flushReadState(); // Flush on unmount
+    };
+  }, [userId, roomData.id, lastReadIdState, markSidebarAsRead]);
 
   const markAsRead = useCallback(() => {
     if (!userId || userId === "") return;
-    const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-    if (!lastMessage) return;
-    setLastReadIdState(lastMessage.id);
     markAsReadApi();
-  }, [userId, markAsReadApi]);
+  }, [markAsReadApi]);
 
   const syncMessages = useCallback(async () => {
     const currentMessages = messagesRef.current;

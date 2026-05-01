@@ -6,13 +6,13 @@ import { getLastReadAt, getMessage } from "../messages.action";
 import { getRoom } from "../room.action";
 import { ChatRoom } from "./chat-room";
 import { clientChatCache } from "@/lib/infrastructure/cache/client-cache";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import LoadingRoom from "../room-skeleton";
 
 export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
-  // 1. Load from cache immediately on roomId change
   const [messages, setMessages] = useState<any[]>(clientChatCache.getMessages(roomId) || []);
   const cachedRoom = clientChatCache.getRoom(roomId);
+  const cachedLastRead = clientChatCache.getLastRead(roomId) || null;
 
   const [data, setData] = useState<{
     userId: string;
@@ -21,55 +21,56 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
     lastReadMessageId: string | null;
     user: any;
   } | null>(cachedRoom ? {
-    userId: "", // Placeholder
+    userId: "",
     roomData: cachedRoom,
-    initialMessages: messages,
-    lastReadMessageId: null,
+    initialMessages: clientChatCache.getMessages(roomId) || [],
+    lastReadMessageId: cachedLastRead,
     user: { id: "", username: "...", avatar: null }
   } : null);
 
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     async function init() {
-      setIsSyncing(true);
       try {
         const session = await getUserSession();
+        const userId = session?.user?.id ?? "";
+
         const [roomResponse, initialMessagesResponse, lastReadAtResponse, userInfo] =
           await Promise.all([
             getRoom(roomId),
             getMessage(roomId, 50),
-            getLastReadAt(session?.user?.id ?? "", roomId),
+            getLastReadAt(userId, roomId),
             sidaBarUserInfo(),
           ]);
 
         if (roomResponse.status === "success" && roomResponse.data) {
           const fetchedMessages = (initialMessagesResponse.status === "success" ? initialMessagesResponse.data : []) ?? [];
+          const fetchedLastRead = lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null;
           
-          // Save to cache
           clientChatCache.setRoom(roomId, roomResponse.data);
           clientChatCache.setMessages(roomId, fetchedMessages);
+          clientChatCache.setLastRead(roomId, fetchedLastRead);
+          
           setMessages(fetchedMessages);
 
           setData({
-            userId: session?.user?.id ?? "",
+            userId,
             roomData: roomResponse.data,
             initialMessages: fetchedMessages,
-            lastReadMessageId: lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null,
+            lastReadMessageId: fetchedLastRead,
             user: {
-              id: session?.user?.id ?? "",
+              id: userId,
               username: userInfo.name,
               avatar: userInfo.avatar,
             },
           });
         } else {
-          setError("Room tidak ditemukan");
+          setError("Gagal memuat room");
         }
       } catch (e) {
+        console.error("Initialization error:", e);
         setError("Terjadi kesalahan sistem");
-      } finally {
-        setIsSyncing(false);
       }
     }
 
@@ -86,17 +87,15 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
   }
 
   if (!data) {
-    // If we have cached messages, we can actually show a "Partial" ChatRoom
-    // but for now let's show the skeleton if we don't even have room metadata
     return <LoadingRoom />;
   }
 
   return (
     <ChatRoom
-      key={roomId} // Force fresh mount on room change
+      key={roomId}
       userId={data.userId}
       roomData={data.roomData}
-      initialMessages={messages} // Use the state that could come from cache
+      initialMessages={messages}
       lastReadMessageId={data.lastReadMessageId}
       user={data.user}
     />

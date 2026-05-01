@@ -111,7 +111,16 @@ export function AppSidebar({
 
     const channel = pusher.subscribe(`user-${user.id}`);
 
-    channel.bind("new-message-notification", () => {
+    channel.bind("new-message-notification", (data: { roomId: string }) => {
+      // Play sound
+      try {
+        const audio = new Audio("/sounds/message-notification.mp3");
+        audio.play().catch((e) => console.warn("Audio play failed", e));
+      } catch (e) {
+        console.warn("Audio context failed", e);
+      }
+      
+      // Update UI
       router.refresh();
     });
 

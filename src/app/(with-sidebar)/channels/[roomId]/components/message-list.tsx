@@ -43,19 +43,26 @@ export function MessageList({
 }) {
   // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
   const unreadSeparatorIndex = useMemo(() => {
-    if (!lastReadMessageId) return -1;
+    if (!lastReadMessageId || messages.length === 0) return -1;
     
     const lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
     
-    // If message not found (e.g., deleted), or last, no separator
-    if (lastReadIndex === -1 || lastReadIndex >= messages.length - 1) return -1;
-
-    // Find first message after lastRead that is not from the current user
-    for (let i = lastReadIndex + 1; i < messages.length; i++) {
-      if (messages[i].userId !== userId) {
-        return i;
+    // If message is found, check for the next message from someone else
+    if (lastReadIndex !== -1) {
+      if (lastReadIndex >= messages.length - 1) return -1;
+      for (let i = lastReadIndex + 1; i < messages.length; i++) {
+        if (messages[i].userId !== userId) return i;
       }
+      return -1;
     }
+
+    // If lastReadMessageId is NOT found, it means it's an older message (not in the current 50).
+    // In this case, everything in the current view could be unread.
+    // We find the first message that is not from the current user.
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].userId !== userId) return i;
+    }
+    
     return -1;
   }, [messages, lastReadMessageId, userId]);
 
@@ -136,7 +143,7 @@ export function MessageList({
           lastDate = currentDate;
 
           return (
-            <div key={msg.id} ref={isUnread ? unreadRef : null}>
+            <div key={`msg-container-${msg.id}`} ref={isUnread ? unreadRef : null}>
               <>
                 {showDateSeparator && index > 0 && (
                   <DateSeparator date={new Date(msg.createdAt)} />
