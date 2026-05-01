@@ -8,6 +8,22 @@ import { InteractiveText } from "@/components/landingpage/interactive-text";
 import { AuthContainer } from "@/components/landingpage/auth-container";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Komunikasi.qzz.io",
+  description: "Komunikasi adalah platform pesan instan modern yang dirancang untuk kecepatan, keamanan, dan produktivitas. Hubungkan tim Anda dan berbagi ide dengan lancar.",
+  keywords: ["chat", "real-time", "komunikasi", "pesan instan", "kolaborasi", "platform chat", "aman"],
+  authors: [{ name: "Thirafi" }],
+  openGraph: {
+    title: "Komunikasi.qzz.io",
+    description: "Hubungkan tim Anda dan berbagi ide dengan lancar di platform komunikasi masa depan.",
+    url: "https://komunikasi.qzz.io",
+    siteName: "Komunikasi",
+    locale: "id_ID",
+    type: "website",
+  },
+};
 
 export default async function Home() {
   const session = await getUserSession();
@@ -19,6 +35,21 @@ export default async function Home() {
 
   return (
     <div className="relative flex min-h-screen flex-col lg:flex-row bg-background selection:bg-primary/20 selection:text-primary overflow-hidden">
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "Komunikasi",
+            url: "https://komunikasi.qzz.io",
+            description: "Platform pesan instan modern untuk kolaborasi tim.",
+            applicationCategory: "CommunicationApplication",
+          }),
+        }}
+      />
+
       {/* Full-width Gravity Background */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <GravityBackground />
