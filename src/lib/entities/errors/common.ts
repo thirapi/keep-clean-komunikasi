@@ -41,3 +41,14 @@ export class InputParsedError extends Error {
         return extractedErrors;
     }
 }
+
+export class DocumentUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DocumentUploadError";
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, DocumentUploadError);
+    }
+  }
+}

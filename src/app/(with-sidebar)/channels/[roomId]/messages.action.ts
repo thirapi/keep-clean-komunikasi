@@ -9,6 +9,9 @@ import {
 } from "@/lib/interface-adapters/controllers/messages/typing.controller";
 import { updateLastReadAtController } from "@/lib/interface-adapters/controllers/rooms/update-last-read-at.controller";
 import { getLastReadAtController } from "@/lib/interface-adapters/controllers/rooms/get-last-read-at.controller";
+import { uploadFileController } from "@/lib/interface-adapters/controllers/storage/upload-file.controller";
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { revalidatePath } from "next/cache";
 
 export const setTypingStatusAction = async (
   userId: string,
@@ -38,8 +41,6 @@ export const setTypingStatusAction = async (
     };
   }
 };
-
-import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 
 export const createMessage = async (
   userId: string,
@@ -91,7 +92,39 @@ export const getMessage = async (roomId: string, limit?: number, before?: Date, 
   }
 };
 
-import { revalidatePath } from "next/cache";
+export const uploadFileAction = async (
+  formData: FormData,
+  destination?: string
+): Promise<ServerResponse<{ fileurl: string; filename: string; size: number; mimetype: string } | null>> => {
+  try {
+    const file = formData.get("file") as File;
+    if (!file) {
+      return {
+        status: "error",
+        data: null,
+        error: { message: "No file provided", type: "ValidationError" },
+      };
+    }
+
+    const data = await uploadFileController(file, destination);
+
+    return {
+      status: "success",
+      data,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: null,
+      error: {
+        message: err.message,
+        type: err.name,
+        meta: err.fields,
+      },
+    };
+  }
+};
 
 export const updateLastReadAt = async (
   userId: string,
