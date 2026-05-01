@@ -42,10 +42,17 @@ const formSchema = z.object({
   confirm_password: z.string().min(4),
 });
 
+interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
+  onToggleMode?: () => void;
+  isEmbedded?: boolean;
+}
+
 export function SignUpForm({
   className,
+  onToggleMode,
+  isEmbedded,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: SignUpFormProps) {
   const [formStatus, setFormStatus] = useState<"idle" | "pending" | "error">(
     "idle"
   );
@@ -93,6 +100,9 @@ export function SignUpForm({
       setFormStatus("error");
     } else {
       toast.success("Sign up berhasil");
+      if (onToggleMode) {
+        onToggleMode();
+      }
       form.reset();
       setFormStatus("idle");
     }
@@ -100,9 +110,9 @@ export function SignUpForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="border-border/40 shadow-lg transition-all duration-300 hover:shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Register</CardTitle>
+          <CardTitle className="text-2xl font-bold">Register</CardTitle>
           <CardDescription>
             Register your username and password below to make your account
           </CardDescription>
@@ -223,12 +233,22 @@ export function SignUpForm({
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
-                <a 
-                  href={callbackUrl ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signin"} 
-                  className="underline underline-offset-4"
-                >
-                  Sign in
-                </a>
+                {onToggleMode ? (
+                  <button
+                    type="button"
+                    onClick={onToggleMode}
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Sign in
+                  </button>
+                ) : (
+                  <a 
+                    href={callbackUrl ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signin"} 
+                    className="underline underline-offset-4"
+                  >
+                    Sign in
+                  </a>
+                )}
               </div>
             </form>
           </Form>

@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
     )
 
     if (isProtected && !session) {
-        return NextResponse.redirect(new URL('/signin', request.url))
+        return NextResponse.redirect(new URL('/', request.url))
     }
 
     return NextResponse.next()

@@ -91,9 +91,9 @@ export const signUpUser = async (
     };
     await signUpController(signUpData);
     if (callbackUrl) {
-      redirect(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      redirect(`/?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     } else {
-      redirect("/signin");
+      redirect("/");
     }
   } catch (err: any) {
     if (err.message === "NEXT_REDIRECT") throw err;
@@ -139,7 +139,7 @@ export const signOutUserAction = async () => {
   }
   await signOutController(session_id.value);
   cookieStore.delete("session_id");
-  redirect("/signin");
+  redirect("/");
 };
 
 export const getUserSession = cache(async (): Promise<SessionDTO | null> => {

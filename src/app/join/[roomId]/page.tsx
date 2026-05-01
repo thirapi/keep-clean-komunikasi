@@ -11,8 +11,9 @@ export default async function JoinRoomPage({
   const user = await getUserSession();
 
   if (!user) {
-    redirect(`/signin?callbackUrl=/join/${roomId}`);
+    redirect(`/?callbackUrl=/join/${roomId}`);
   }
+
 
   // Check if room exists
   const roomResponse = await getRoom(roomId);

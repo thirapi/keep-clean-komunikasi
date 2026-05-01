@@ -296,13 +296,13 @@ export default function PrivacyPolicy() {
             </div>
             <nav className="flex gap-4 sm:gap-6">
               <Link
-                href="/signin"
+                href="/"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Masuk
               </Link>
               <Link
-                href="/signup"
+                href="/"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Daftar

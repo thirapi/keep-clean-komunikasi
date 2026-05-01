@@ -42,10 +42,17 @@ const formSchema = z.object({
   password: z.string().min(4),
 });
 
+interface SignInFormProps extends React.ComponentPropsWithoutRef<"div"> {
+  onToggleMode?: () => void;
+  isEmbedded?: boolean;
+}
+
 export function SignInForm({
   className,
+  onToggleMode,
+  isEmbedded,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: SignInFormProps) {
   const [formStatus, setFormStatus] = useState<"idle" | "pending" | "error">(
     "idle"
   );
@@ -168,12 +175,22 @@ export function SignInForm({
               </div>
               <div className="mt-4 text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <a 
-                  href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"} 
-                  className="underline underline-offset-4"
-                >
-                  Sign up
-                </a>
+                {onToggleMode ? (
+                  <button
+                    type="button"
+                    onClick={onToggleMode}
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Sign up
+                  </button>
+                ) : (
+                  <a 
+                    href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"} 
+                    className="underline underline-offset-4"
+                  >
+                    Sign up
+                  </a>
+                )}
               </div>
             </form>
           </Form>
