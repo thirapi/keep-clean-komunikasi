@@ -27,6 +27,8 @@ export function MessageList({
   isLoadingMore,
   viewportRef,
   roomData,
+  highlightedMessageId,
+  onScrollToMessage,
 }: {
   messages: MessageWithUserDTO[];
   bottomRef: React.RefObject<HTMLDivElement | null>;
@@ -40,7 +42,10 @@ export function MessageList({
   isLoadingMore: boolean;
   viewportRef?: React.RefObject<HTMLDivElement | null>;
   roomData: RoomWithParticipantsDTO;
+  highlightedMessageId?: string | null;
+  onScrollToMessage?: (messageId: string) => void;
 }) {
+  // ... rest of the component
   // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
   const unreadSeparatorIndex = useMemo(() => {
     if (!lastReadMessageId || messages.length === 0) return -1;
@@ -143,7 +148,11 @@ export function MessageList({
           lastDate = currentDate;
 
           return (
-            <div key={`msg-container-${msg.id}`} ref={isUnread ? unreadRef : null}>
+            <div 
+              id={`message-${msg.id}`}
+              key={`msg-container-${msg.id}`} 
+              ref={isUnread ? unreadRef : null}
+            >
               <>
                 {showDateSeparator && index > 0 && (
                   <DateSeparator date={new Date(msg.createdAt)} />
@@ -165,6 +174,8 @@ export function MessageList({
                 currentUserId={userId}
                 isContinuation={isContinuation}
                 isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isUnread)}
+                isHighlighted={msg.id === highlightedMessageId}
+                onScrollToMessage={onScrollToMessage}
               />
             </div>
           );

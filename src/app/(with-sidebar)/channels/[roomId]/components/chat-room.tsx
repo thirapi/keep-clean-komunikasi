@@ -5,6 +5,7 @@ import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt } from "../messages.action";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
@@ -51,16 +52,39 @@ export function ChatRoom({
   const [hasMore, setHasMore] = useState(initialMessages.length === 50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [lastReadIdState, setLastReadIdState] = useState<string | null>(lastReadMessageId);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const router = useRouter();
 
   const messagesRef = useRef(messages);
+  const lastPersistedReadIdRef = useRef<string | null>(lastReadMessageId);
   const isInitialLoadRef = useRef(true); 
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync state with props when they change (e.g. after server fetch in wrapper)
+  useEffect(() => {
+    setLastReadIdState(lastReadMessageId);
+    // Only update persisted ref if it's null or the prop is newer (this is tricky)
+    // For simplicity, if prop arrives from server, we assume server knows it
+    lastPersistedReadIdRef.current = lastReadMessageId;
+  }, [lastReadMessageId]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const element = document.getElementById(`message-${messageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 2000);
+    } else {
+      toast.info("Pesan tidak ditemukan di tampilan saat ini");
+    }
+  }, []);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -113,6 +137,10 @@ export function ChatRoom({
     // If the message is from the current user, treat it as read automatically
     if (msg.userId === userId) {
       setLastReadIdState(msg.id);
+      // Sync to cache immediately for current user's messages
+      import("@/lib/infrastructure/cache/client-cache").then(m => {
+        m.clientChatCache.setLastRead(localRoomData.id, msg.id);
+      });
     }
 
     setMessages((prev) => {
@@ -143,23 +171,39 @@ export function ChatRoom({
   const markAsReadApi = useMemo(() => debounce(async () => {
     if (!userId || userId === "") return;
     const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-    if (!lastMessage) return;
+    if (!lastMessage || lastMessage.id === lastPersistedReadIdRef.current) return;
     
-    // Update local state optimisticlly
-    setLastReadIdState(lastMessage.id);
+    const messageId = lastMessage.id;
+    
+    // Update local state and persisted ref
+    setLastReadIdState(messageId);
+    lastPersistedReadIdRef.current = messageId;
+    
+    // Sync to sidebar and cache
     markSidebarAsRead(roomData.id);
+    import("@/lib/infrastructure/cache/client-cache").then(m => {
+      m.clientChatCache.setLastRead(roomData.id, messageId);
+    });
     
-    // Fire and forget server update
-    updateLastReadAt(userId, roomData.id, lastMessage.id).catch(console.error);
+    // Server update
+    updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
   }, 1000), [userId, roomData.id, markSidebarAsRead]);
 
   // Ensure read state is flushed on unmount/visibility hidden
   useEffect(() => {
     const flushReadState = async () => {
       const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-      if (lastMessage && lastMessage.id !== lastReadIdState) {
+      if (lastMessage && lastMessage.id !== lastPersistedReadIdRef.current) {
+        const messageId = lastMessage.id;
+        lastPersistedReadIdRef.current = messageId;
+        
         markSidebarAsRead(roomData.id);
-        await updateLastReadAt(userId, roomData.id, lastMessage.id);
+        updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
+        
+        // Also update cache on flush
+        import("@/lib/infrastructure/cache/client-cache").then(m => {
+          m.clientChatCache.setLastRead(roomData.id, messageId);
+        });
       }
     };
 
@@ -174,7 +218,7 @@ export function ChatRoom({
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       flushReadState(); // Flush on unmount
     };
-  }, [userId, roomData.id, lastReadIdState, markSidebarAsRead]);
+  }, [userId, roomData.id, markSidebarAsRead]);
 
   const markAsRead = useCallback(() => {
     if (!userId || userId === "") return;
@@ -239,6 +283,15 @@ export function ChatRoom({
     };
   }, [roomData.id, handleNewMessage, syncMessages]);
 
+  const handleMessageSend = useCallback((msg: MessageWithUserDTO) => {
+    handleNewMessage(msg);
+    markAsRead();
+  }, [handleNewMessage, markAsRead]);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyingTo(null);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <ChatHeader
@@ -265,18 +318,17 @@ export function ChatRoom({
               isLoadingMore={isLoadingMore}
               viewportRef={viewportRef}
               roomData={localRoomData}
+              highlightedMessageId={highlightedMessageId}
+              onScrollToMessage={scrollToMessage}
             />
           </div>
           <MessageInput
             userId={userId}
             roomData={roomData}
             replyingTo={replyingTo}
-            onCancelReply={() => setReplyingTo(null)}
+            onCancelReply={handleCancelReply}
             inputRef={inputRef}
-            onNewMessage={(msg) => {
-              handleNewMessage(msg);
-              markAsRead();
-            }}
+            onNewMessage={handleMessageSend}
             user={user}
           />
         </div>

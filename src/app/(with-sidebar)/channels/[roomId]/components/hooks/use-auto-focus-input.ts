@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 
-export function useAutoFocusInput(inputRef: React.RefObject<HTMLInputElement | null>) {
+export function useAutoFocusInput(
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
+) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isTypingAreaFocused =
@@ -16,5 +18,5 @@ export function useAutoFocusInput(inputRef: React.RefObject<HTMLInputElement | n
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [inputRef]);
 }

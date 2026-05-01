@@ -30,6 +30,8 @@ export function MessageItem({
   currentUserId,
   isContinuation,
   isAfterSeparator,
+  isHighlighted,
+  onScrollToMessage,
 }: {
   message: MessageWithUserDTO;
   onlineUserIds: string[];
@@ -37,6 +39,8 @@ export function MessageItem({
   currentUserId: string;
   isContinuation?: boolean;
   isAfterSeparator?: boolean;
+  isHighlighted?: boolean;
+  onScrollToMessage?: (messageId: string) => void;
 }) {
   const router = useRouter();
 
@@ -78,17 +82,40 @@ export function MessageItem({
     return time;
   };
 
+  const renderContent = (content: string) => {
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/g;
+    return content.split(urlRegex).map((part, index) => {
+      if (part.match(/^(https?:\/\/|www\.)/)) {
+        const href = part.startsWith("www.") ? `https://${part}` : part;
+        return (
+          <a
+            key={index}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all font-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const isOnline = onlineUserIds.includes(message.userId);
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
       className={cn(
-        "relative group flex items-start gap-4 px-4 transition-all duration-200 ease-in-out border-l-2 border-transparent hover:border-primary/30",
+        "relative group flex items-start gap-4 px-4 transition-all duration-300 ease-in-out border-l-2 border-transparent",
         isContinuation 
           ? "pt-0" 
           : cn("pt-2 hover:bg-muted/40 first:mt-0", isAfterSeparator ? "mt-1" : "mt-4"),
-        isHovered && isContinuation && "bg-muted/30"
+        isHovered && isContinuation && "bg-muted/30",
+        isHighlighted ? "bg-primary/10 border-primary/50 ring-1 ring-primary/20 scale-[1.01] z-10" : "hover:border-primary/30"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -168,8 +195,11 @@ export function MessageItem({
         )}
 
         {/* Reply Preview */}
-        {message.replyToMessage && !isContinuation && (
-          <div className="flex items-center gap-2 mt-0.5 mb-1 group/reply cursor-pointer hover:bg-primary/5 p-1 rounded-sm transition-colors border-l-2 border-primary/20 pl-2">
+        {message.replyToMessage && (
+          <div 
+            className="flex items-center gap-2 mt-0.5 mb-1 group/reply cursor-pointer hover:bg-primary/5 p-1 rounded-sm transition-colors border-l-2 border-primary/20 pl-2"
+            onClick={() => message.replyTo && onScrollToMessage?.(message.replyTo)}
+          >
             <CornerLeftUp className="h-3 w-3 text-primary/60" />
             <div className="text-[11px] text-muted-foreground line-clamp-1">
               <span className="font-bold text-primary/70">
@@ -191,7 +221,7 @@ export function MessageItem({
             pr-10
             "
         >
-          {message.content}
+          {renderContent(message.content)}
         </div>
         {message.imageUrl && (
           <div className="mt-2 relative group-media overflow-hidden rounded-lg border border-border/50 max-w-sm">

@@ -1,10 +1,9 @@
 // src/app/(with-sidebar)/channels/[roomId]/components/message-input.tsx
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { createMessage } from "@/app/(with-sidebar)/app/messages.action";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { debounce } from "lodash";
 import { setTypingStatusAction } from "../messages.action";
@@ -20,7 +19,7 @@ interface Props {
   roomData: RoomRecord;
   replyingTo: MessageWithUserDTO | null;
   onCancelReply: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onNewMessage: (message: MessageWithUserDTO) => void;
   user: {
     id: string;
@@ -55,6 +54,15 @@ export function MessageInput({
     }, 5000),
   ).current;
 
+  // Auto-resize logic
+  useLayoutEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+      const scrollHeight = inputRef.current.scrollHeight;
+      inputRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
+    }
+  }, [content, inputRef]);
+
   const handleTyping = useCallback(() => {
     if (!userId) return;
     sendTypingEvent();
@@ -82,7 +90,7 @@ export function MessageInput({
         replyTo: replyingTo?.id || null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isOptimistic: true, // Add this flag
+        isOptimistic: true,
         user: {
           username: user.username,
           avatar: user.avatar,
@@ -104,12 +112,10 @@ export function MessageInput({
         });
 
         if (response.status === "success" && response.data) {
-          onNewMessage(response.data); // This will replace the optimistic one
+          onNewMessage(response.data);
         } else {
           console.error("Gagal mengirim pesan:", response.error);
           toast.error(response.error?.message);
-          // Rollback: remove optimistic message
-          // (In a real app, you might mark it as "failed" and allow retry)
         }
       } finally {
         setIsSending(false);
@@ -123,13 +129,23 @@ export function MessageInput({
       replyingTo?.id,
       onCancelReply,
       sendStopTypingEvent,
+      onNewMessage,
+      user.username,
+      user.avatar,
     ],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        // Prevent newline if content is empty or only whitespace
+        if (!content.trim()) {
+          e.preventDefault();
+        }
+      } else {
+        e.preventDefault();
+        handleSend();
+      }
     } else if (e.key === "Escape" && replyingTo) {
       onCancelReply();
     }
@@ -168,15 +184,14 @@ export function MessageInput({
         </div>
       )}
 
-      <form
-        onSubmit={handleSend}
+      <div
         className={cn(
-          "flex items-center gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
+          "flex items-end gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
           replyingTo ? "rounded-b-xl border-t-0" : "rounded-xl",
         )}
       >
         <div className="flex-1 relative flex items-center">
-          <Input
+          <textarea
             autoFocus
             ref={inputRef}
             value={content}
@@ -188,16 +203,16 @@ export function MessageInput({
               sendStopTypingEvent();
             }}
             onKeyDown={handleKeyDown}
-            type="text"
             placeholder={`Tulis pesan di #${roomData.name}`}
-            className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground/60 focus:outline-none focus-visible:ring-0 h-10 px-3 text-[14px]"
+            className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none min-h-[40px] max-h-[200px] px-3 py-2.5 text-[14px] leading-relaxed overflow-y-auto"
+            rows={1}
           />
         </div>
 
         <Button
-          type="submit"
+          onClick={() => handleSend()}
           disabled={!content.trim() || isSending}
-          className="h-9 w-9 p-0 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
+          className="h-9 w-9 p-0 mb-0.5 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
         >
           {isSending ? (
             <div className="flex items-center justify-center gap-1">
@@ -213,7 +228,7 @@ export function MessageInput({
             <CornerLeftUp className="h-5 w-5 rotate-90" />
           )}
         </Button>
-      </form>
+      </div>
 
       <div className="h-5 text-sm text-muted-foreground italic transition-opacity duration-200 ease-in-out flex items-center">
         {displayNames.length > 0 && (
