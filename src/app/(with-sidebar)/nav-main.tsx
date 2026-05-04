@@ -11,7 +11,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
-import clsx from "clsx"; // opsional jika mau bantu toggle class dengan clean
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "lucide-react";
@@ -24,13 +23,15 @@ type Groups = {
   avatar: string;
   icon: React.ElementType;
   hasUnread: boolean;
+  lastMessage?: string;
+  lastMessageTime?: Date;
 };
 
 export function NavMain({ 
   groups, 
   type,
   onCreate,
-  onExplore
+  onExplore,
 }: { 
   groups: Groups[]; 
   type: string;
@@ -40,6 +41,24 @@ export function NavMain({
   const pathname = usePathname();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  const formatTime = (date?: Date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 0) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (dayDiff === 1) {
+      return "Kemarin";
+    } else if (dayDiff < 7) {
+      return d.toLocaleDateString([], { weekday: 'short' });
+    } else {
+      return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    }
+  };
 
   return (
     <SidebarGroup>
@@ -81,7 +100,8 @@ export function NavMain({
                 tooltip={item.name}
                 isActive={isActive}
                 className={cn(
-                  "transition-all duration-200 ease-in-out relative group/btn h-9",
+                  "transition-all duration-200 ease-in-out relative group/btn",
+                  isCollapsed ? "h-9" : "h-14",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
                     : "hover:bg-sidebar-accent/80 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground",
@@ -94,10 +114,29 @@ export function NavMain({
                   <UserAvatar 
                     src={item.avatar} 
                     alt={item.name}
-                    className="h-7 w-7 rounded-md shrink-0 border shadow-sm"
+                    className="h-10 w-10 rounded-md shrink-0 border shadow-sm"
                   />
                   {!isCollapsed && (
-                    <span className={cn("truncate flex-1", item.hasUnread && "font-semibold")}>{item.name}</span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={cn("truncate font-medium", item.hasUnread && "font-bold text-foreground")}>
+                          {item.name}
+                        </span>
+                        {item.lastMessageTime && (
+                          <span className="text-[10px] text-muted-foreground shrink-0 font-normal">
+                            {formatTime(item.lastMessageTime)}
+                          </span>
+                        )}
+                      </div>
+                      {item.lastMessage && (
+                        <span className={cn(
+                          "text-xs truncate",
+                          item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground"
+                        )}>
+                          {item.lastMessage}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </Link>
               </SidebarMenuButton>

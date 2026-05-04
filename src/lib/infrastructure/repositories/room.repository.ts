@@ -101,6 +101,8 @@ export class RoomRepository implements IRoomRepository {
             id: true,
             content: true,
             createdAt: true,
+            imageUrl: true,
+            isDeleted: true,
           },
         },
       },

@@ -1,10 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  User,
-  Hash,
-} from "lucide-react";
+import { User, Hash } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -26,6 +23,8 @@ import { pusher } from "@/lib/pusher/pusher.client";
 import { CreateChannelDialog } from "./create-channel-dialog";
 import { ExploreChannelsDialog } from "./explore-channels-dialog";
 import { useUnread } from "@/components/unread-provider";
+import { Group, Panel, Separator } from "react-resizable-panels";
+import { usePanelRef } from "react-resizable-panels";
 
 const brand = {
   name: "Komunikasi",
@@ -67,7 +66,12 @@ export function AppSidebar({
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
 
   React.useEffect(() => {
-    initializeUnread([...groupRooms, ...directRooms].map(r => ({ id: r.id, hasUnread: r.hasUnread })));
+    initializeUnread(
+      [...groupRooms, ...directRooms].map((r) => ({
+        id: r.id,
+        hasUnread: r.hasUnread,
+      })),
+    );
   }, [groupRooms, directRooms, initializeUnread]);
 
   const groups = groupRooms.map((room) => ({
@@ -77,11 +81,8 @@ export function AppSidebar({
   }));
 
   const directMessages = directRooms.map((room) => ({
-    id: room.id,
+    ...room,
     userId: room.userId ?? "",
-    name: room.name,
-    avatar: room.avatar,
-    url: room.url,
     icon: User,
     hasUnread: unreadRooms[room.id] ?? room.hasUnread,
   }));
@@ -119,7 +120,7 @@ export function AppSidebar({
       } catch (e) {
         console.warn("Audio context failed", e);
       }
-      
+
       // Update UI
       router.refresh();
     });
@@ -139,19 +140,46 @@ export function AppSidebar({
       <SidebarHeader>
         <NavBrand brand={brand} />
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain
-          groups={groups}
-          type="Channels"
-          onCreate={() => setOpenCreateChannel(true)}
-          onExplore={() => setOpenExploreChannels(true)}
-        />
-        <NavMainDirectMessage
-          groups={directMessages}
-          type="Direct Messages"
-          onCreateDirectMessage={handleCreateRoom}
-          user={user}
-        />
+      <SidebarContent className="overflow-x-hidden">
+        <Group orientation="vertical" className="w-full min-w-0">
+          <Panel
+            minSize="20%"
+            style={{
+              overflowX: "hidden",
+              overflowY: "auto",
+              width: "100%",
+              minWidth: "0",
+            }}
+            className="min-w-0"
+          >
+            <NavMain
+              groups={groups}
+              type="Channels"
+              onCreate={() => setOpenCreateChannel(true)}
+              onExplore={() => setOpenExploreChannels(true)}
+            />
+          </Panel>
+
+          <div className="h-px bg-border my-2 shrink-0" />
+
+          <Panel
+            minSize="20%"
+            style={{
+              overflowX: "hidden",
+              overflowY: "auto",
+              width: "100%",
+              minWidth: "0",
+            }}
+            className="min-w-0"
+          >
+            <NavMainDirectMessage
+              groups={directMessages}
+              type="Direct Messages"
+              onCreateDirectMessage={handleCreateRoom}
+              user={user}
+            />
+          </Panel>
+        </Group>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} checkRole={checkRole} />

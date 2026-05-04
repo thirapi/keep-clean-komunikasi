@@ -33,6 +33,8 @@ type Groups = {
   url: string;
   icon: React.ElementType;
   hasUnread: boolean;
+  lastMessage?: string;
+  lastMessageTime?: Date;
 };
 
 type User = {
@@ -61,6 +63,24 @@ export function NavMainDirectMessage({
   const { state } = useSidebar();
   const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
+
+  const formatTime = (date?: Date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 0) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (dayDiff === 1) {
+      return "Kemarin";
+    } else if (dayDiff < 7) {
+      return d.toLocaleDateString([], { weekday: 'short' });
+    } else {
+      return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    }
+  };
 
   return (
     <>
@@ -117,8 +137,8 @@ export function NavMainDirectMessage({
                     asChild
                     isActive={isActive}
                     className={cn(
-                      "flex items-center transition-all duration-200 ease-in-out relative group/btn h-9",
-                      isCollapsed ? "justify-center px-2" : "gap-3",
+                      "flex items-center transition-all duration-200 ease-in-out relative group/btn",
+                      isCollapsed ? "h-9 justify-center px-2" : "h-14 gap-3",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
                         : "hover:bg-sidebar-accent/80 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground",
@@ -133,7 +153,7 @@ export function NavMainDirectMessage({
                         <UserAvatar 
                           src={item.avatar} 
                           alt={item.name}
-                          className="h-7 w-7 rounded-md border shadow-sm flex-shrink-0"
+                          className="h-10 w-10 rounded-md border shadow-sm flex-shrink-0"
                         />
                         {onlineUserIds.includes(item.userId) && (
                           <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-sidebar group-hover/btn:bg-sidebar-accent transition-colors">
@@ -143,9 +163,26 @@ export function NavMainDirectMessage({
                       </div>
 
                       {!isCollapsed && (
-                        <span className={cn("truncate flex-1 text-sm ml-2", item.hasUnread && "font-semibold text-foreground")}>
-                          {item.name}
-                        </span>
+                        <div className="flex flex-col flex-1 min-w-0 ml-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={cn("truncate font-medium", item.hasUnread && "font-bold text-foreground")}>
+                              {item.name}
+                            </span>
+                            {item.lastMessageTime && (
+                              <span className="text-[10px] text-muted-foreground shrink-0 font-normal">
+                                {formatTime(item.lastMessageTime)}
+                              </span>
+                            )}
+                          </div>
+                          {item.lastMessage && (
+                            <span className={cn(
+                              "text-xs truncate",
+                              item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground"
+                            )}>
+                              {item.lastMessage}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </Link>
                   </SidebarMenuButton>

@@ -16,6 +16,8 @@ export interface SidebarRoomDTO {
   hasUnread: boolean;
   type: "channel" | "direct";
   userId?: string;
+  lastMessage?: string;
+  lastMessageTime?: Date;
 }
 
 export interface RoomWithParticipantsDTO extends RoomRecord {
@@ -36,5 +38,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
     id: string;
     content: string;
     createdAt: Date;
+    imageUrl?: string | null;
+    isDeleted?: boolean;
   }[];
 }

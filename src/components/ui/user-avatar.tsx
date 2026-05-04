@@ -18,7 +18,7 @@ export function UserAvatar({
   return (
     <Avatar className={cn("shrink-0", className)}>
       <AvatarImage src={src} alt={alt} className="object-cover" />
-      <AvatarFallback className={cn("bg-muted", fallbackClassName)} />
+      <AvatarFallback className={cn("bg-muted rounded-md", fallbackClassName)} />
     </Avatar>
   );
 }

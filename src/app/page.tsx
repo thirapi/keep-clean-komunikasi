@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   keywords: ["chat", "real-time", "komunikasi", "pesan instan", "kolaborasi", "platform chat", "aman"],
   authors: [{ name: "Thirafi" }],
   openGraph: {
-    title: "Komunikasi.qzz.io",
+    title: "Komunikasi - Web Chat App",
     description: "Hubungkan tim Anda dan berbagi ide dengan lancar di platform komunikasi masa depan.",
     url: "https://komunikasi.qzz.io",
     siteName: "Komunikasi",

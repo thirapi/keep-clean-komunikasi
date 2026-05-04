@@ -26,6 +26,17 @@ export class GetSidebarDataUseCase {
         latestMessage && (!lastReadMessageId || latestMessage.id !== lastReadMessageId)
       );
 
+      // Determine display text for last message
+      let lastMessageDisplay = latestMessage?.content;
+      
+      if (latestMessage?.isDeleted) {
+        lastMessageDisplay = "🚫 Pesan ini telah dihapus";
+      } else if (latestMessage && !latestMessage.content && latestMessage.imageUrl) {
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+        const isImage = imageExtensions.some(ext => latestMessage.imageUrl?.toLowerCase().includes(ext));
+        lastMessageDisplay = isImage ? "📷 Foto" : "📁 File";
+      }
+
       if (room.isDirect) {
         // Find other participant, fallback to self for DM with self
         const otherParticipant = room.participants.find(
@@ -42,6 +53,8 @@ export class GetSidebarDataUseCase {
           url: `/channels/${room.id}`,
           hasUnread,
           type: "direct" as const,
+          lastMessage: lastMessageDisplay,
+          lastMessageTime: latestMessage?.createdAt,
         };
       }
 
@@ -52,6 +65,8 @@ export class GetSidebarDataUseCase {
         avatar: room.avatar,
         hasUnread,
         type: "channel" as const,
+        lastMessage: lastMessageDisplay,
+        lastMessageTime: latestMessage?.createdAt,
       };
     });
 
