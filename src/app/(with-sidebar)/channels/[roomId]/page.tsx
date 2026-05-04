@@ -5,6 +5,7 @@ import { ChatRoomClientWrapper } from "@/app/(with-sidebar)/channels/[roomId]/co
 import { getUserSession } from "@/app/auth.action";
 import { AnimatedUsername } from "@/components/landingpage/animated-username";
 import Link from "next/link";
+import ColorBends from "./ColorBends";
 
 export default async function ChatPage({
   params,
@@ -18,21 +19,45 @@ export default async function ChatPage({
   if (roomId === "default") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-screen bg-background relative px-6">
-        <div className="absolute top-4 left-4 z-10">
+        <div className="absolute top-4 md:hidden left-4 z-10">
           <SidebarTrigger />
         </div>
 
+        <div className="absolute inset-0 z-0">
+          <ColorBends
+            className="w-full h-full"
+            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            rotation={90}
+            speed={0.2}
+            scale={1}
+            frequency={1}
+            warpStrength={1}
+            mouseInfluence={1}
+            noise={0.15}
+            parallax={0.5}
+            iterations={1}
+            intensity={1.5}
+            bandWidth={6}
+            transparent
+            autoRotate={0}
+          />
+        </div>
+
+        {/* blur */}
+        <div className="absolute inset-0 backdrop-blur-2xl z-[1]" />
+
+        {/* overlay tone */}
+        <div className="absolute inset-0 bg-background/70 z-[2]" />
+
         <div className="relative z-10 text-center space-y-8">
           <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 via-primary/20 to-blue-500/20 blur-3xl animate-[spin_12s_linear_infinite]" />
-            <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl" />
             <K className="w-24 h-24 mx-auto text-primary relative z-10" />
           </div>
 
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
               Selamat datang 👋{" "}
-              <span className="font-bold text-primary">
+              <span className="block sm:inline font-bold text-primary">
                 <AnimatedUsername username={username} />
               </span>
             </h2>
