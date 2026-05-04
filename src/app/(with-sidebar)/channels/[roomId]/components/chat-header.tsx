@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { HashIcon, Users, X, Settings } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Users, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ChannelSettingsDialog } from "./channel-settings-dialog";
+import { RoomDetailDialog } from "./room-detail-dialog";
 
 interface ChatHeaderProps {
   roomData: RoomWithParticipantsDTO;
@@ -33,53 +33,34 @@ export function ChatHeader({
   onlineUserIds,
   onUpdateRoom,
 }: ChatHeaderProps) {
-  const [roomName, setRoomName] = useState("Loading...");
-  const [otherUser, setOtherUser] = useState<{
-    id: string;
-    username: string;
-  } | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const isOwner = currentUserId === roomData.ownerId;
-
-  useEffect(() => {
-    if (roomData.isDirect) {
-      const otherUser = roomData.participants.find(
-        (p) => p.user.id !== currentUserId,
-      )?.user;
-
-      setRoomName(otherUser?.username ?? "Unknown user");
-    } else {
-      setRoomName(roomData.name);
-    }
+  const otherUser = useMemo(() => {
+    if (!roomData.isDirect) return null;
+    return roomData.participants.find((p) => p.user.id !== currentUserId)?.user ?? null;
   }, [roomData, currentUserId]);
 
-  useEffect(() => {
+  const roomName = useMemo(() => {
     if (roomData.isDirect) {
-      const other = roomData.participants.find(
-        (p) => p.user.id !== currentUserId,
-      )?.user;
-      setOtherUser(other ?? null);
-      setRoomName(other?.username ?? "Unknown user");
-    } else {
-      setRoomName(roomData.name);
+      return otherUser?.username ?? "Unknown user";
     }
-  }, [roomData, currentUserId]);
+    return roomData.name;
+  }, [roomData, otherUser]);
 
-  const isOtherUserOnline = otherUser
-    ? onlineUserIds.includes(otherUser.id)
-    : false;
+  const isOtherUserOnline = useMemo(() => {
+    return otherUser ? onlineUserIds.includes(otherUser.id) : false;
+  }, [otherUser, onlineUserIds]);
 
-  const onlineCount = roomData.participants.filter((p) =>
-    onlineUserIds.includes(p.user.id),
-  ).length;
-
-  const Icon = useMemo(() => (membersVisible ? X : Users), [membersVisible]);
+  const onlineCount = useMemo(() => {
+    return roomData.participants.filter((p) =>
+      onlineUserIds.includes(p.user.id),
+    ).length;
+  }, [roomData.participants, onlineUserIds]);
 
   return (
     <div className="flex items-center justify-between border-b bg-background/60 backdrop-blur-xl sticky top-0 z-10 px-4 py-3 md:px-6 h-16">
@@ -93,13 +74,21 @@ export function ChatHeader({
 
         {roomData.isDirect ? (
           <>
-            <UserAvatar 
-              src={roomData.participants.find((p) => p.user.id !== currentUserId)?.user.avatar || "/avatars/avatar1.png"} 
-              alt={roomName}
-              className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm"
-            />
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-sm md:text-base font-bold text-foreground leading-tight truncate">
+            <div 
+              className="cursor-pointer transition-transform active:scale-95" 
+              onClick={() => setShowDetails(true)}
+            >
+              <UserAvatar
+                src={otherUser?.avatar || "/avatars/avatar1.png"}
+                alt={roomName}
+                className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm"
+              />
+            </div>
+            <div 
+              className="flex flex-col min-w-0 cursor-pointer group"
+              onClick={() => setShowDetails(true)}
+            >
+              <h1 className="text-sm md:text-base font-bold text-foreground leading-tight truncate group-hover:text-primary transition-colors">
                 {roomName}
               </h1>
               <div className="flex items-center gap-1.5 transition-opacity duration-300">
@@ -119,23 +108,31 @@ export function ChatHeader({
           </>
         ) : (
           <>
-            <UserAvatar 
-              src={roomData.avatar} 
-              alt={roomName}
-              className="h-8 w-8 rounded-md shrink-0 border shadow-sm"
-            />
+            <div 
+              className="cursor-pointer transition-transform active:scale-95" 
+              onClick={() => setShowDetails(true)}
+            >
+              <UserAvatar
+                src={roomData.avatar}
+                alt={roomName}
+                className="h-8 w-8 rounded-md shrink-0 border shadow-sm"
+              />
+            </div>
             <div className="flex flex-col min-w-0 ml-1">
               <div className="flex items-center gap-3">
-                <h2 className="text-base sm:text-lg font-semibold truncate leading-tight">
+                <h2 
+                  className="text-base sm:text-lg font-semibold truncate leading-tight cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => setShowDetails(true)}
+                >
                   {roomName}
                 </h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                    <Badge
-                      variant="secondary"
-                      className="hidden sm:flex gap-2 flex-shrink-0 font-medium py-0.5 px-2"
-                    >
+                      <Badge
+                        variant="secondary"
+                        className="hidden sm:flex gap-2 flex-shrink-0 font-medium py-0.5 px-2"
+                      >
                         {onlineUserIds.length === 0 ? (
                           <>
                             <span className="animate-spin h-2 w-2 border-2 border-green-500 border-t-transparent rounded-full" />
@@ -172,56 +169,53 @@ export function ChatHeader({
           </>
         )}
       </div>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleMembers}
-              className={cn(
-                "transition-colors duration-200 flex-shrink-0",
-                membersVisible && "bg-accent/40",
-              )}
-            >
-              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{membersVisible ? "Hide" : "Show"} member list</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Channel Settings — only for group channels where user is owner */}
-        {!roomData.isDirect && isOwner && (
+      <div className="flex items-center gap-1 sm:gap-2">
+        <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowSettings(true)}
+                onClick={() => setShowDetails(true)}
                 className="transition-colors duration-200 flex-shrink-0"
               >
-                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Info className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Pengaturan Channel</p>
+              <p>{roomData.isDirect ? "Profil Pengguna" : "Informasi Channel"}</p>
             </TooltipContent>
           </Tooltip>
-        )}
-      </TooltipProvider>
 
-      {/* Channel Settings Dialog */}
-      {!roomData.isDirect && (
-        <ChannelSettingsDialog
-          open={showSettings}
-          onOpenChange={setShowSettings}
-          roomData={roomData}
-          currentUserId={currentUserId}
-          onUpdateRoom={onUpdateRoom}
-        />
-      )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleMembers}
+                className={cn(
+                  "transition-colors duration-200 flex-shrink-0",
+                  membersVisible && "bg-accent text-accent-foreground",
+                )}
+              >
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{membersVisible ? "Hide" : "Show"} member list</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      {/* Room Detail Dialog */}
+      <RoomDetailDialog
+        open={showDetails}
+        onOpenChange={setShowDetails}
+        roomData={roomData}
+        currentUserId={currentUserId}
+        onUpdateRoom={onUpdateRoom}
+      />
     </div>
   );
 }

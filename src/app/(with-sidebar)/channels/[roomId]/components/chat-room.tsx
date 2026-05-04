@@ -51,14 +51,18 @@ export function ChatRoom({
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length === 50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [lastReadIdState, setLastReadIdState] = useState<string | null>(lastReadMessageId);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [lastReadIdState, setLastReadIdState] = useState<string | null>(
+    lastReadMessageId,
+  );
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
   const isMobile = useIsMobile();
   const router = useRouter();
 
   const messagesRef = useRef(messages);
   const lastPersistedReadIdRef = useRef<string | null>(lastReadMessageId);
-  const isInitialLoadRef = useRef(true); 
+  const isInitialLoadRef = useRef(true);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
@@ -88,7 +92,7 @@ export function ChatRoom({
 
   useEffect(() => {
     messagesRef.current = messages;
-    import("@/lib/infrastructure/cache/client-cache").then(m => {
+    import("@/lib/infrastructure/cache/client-cache").then((m) => {
       m.clientChatCache.setMessages(localRoomData.id, messages);
     });
   }, [messages, localRoomData.id]);
@@ -106,88 +110,102 @@ export function ChatRoom({
     }
   }, [initialMessages]);
 
-  const sendNotification = useCallback((msg: MessageWithUserDTO) => {
-    try {
-      const audio = new Audio("/sounds/message-notification.mp3");
-      audio.play().catch((e) => console.warn("Audio play failed", e));
-    } catch (e) {
-      console.warn("Audio context failed", e);
-    }
-
-    if (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "granted" &&
-      !document.hasFocus()
-    ) {
-      new Notification(`${msg.user?.username ?? "Seseorang"} di #${roomData.name}`, {
-        body: msg.content,
-        icon: msg.user?.avatar || "/favicon.ico",
-        tag: `msg-${roomData.id}`,
-        silent: true,
-      });
-    }
-  }, [roomData.name, roomData.id]);
-
-  const handleNewMessage = useCallback((msg: MessageWithUserDTO, isFromSync = false) => {
-    if (msg.userId !== userId && !isFromSync && !isInitialLoadRef.current) {
-      sendNotification(msg);
-    }
-    
-    // If the message is from the current user, treat it as read automatically
-    if (msg.userId === userId) {
-      setLastReadIdState(msg.id);
-      // Sync to cache immediately for current user's messages
-      import("@/lib/infrastructure/cache/client-cache").then(m => {
-        m.clientChatCache.setLastRead(localRoomData.id, msg.id);
-      });
-    }
-
-    setMessages((prev) => {
-      const existingIndex = prev.findIndex((m) => {
-        if (m.id === msg.id) return true;
-        if (m.isOptimistic && m.userId === msg.userId) {
-          return m.content.trim() === msg.content.trim();
-        }
-        return false;
-      });
-
-      let nextMessages: MessageWithUserDTO[];
-      if (existingIndex > -1) {
-        nextMessages = [...prev];
-        nextMessages[existingIndex] = { ...msg, isOptimistic: false };
-      } else {
-        nextMessages = [...prev, msg];
+  const sendNotification = useCallback(
+    (msg: MessageWithUserDTO) => {
+      try {
+        const audio = new Audio("/sounds/message-notification.mp3");
+        audio.play().catch((e) => console.warn("Audio play failed", e));
+      } catch (e) {
+        console.warn("Audio context failed", e);
       }
 
-      import("@/lib/infrastructure/cache/client-cache").then(m => {
-        m.clientChatCache.mergeMessages(localRoomData.id, [msg]);
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted" &&
+        !document.hasFocus()
+      ) {
+        new Notification(
+          `${msg.user?.username ?? "Seseorang"} di #${roomData.name}`,
+          {
+            body: msg.content,
+            icon: msg.user?.avatar || "/favicon.ico",
+            tag: `msg-${roomData.id}`,
+            silent: true,
+          },
+        );
+      }
+    },
+    [roomData.name, roomData.id],
+  );
+
+  const handleNewMessage = useCallback(
+    (msg: MessageWithUserDTO, isFromSync = false) => {
+      if (msg.userId !== userId && !isFromSync && !isInitialLoadRef.current) {
+        sendNotification(msg);
+      }
+
+      // If the message is from the current user, treat it as read automatically
+      if (msg.userId === userId) {
+        setLastReadIdState(msg.id);
+        // Sync to cache immediately for current user's messages
+        import("@/lib/infrastructure/cache/client-cache").then((m) => {
+          m.clientChatCache.setLastRead(localRoomData.id, msg.id);
+        });
+      }
+
+      setMessages((prev) => {
+        const existingIndex = prev.findIndex((m) => {
+          if (m.id === msg.id) return true;
+          if (m.isOptimistic && m.userId === msg.userId) {
+            return m.content.trim() === msg.content.trim();
+          }
+          return false;
+        });
+
+        let nextMessages: MessageWithUserDTO[];
+        if (existingIndex > -1) {
+          nextMessages = [...prev];
+          nextMessages[existingIndex] = { ...msg, isOptimistic: false };
+        } else {
+          nextMessages = [...prev, msg];
+        }
+
+        import("@/lib/infrastructure/cache/client-cache").then((m) => {
+          m.clientChatCache.mergeMessages(localRoomData.id, [msg]);
+        });
+
+        return nextMessages;
       });
+    },
+    [userId, localRoomData.id, sendNotification],
+  );
 
-      return nextMessages;
-    });
-  }, [userId, localRoomData.id, sendNotification]);
+  const markAsReadApi = useMemo(
+    () =>
+      debounce(async () => {
+        if (!userId || userId === "") return;
+        const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+        if (!lastMessage || lastMessage.id === lastPersistedReadIdRef.current)
+          return;
 
-  const markAsReadApi = useMemo(() => debounce(async () => {
-    if (!userId || userId === "") return;
-    const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-    if (!lastMessage || lastMessage.id === lastPersistedReadIdRef.current) return;
-    
-    const messageId = lastMessage.id;
-    
-    // Update local state and persisted ref
-    setLastReadIdState(messageId);
-    lastPersistedReadIdRef.current = messageId;
-    
-    // Sync to sidebar and cache
-    markSidebarAsRead(roomData.id);
-    import("@/lib/infrastructure/cache/client-cache").then(m => {
-      m.clientChatCache.setLastRead(roomData.id, messageId);
-    });
-    
-    // Server update
-    updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
-  }, 1000), [userId, roomData.id, markSidebarAsRead]);
+        const messageId = lastMessage.id;
+
+        // Update local state and persisted ref
+        setLastReadIdState(messageId);
+        lastPersistedReadIdRef.current = messageId;
+
+        // Sync to sidebar and cache
+        markSidebarAsRead(roomData.id);
+        import("@/lib/infrastructure/cache/client-cache").then((m) => {
+          m.clientChatCache.setLastRead(roomData.id, messageId);
+        });
+
+        // Server update
+        updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
+      }, 1000),
+    [userId, roomData.id, markSidebarAsRead],
+  );
 
   // Ensure read state is flushed on unmount/visibility hidden
   useEffect(() => {
@@ -196,12 +214,12 @@ export function ChatRoom({
       if (lastMessage && lastMessage.id !== lastPersistedReadIdRef.current) {
         const messageId = lastMessage.id;
         lastPersistedReadIdRef.current = messageId;
-        
+
         markSidebarAsRead(roomData.id);
         updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
-        
+
         // Also update cache on flush
-        import("@/lib/infrastructure/cache/client-cache").then(m => {
+        import("@/lib/infrastructure/cache/client-cache").then((m) => {
           m.clientChatCache.setLastRead(roomData.id, messageId);
         });
       }
@@ -246,7 +264,9 @@ export function ChatRoom({
 
     setIsLoadingMore(true);
     const oldestMessage = messages[0];
-    const beforeDate = oldestMessage ? new Date(oldestMessage.createdAt) : undefined;
+    const beforeDate = oldestMessage
+      ? new Date(oldestMessage.createdAt)
+      : undefined;
 
     const response = await getMessage(roomData.id, 50, beforeDate);
     if (response.status === "success" && response.data) {
@@ -268,8 +288,18 @@ export function ChatRoom({
   useMarkAsRead(bottomRef, unreadRef, setIsAtBottom, markAsRead);
 
   useEffect(() => {
+    if (!isMobile) {
+      setShowMembers(true);
+    } else {
+      setShowMembers(false);
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
     const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
-    chatChannel.bind("new-message", (msg: MessageWithUserDTO) => handleNewMessage(msg));
+    chatChannel.bind("new-message", (msg: MessageWithUserDTO) =>
+      handleNewMessage(msg),
+    );
     const handleConnected = () => syncMessages();
     pusher.connection.bind("connected", handleConnected);
     const handleFocus = () => syncMessages();
@@ -283,10 +313,13 @@ export function ChatRoom({
     };
   }, [roomData.id, handleNewMessage, syncMessages]);
 
-  const handleMessageSend = useCallback((msg: MessageWithUserDTO) => {
-    handleNewMessage(msg);
-    markAsRead();
-  }, [handleNewMessage, markAsRead]);
+  const handleMessageSend = useCallback(
+    (msg: MessageWithUserDTO) => {
+      handleNewMessage(msg);
+      markAsRead();
+    },
+    [handleNewMessage, markAsRead],
+  );
 
   const handleCancelReply = useCallback(() => {
     setReplyingTo(null);
@@ -300,7 +333,9 @@ export function ChatRoom({
         onToggleMembers={() => setShowMembers((prev) => !prev)}
         membersVisible={showMembers}
         onlineUserIds={onlineUserIds}
-        onUpdateRoom={(data) => setLocalRoomData(prev => ({ ...prev, ...data }))}
+        onUpdateRoom={(data) =>
+          setLocalRoomData((prev) => ({ ...prev, ...data }))
+        }
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">

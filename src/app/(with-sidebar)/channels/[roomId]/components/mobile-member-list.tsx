@@ -130,7 +130,7 @@ export function MobileMemberList({
                         {isParticipantOwner && <Crown className="size-3.5 text-amber-500 fill-amber-500" />}
                       </div>
                       <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                        {isParticipantOnline ? "Selesai Aktif" : "Offline"}
+                        {isParticipantOnline ? "Sedang Aktif" : "Offline"}
                       </p>
                     </div>
                   </div>
