@@ -75,6 +75,7 @@
     "@types/node": "^20.17.30",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.184.0",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.4.1",
     "drizzle-kit": "^0.31.10",
