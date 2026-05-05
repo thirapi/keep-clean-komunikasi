@@ -19,7 +19,12 @@ const sendMessageUseCase = new SendMessageUseCase(messageRepository, roomReposit
 const formSchema = z.object({
     content: z.string(),
     roomId: z.string(),
-    imageUrl: z.string().optional(),
+    attachments: z.array(z.object({
+        url: z.string(),
+        key: z.string(),
+        fileType: z.string(),
+        size: z.number().optional(),
+    })).optional(),
     replyTo: z.string().optional(),
 });
 
@@ -27,14 +32,14 @@ export const sendMessageController = async (
     userId: string,
     content: string,
     roomId: string,
-    imageUrl?: string,
-    replyTo?: string
+    replyTo?: string,
+    attachments?: { url: string; key: string; fileType: string; size?: number }[]
 ) => {
 
     const parsedMessage = formSchema.safeParse({
         content,
         roomId,
-        imageUrl,
+        attachments,
         replyTo,
     });
 
@@ -49,7 +54,7 @@ export const sendMessageController = async (
         userId,
         parsedMessage.data.content,
         parsedMessage.data.roomId,
-        parsedMessage.data.imageUrl,
-        parsedMessage.data.replyTo
+        parsedMessage.data.replyTo,
+        parsedMessage.data.attachments
     );
 };

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { SendMessageUseCase } from "../send-message.use-case"
 import type { IMessageRepository } from "@/lib/application/repositories/message.repository.interface"
 import type { IPusherService } from "@/lib/application/services/pusher.service.interface"
@@ -12,7 +12,7 @@ describe("SendMessageUseCase", () => {
     userId: "user1",
     roomId: "room1",
     content: "Hello",
-    imageUrl: null,
+    attachments: [],
     replyTo: null,
     isDeleted: false,
     createdAt: new Date(),
@@ -37,6 +37,10 @@ describe("SendMessageUseCase", () => {
     sendMessage: vi.fn(),
   } as unknown as INotifierService
 
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier)
 
   it("should create a message and trigger pusher", async () => {
@@ -51,11 +55,12 @@ describe("SendMessageUseCase", () => {
     expect(result).toEqual(mockMessage)
   })
 
-  it("should handle message with image and replyTo", async () => {
+  it("should handle message with attachments and replyTo", async () => {
+    const attachments = [{ url: "https://example.com/image.jpg", key: "image.jpg", fileType: "image/jpeg", size: 1234 }]
     const mockMessage = {
       ...baseMessage,
       user: { username: "user1" },
-      imageUrl: "https://example.com/image.jpg",
+      attachments,
       replyTo: "reply123",
     }
     vi.mocked(mockRepo.createMessage).mockResolvedValue(mockMessage)
@@ -66,11 +71,11 @@ describe("SendMessageUseCase", () => {
       "user1",
       "Hello with image",
       "room1",
-      "https://example.com/image.jpg",
-      "reply123"
+      "reply123",
+      attachments
     )
 
-    expect(mockRepo.createMessage).toHaveBeenCalledWith("user1", "Hello with image", "room1", "https://example.com/image.jpg", "reply123")
+    expect(mockRepo.createMessage).toHaveBeenCalledWith("user1", "Hello with image", "room1", "reply123", attachments)
     expect(mockPusher.trigger).toHaveBeenCalledWith("chat-room1", "new-message", mockMessage)
     expect(result).toEqual(mockMessage)
   })

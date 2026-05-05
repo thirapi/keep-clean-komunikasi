@@ -31,9 +31,10 @@ export class GetSidebarDataUseCase {
       
       if (latestMessage?.isDeleted) {
         lastMessageDisplay = "🚫 Pesan ini telah dihapus";
-      } else if (latestMessage && !latestMessage.content && latestMessage.imageUrl) {
+      } else if (latestMessage && !latestMessage.content && latestMessage.attachments && latestMessage.attachments.length > 0) {
+        const firstAttachment = latestMessage.attachments[0];
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-        const isImage = imageExtensions.some(ext => latestMessage.imageUrl?.toLowerCase().includes(ext));
+        const isImage = imageExtensions.some(ext => firstAttachment.url?.toLowerCase().includes(ext)) || firstAttachment.fileType.startsWith('image/');
         lastMessageDisplay = isImage ? "📷 Foto" : "📁 File";
       }
 

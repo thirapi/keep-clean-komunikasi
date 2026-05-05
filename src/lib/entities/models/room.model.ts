@@ -1,3 +1,5 @@
+import { AttachmentRecord } from "./attachment.model";
+
 export interface RoomRecord {
   id: string;
   name: string;
@@ -6,6 +8,8 @@ export interface RoomRecord {
   avatar: string;
   isPublic: boolean;
   ownerId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SidebarRoomDTO {
@@ -21,6 +25,8 @@ export interface SidebarRoomDTO {
 }
 
 export interface RoomWithParticipantsDTO extends RoomRecord {
+  createdAt: Date;
+  updatedAt: Date;
   participants: {
     lastReadMessageId: string | null;
     user: {
@@ -38,7 +44,8 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
     id: string;
     content: string;
     createdAt: Date;
-    imageUrl?: string | null;
+    updatedAt: Date;
+    attachments?: AttachmentRecord[];
     isDeleted?: boolean;
   }[];
 }

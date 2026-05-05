@@ -46,11 +46,11 @@ export const createMessage = async (
   userId: string,
   content: string,
   roomId: string,
-  imageUrl?: string,
-  replyTo?: string
+  replyTo?: string,
+  attachments?: { url: string; key: string; fileType: string; size?: number }[]
 ): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
-    const data = await sendMessageController(userId, content, roomId, imageUrl, replyTo);
+    const data = await sendMessageController(userId, content, roomId, replyTo, attachments);
 
     return {
       status: "success",

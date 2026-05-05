@@ -1,13 +1,15 @@
+import { AttachmentRecord } from "./attachment.model";
+
 export interface MessageRecord {
   id: string;
   userId: string;
   content: string;
   roomId: string;
-  imageUrl?: string | null;
   replyTo?: string | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
+  attachments?: AttachmentRecord[];
   isOptimistic?: boolean;
 }
 

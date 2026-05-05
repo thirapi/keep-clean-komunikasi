@@ -1,12 +1,12 @@
-import { MessageRecord, MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 
 export interface IMessageRepository {
   createMessage(
     userId: string,
     content: string,
     roomId: string,
-    imageUrl?: string,
     replyTo?: string,
+    attachments?: { url: string; key: string; fileType: string; size?: number }[],
   ): Promise<MessageWithUserDTO>;
   getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]>;
 }

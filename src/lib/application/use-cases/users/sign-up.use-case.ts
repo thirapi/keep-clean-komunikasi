@@ -30,12 +30,15 @@ export class SignUpUseCase {
         const hashPassword = await this.passwordService.hashPassword(password)
 
         const id = createId();
+        const now = new Date();
 
         await this.userRepository.insert({
             id,
             username,
             password: hashPassword,
-            avatar: this.avatarService.generateAvatarUrl(username)
+            avatar: this.avatarService.generateAvatarUrl(username),
+            createdAt: now,
+            updatedAt: now
         })
 
 

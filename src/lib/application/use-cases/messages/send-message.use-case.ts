@@ -16,15 +16,15 @@ export class SendMessageUseCase {
     userId: string,
     content: string,
     roomId: string,
-    imageUrl?: string,
-    replyTo?: string
+    replyTo?: string,
+    attachments?: { url: string; key: string; fileType: string; size?: number }[]
   ): Promise<MessageWithUserDTO> {
     const message = await this.messageRepository.createMessage(
       userId,
       content,
       roomId,
-      imageUrl,
-      replyTo
+      replyTo,
+      attachments
     );
 
     await this.pusherService.trigger(`chat-${roomId}`, "new-message", message);

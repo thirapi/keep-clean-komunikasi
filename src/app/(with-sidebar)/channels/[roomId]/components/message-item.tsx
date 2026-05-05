@@ -242,35 +242,39 @@ export function MessageItem({
         )}
 
         {/* Attachments */}
-        {message.imageUrl && (
-          <div className="mt-2 relative group-media overflow-hidden rounded-lg border border-border/50 max-w-sm bg-muted/20">
-            {isImage(message.imageUrl) ? (
-              <a href={message.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative cursor-zoom-in">
-                <img
-                  src={message.imageUrl}
-                  alt="attachment"
-                  className="w-full object-cover transition-transform duration-300 group-media:hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/10 transition-colors flex items-center justify-center">
-                  <ExternalLink className="w-6 h-6 text-white opacity-0 group-media:hover:opacity-100 transition-opacity drop-shadow-md" />
-                </div>
-              </a>
-            ) : (
-              <div className="p-3 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileIcon className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{getFileName(message.imageUrl)}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">File Attachment</p>
-                </div>
-                <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full shrink-0">
-                  <a href={message.imageUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4" />
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-col gap-2 mt-2">
+            {message.attachments.map((attachment) => (
+              <div key={attachment.id} className="relative group-media overflow-hidden rounded-lg border border-border/50 max-w-sm bg-muted/20">
+                {isImage(attachment.url) ? (
+                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block relative cursor-zoom-in">
+                    <img
+                      src={attachment.url}
+                      alt="attachment"
+                      className="w-full object-cover transition-transform duration-300 group-media:hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/10 transition-colors flex items-center justify-center">
+                      <ExternalLink className="w-6 h-6 text-white opacity-0 group-media:hover:opacity-100 transition-opacity drop-shadow-md" />
+                    </div>
                   </a>
-                </Button>
+                ) : (
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{getFileName(attachment.url)}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">File Attachment</p>
+                    </div>
+                    <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full shrink-0">
+                      <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
         )}
 

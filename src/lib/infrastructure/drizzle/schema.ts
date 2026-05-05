@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, unique, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, unique, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const users = pgTable("User", {
@@ -7,6 +7,7 @@ export const users = pgTable("User", {
     password: text("password").notNull(),
     avatar: text("avatar").default("/avatars/avatar1.png").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -19,8 +20,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const messages = pgTable("Message", {
     id: text("id").primaryKey(),
     content: text("content").notNull(),
-    imageUrl: text("imageUrl"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
     userId: text("userId").notNull(),
     roomId: text("roomId").notNull(),
     replyTo: text("replyTo"),
@@ -36,6 +37,7 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
         relationName: "replies",
     }),
     replies: many(messages, { relationName: "replies" }),
+    attachments: many(attachments),
 }));
 
 export const rooms = pgTable("Room", {
@@ -46,6 +48,8 @@ export const rooms = pgTable("Room", {
     avatar: text("avatar").default("/avatars/avatar6.png").notNull(),
     isPublic: boolean("isPublic").default(false).notNull(),
     ownerId: text("ownerId").references(() => users.id),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const roomsRelations = relations(rooms, ({ many }) => ({
@@ -60,6 +64,7 @@ export const roomParticipants = pgTable("RoomParticipant", {
     lastReadAt: timestamp("lastReadAt"),
     lastReadMessageId: text("lastReadMessageId").references(() => messages.id),
     joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 }, (t) => ({
     unq: unique().on(t.roomId, t.userId),
 }));
@@ -74,6 +79,7 @@ export const sessions = pgTable("Session", {
     userId: text("userId").notNull(),
     expiresAt: timestamp("expiresAt").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -85,6 +91,7 @@ export const roles = pgTable("Role", {
     name: text("name").unique().notNull(),
     description: text("description"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -97,6 +104,7 @@ export const permissions = pgTable("Permission", {
     name: text("name").unique().notNull(),
     description: text("description"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const permissionsRelations = relations(permissions, ({ many }) => ({
@@ -107,6 +115,8 @@ export const userRoles = pgTable("UserRole", {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
     roleId: text("roleId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 }, (t) => ({
     unq: unique().on(t.userId, t.roleId),
 }));
@@ -120,6 +130,8 @@ export const rolePermissions = pgTable("RolePermission", {
     id: text("id").primaryKey(),
     roleId: text("roleId").notNull(),
     permissionId: text("permissionId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 }, (t) => ({
     unq: unique().on(t.roleId, t.permissionId),
 }));
@@ -127,4 +139,19 @@ export const rolePermissions = pgTable("RolePermission", {
 export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
     role: one(roles, { fields: [rolePermissions.roleId], references: [roles.id] }),
     permission: one(permissions, { fields: [rolePermissions.permissionId], references: [permissions.id] }),
+}));
+
+export const attachments = pgTable("Attachment", {
+    id: text("id").primaryKey(),
+    url: text("url").notNull(),
+    key: text("key").notNull(),
+    fileType: text("fileType").notNull(),
+    size: integer("size"),
+    messageId: text("messageId").references(() => messages.id),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+    message: one(messages, { fields: [attachments.messageId], references: [messages.id] }),
 }));

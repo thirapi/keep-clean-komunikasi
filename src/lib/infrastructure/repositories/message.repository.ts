@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { messages } from "@/lib/infrastructure/drizzle/schema";
+import { messages, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
 import { eq, asc, desc, lt, gt, and } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
@@ -14,41 +14,57 @@ export class MessageRepository implements IMessageRepository {
     userId: string,
     content: string,
     roomId: string,
-    imageUrl?: string,
-    replyTo?: string
+    replyTo?: string,
+    attachments?: { url: string; key: string; fileType: string; size?: number }[]
   ): Promise<MessageWithUserDTO> {
     const id = createId();
-    await this.client.insert(messages).values({
-      id,
-      userId,
-      content,
-      roomId,
-      imageUrl,
-      replyTo,
-    });
+    
+    return await this.client.transaction(async (tx) => {
+      await tx.insert(messages).values({
+        id,
+        userId,
+        content,
+        roomId,
+        replyTo,
+      });
 
-    const newMessage = await this.client.query.messages.findFirst({
-      where: eq(messages.id, id),
-      with: {
-        user: {
-          columns: {
-            username: true,
-            avatar: true,
+      if (attachments && attachments.length > 0) {
+        await tx.insert(attachmentsTable).values(
+          attachments.map((a) => ({
+            id: createId(),
+            messageId: id,
+            url: a.url,
+            key: a.key,
+            fileType: a.fileType,
+            size: a.size,
+          }))
+        );
+      }
+
+      const newMessage = await tx.query.messages.findFirst({
+        where: eq(messages.id, id),
+        with: {
+          user: {
+            columns: {
+              username: true,
+              avatar: true,
+            },
           },
-        },
-        replyToMessage: {
-          with: {
-            user: {
-              columns: {
-                username: true,
+          replyToMessage: {
+            with: {
+              user: {
+                columns: {
+                  username: true,
+                },
               },
             },
           },
+          attachments: true,
         },
-      },
-    });
+      });
 
-    return newMessage as unknown as MessageWithUserDTO;
+      return newMessage as unknown as MessageWithUserDTO;
+    });
   }
 
   async getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]> {
@@ -80,6 +96,7 @@ export class MessageRepository implements IMessageRepository {
             },
           },
         },
+        attachments: true,
       },
     });
 

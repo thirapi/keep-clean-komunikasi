@@ -41,6 +41,8 @@ export class RoomRepository implements IRoomRepository {
       avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
         user: {
@@ -53,14 +55,13 @@ export class RoomRepository implements IRoomRepository {
         },
       })),
       messages: [],
-    };
+    } as RoomWithParticipantsDTO;
   }
 
   async getAllRoomsByUserId(
     userId: string,
     options?: { isDirect?: boolean }
   ): Promise<RoomWithParticipantsDTO[]> {
-    // Standard join approach to find rooms the user is participating in
     const participantRooms = await this.client
       .select({ roomId: roomParticipants.roomId })
       .from(roomParticipants)
@@ -101,8 +102,11 @@ export class RoomRepository implements IRoomRepository {
             id: true,
             content: true,
             createdAt: true,
-            imageUrl: true,
+            updatedAt: true,
             isDeleted: true,
+          },
+          with: {
+            attachments: true,
           },
         },
       },
@@ -116,6 +120,8 @@ export class RoomRepository implements IRoomRepository {
       avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
         user: {
@@ -127,10 +133,9 @@ export class RoomRepository implements IRoomRepository {
           })),
         },
       })),
-      messages: room.messages,
-    }));
+      messages: room.messages as any[],
+    } as RoomWithParticipantsDTO));
 
-    // Sort by latest message date (if any) or room creation date
     return dtoRooms.sort((a, b) => {
       const aTime = a.messages[0]?.createdAt
         ? new Date(a.messages[0].createdAt).getTime()
@@ -138,8 +143,6 @@ export class RoomRepository implements IRoomRepository {
       const bTime = b.messages[0]?.createdAt
         ? new Date(b.messages[0].createdAt).getTime()
         : 0;
-
-      // If no messages in both, keep stable or sort by room creation (not available here so just stable)
       return bTime - aTime;
     });
   }
@@ -250,6 +253,8 @@ export class RoomRepository implements IRoomRepository {
         avatar: newRoom.avatar || avatarService.generateAvatarUrl(newRoom.name),
         isPublic: newRoom.isPublic,
         ownerId: newRoom.ownerId,
+        createdAt: newRoom.createdAt,
+        updatedAt: newRoom.updatedAt,
         participants: newRoom.participants.map((p) => ({
           lastReadMessageId: p.lastReadMessageId,
           user: {
@@ -262,11 +267,11 @@ export class RoomRepository implements IRoomRepository {
           },
         })),
         messages: [],
-      };
+      } as RoomWithParticipantsDTO;
     });
   }
+
   async getPublicRooms(excludeUserId: string): Promise<RoomWithParticipantsDTO[]> {
-    // Find rooms where the user is already a participant
     const joinedRoomIds = await this.client
       .select({ roomId: roomParticipants.roomId })
       .from(roomParticipants)
@@ -303,6 +308,8 @@ export class RoomRepository implements IRoomRepository {
       avatar: room.avatar,
       isPublic: room.isPublic,
       ownerId: room.ownerId,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
         user: {
@@ -315,7 +322,7 @@ export class RoomRepository implements IRoomRepository {
         },
       })),
       messages: [],
-    }));
+    } as RoomWithParticipantsDTO));
   }
 
   async addParticipant(roomId: string, userId: string): Promise<void> {
@@ -345,11 +352,8 @@ export class RoomRepository implements IRoomRepository {
   }
 
   async deleteRoom(roomId: string): Promise<void> {
-    // Delete all participants first (FK constraint)
     await this.client.delete(roomParticipants).where(eq(roomParticipants.roomId, roomId));
-    // Delete all messages
     await this.client.delete(messages).where(eq(messages.roomId, roomId));
-    // Delete the room
     await this.client.delete(rooms).where(eq(rooms.id, roomId));
   }
 }

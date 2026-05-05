@@ -106,7 +106,7 @@ export function MessageInput({
       sendStopTypingEvent.cancel();
       if (userId) setTypingStatusAction(userId, roomData.id, false);
 
-      let uploadedUrl: string | undefined = undefined;
+      let attachments: { url: string; key: string; fileType: string; size?: number }[] | undefined = undefined;
 
       try {
         if (selectedFile) {
@@ -114,7 +114,12 @@ export function MessageInput({
           formData.append("file", selectedFile);
           const uploadResponse = await uploadFileAction(formData, `channels/${roomData.id}`);
           if (uploadResponse.status === "success" && uploadResponse.data) {
-            uploadedUrl = uploadResponse.data.fileurl;
+            attachments = [{
+              url: uploadResponse.data.fileurl,
+              key: uploadResponse.data.filename,
+              fileType: uploadResponse.data.mimetype,
+              size: uploadResponse.data.size,
+            }];
           } else {
             throw new Error(uploadResponse.error?.message || "Gagal mengunggah file");
           }
@@ -127,7 +132,15 @@ export function MessageInput({
           content,
           userId,
           roomId: roomData.id,
-          imageUrl: uploadedUrl || (filePreview && selectedFile?.type.startsWith("image/") ? filePreview : null),
+          attachments: attachments || (selectedFile ? [{
+            id: 'temp',
+            url: filePreview || '',
+            key: selectedFile.name,
+            fileType: selectedFile.type,
+            size: selectedFile.size,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }] : []),
           replyTo: replyingTo?.id || null,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -150,8 +163,8 @@ export function MessageInput({
           userId,
           currentContent,
           roomData.id,
-          uploadedUrl,
-          currentReplyTo
+          currentReplyTo,
+          attachments
         );
 
         if (response.status === "success" && response.data) {
