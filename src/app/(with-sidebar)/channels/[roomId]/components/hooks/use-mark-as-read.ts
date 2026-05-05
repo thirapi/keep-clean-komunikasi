@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 export function useMarkAsRead(
   bottomRef: React.RefObject<HTMLDivElement | null>,
-  unreadRef: React.RefObject<HTMLDivElement | null>,
+  viewportRef: React.RefObject<HTMLDivElement | null>,
   setIsAtBottom: React.Dispatch<React.SetStateAction<boolean>>,
-  markAsRead: () => void
+  markAsRead: (messageId?: string) => void
 ) {
   const markAsReadRef = useRef(markAsRead);
   const [isReady, setIsReady] = useState(false);
@@ -23,63 +23,69 @@ export function useMarkAsRead(
     if (!isReady) return;
 
     let bottomObserver: IntersectionObserver | null = null;
-    let unreadObserver: IntersectionObserver | null = null;
-
-    // Check visibility manually on load
-    const checkVisibility = () => {
-      // If unread separator is in view, mark as read
-      if (unreadRef.current) {
-        const rect = unreadRef.current.getBoundingClientRect();
-        const isInViewport = rect.top >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight);
-        if (isInViewport) {
-          markAsReadRef.current();
-          return;
-        }
-      }
-      
-      // If already at bottom, mark as read
-      if (bottomRef.current) {
-        const rect = bottomRef.current.getBoundingClientRect();
-        const isInViewport = rect.top >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight);
-        if (isInViewport) {
-          markAsReadRef.current();
-        }
-      }
-    };
+    let messageObserver: IntersectionObserver | null = null;
 
     const attach = () => {
       bottomObserver?.disconnect();
-      unreadObserver?.disconnect();
+      messageObserver?.disconnect();
 
+      // Bottom observer to track if we're at the end of the chat
       bottomObserver = new IntersectionObserver(
         ([entry]) => {
           setIsAtBottom(entry.isIntersecting);
           if (entry.isIntersecting) {
-            markAsReadRef.current();
+            markAsReadRef.current(); // Mark all as read if we reached the bottom
           }
         },
-        { threshold: 0 }
+        { 
+          root: viewportRef.current,
+          threshold: 0 
+        }
       );
 
-      unreadObserver = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            markAsReadRef.current();
-          }
+      // Message observer to mark individual messages as read as they enter the viewport
+      messageObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const messageId = entry.target.getAttribute("data-message-id");
+              if (messageId) {
+                markAsReadRef.current(messageId);
+              }
+            }
+          });
         },
-        { threshold: 0, rootMargin: "0px 0px -5% 0px" } // Mark read slightly before it leaves bottom
+        { 
+          root: viewportRef.current,
+          threshold: 0.1, // Mark as read when 10% of the message is visible
+          rootMargin: "0px 0px -10% 0px" // Slightly before it hits bottom
+        }
       );
 
       if (bottomRef.current) bottomObserver.observe(bottomRef.current);
-      if (unreadRef.current) unreadObserver.observe(unreadRef.current);
+      
+      // Observe all message containers
+      const messageElements = viewportRef.current?.querySelectorAll(".message-container");
+      messageElements?.forEach((el) => messageObserver?.observe(el));
     };
 
     attach();
-    checkVisibility();
+
+    // Re-attach when new messages might have been added
+    // We use MutationObserver to watch for new message elements
+    const mutationObserver = new MutationObserver(() => {
+      const messageElements = viewportRef.current?.querySelectorAll(".message-container");
+      messageElements?.forEach((el) => messageObserver?.observe(el));
+    });
+
+    if (viewportRef.current) {
+      mutationObserver.observe(viewportRef.current, { childList: true, subtree: true });
+    }
 
     return () => {
       bottomObserver?.disconnect();
-      unreadObserver?.disconnect();
+      messageObserver?.disconnect();
+      mutationObserver.disconnect();
     };
-  }, [isReady, bottomRef, unreadRef, setIsAtBottom]);
+  }, [isReady, bottomRef, viewportRef, setIsAtBottom]);
 }

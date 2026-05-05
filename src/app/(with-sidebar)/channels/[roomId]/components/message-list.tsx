@@ -152,6 +152,8 @@ export function MessageList({
               id={`message-${msg.id}`}
               key={`msg-container-${msg.id}`} 
               ref={isUnread ? unreadRef : null}
+              data-message-id={msg.id}
+              className="message-container"
             >
               <>
                 {showDateSeparator && index > 0 && (

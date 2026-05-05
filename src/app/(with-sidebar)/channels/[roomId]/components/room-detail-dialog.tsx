@@ -155,7 +155,7 @@ export function RoomDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden gap-0">
-        <div className="relative h-32 bg-gradient-to-r from-primary/20 to-primary/5 border-b">
+        <div className="relative h-32 bg-gradient-to-r from-indigo-500/10 via-slate-400/5 to-transparent border-b">
           <div className="absolute -bottom-10 left-6 ring-4 ring-background rounded-2xl overflow-hidden shadow-xl">
             {isLoading ? (
               <Skeleton className="h-20 w-20 rounded-2xl" />

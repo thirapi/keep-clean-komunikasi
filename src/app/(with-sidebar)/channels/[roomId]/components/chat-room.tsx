@@ -183,44 +183,50 @@ export function ChatRoom({
 
   const markAsReadApi = useMemo(
     () =>
-      debounce(async () => {
+      debounce(async (messageId?: string) => {
         if (!userId || userId === "") return;
-        const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-        if (!lastMessage || lastMessage.id === lastPersistedReadIdRef.current)
+        
+        // If no messageId provided, use the last message in the list
+        const targetId = messageId || messagesRef.current[messagesRef.current.length - 1]?.id;
+        
+        if (!targetId || targetId === lastPersistedReadIdRef.current)
           return;
 
-        const messageId = lastMessage.id;
+        // Check if targetId is actually newer than lastPersistedReadIdRef.current
+        const currentIndex = messagesRef.current.findIndex(m => m.id === targetId);
+        const prevIndex = lastPersistedReadIdRef.current 
+          ? messagesRef.current.findIndex(m => m.id === lastPersistedReadIdRef.current)
+          : -1;
+          
+        if (prevIndex !== -1 && currentIndex <= prevIndex) return;
 
         // Update local state and persisted ref
-        setLastReadIdState(messageId);
-        lastPersistedReadIdRef.current = messageId;
+        setLastReadIdState(targetId);
+        lastPersistedReadIdRef.current = targetId;
 
         // Sync to sidebar and cache
         markSidebarAsRead(roomData.id);
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.setLastRead(roomData.id, messageId);
+          m.clientChatCache.setLastRead(roomData.id, targetId);
         });
 
         // Server update
-        updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
-      }, 1000),
+        updateLastReadAt(userId, roomData.id, targetId).catch(console.error);
+      }, 500),
     [userId, roomData.id, markSidebarAsRead],
   );
 
   // Ensure read state is flushed on unmount/visibility hidden
   useEffect(() => {
     const flushReadState = async () => {
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-      if (lastMessage && lastMessage.id !== lastPersistedReadIdRef.current) {
-        const messageId = lastMessage.id;
-        lastPersistedReadIdRef.current = messageId;
-
+      const lastReadId = lastPersistedReadIdRef.current;
+      if (lastReadId) {
         markSidebarAsRead(roomData.id);
-        updateLastReadAt(userId, roomData.id, messageId).catch(console.error);
+        updateLastReadAt(userId, roomData.id, lastReadId).catch(console.error);
 
         // Also update cache on flush
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.setLastRead(roomData.id, messageId);
+          m.clientChatCache.setLastRead(roomData.id, lastReadId);
         });
       }
     };
@@ -238,10 +244,10 @@ export function ChatRoom({
     };
   }, [userId, roomData.id, markSidebarAsRead]);
 
-  const markAsRead = useCallback(() => {
+  const markAsRead = useCallback((messageId?: string) => {
     if (!userId || userId === "") return;
-    markAsReadApi();
-  }, [markAsReadApi]);
+    markAsReadApi(messageId);
+  }, [markAsReadApi, userId]);
 
   const syncMessages = useCallback(async () => {
     const currentMessages = messagesRef.current;
@@ -285,7 +291,7 @@ export function ChatRoom({
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
   useAutoFocusInput(inputRef);
-  useMarkAsRead(bottomRef, unreadRef, setIsAtBottom, markAsRead);
+  useMarkAsRead(bottomRef, viewportRef, setIsAtBottom, markAsRead);
 
   useEffect(() => {
     if (!isMobile) {
