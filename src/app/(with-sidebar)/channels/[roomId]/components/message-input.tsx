@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { debounce } from "lodash";
 import { setTypingStatusAction } from "../messages.action";
-import { pusher } from "@/lib/pusher/pusher.client";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
-import { CornerLeftUp, Loader2, X, Paperclip, Image as ImageIcon, FileIcon } from "lucide-react";
+import { CornerLeftUp, X, Paperclip, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -39,11 +38,14 @@ export function MessageInput({
 }: Props) {
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<{ file: File; preview: string | null }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { displayNames } = useTypingIndicator(roomData.id, userId);
+
+  const MAX_FILES = 5;
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   const sendTypingEvent = useRef(
     debounce(() => {
@@ -72,27 +74,59 @@ export function MessageInput({
     sendStopTypingEvent();
   }, [sendTypingEvent, sendStopTypingEvent, userId]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File terlalu besar. Maksimal 10MB");
-        return;
-      }
-      setSelectedFile(file);
+  const generatePreview = (file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
-        reader.onloadend = () => setFilePreview(reader.result as string);
+        reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       } else {
-        setFilePreview(null);
+        resolve(null);
       }
-    }
+    });
   };
 
-  const clearFile = () => {
-    setSelectedFile(null);
-    setFilePreview(null);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (selectedFiles.length + files.length > MAX_FILES) {
+      toast.error(`Maksimal ${MAX_FILES} file per pesan`);
+      return;
+    }
+
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`File "${file.name}" terlalu besar. Maksimal 10MB`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
+    const newPreviews = await Promise.all(
+      validFiles.map(async (file) => ({
+        file,
+        preview: await generatePreview(file),
+      }))
+    );
+
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
+    
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllFiles = () => {
+    setSelectedFiles([]);
+    setFilePreviews([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -100,7 +134,7 @@ export function MessageInput({
     async (e?: React.FormEvent) => {
       e?.preventDefault();
 
-      if ((!content.trim() && !selectedFile) || isSending || !userId) return;
+      if ((!content.trim() && selectedFiles.length === 0) || isSending || !userId) return;
 
       setIsSending(true);
       sendStopTypingEvent.cancel();
@@ -109,20 +143,24 @@ export function MessageInput({
       let attachments: { url: string; key: string; fileType: string; size?: number }[] | undefined = undefined;
 
       try {
-        if (selectedFile) {
-          const formData = new FormData();
-          formData.append("file", selectedFile);
-          const uploadResponse = await uploadFileAction(formData, `channels/${roomData.id}`);
-          if (uploadResponse.status === "success" && uploadResponse.data) {
-            attachments = [{
-              url: uploadResponse.data.fileurl,
-              key: uploadResponse.data.filename,
-              fileType: uploadResponse.data.mimetype,
-              size: uploadResponse.data.size,
-            }];
-          } else {
-            throw new Error(uploadResponse.error?.message || "Gagal mengunggah file");
-          }
+        if (selectedFiles.length > 0) {
+          const uploadPromises = selectedFiles.map(async (file) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            const uploadResponse = await uploadFileAction(formData, `channels/${roomData.id}`);
+            if (uploadResponse.status === "success" && uploadResponse.data) {
+              return {
+                url: uploadResponse.data.fileurl,
+                key: uploadResponse.data.filename,
+                fileType: uploadResponse.data.mimetype,
+                size: uploadResponse.data.size,
+              };
+            } else {
+              throw new Error(uploadResponse.error?.message || `Gagal mengunggah file ${file.name}`);
+            }
+          });
+
+          attachments = await Promise.all(uploadPromises);
         }
 
         // Optimistic message
@@ -132,15 +170,15 @@ export function MessageInput({
           content,
           userId,
           roomId: roomData.id,
-          attachments: attachments || (selectedFile ? [{
-            id: 'temp',
-            url: filePreview || '',
-            key: selectedFile.name,
-            fileType: selectedFile.type,
-            size: selectedFile.size,
+          attachments: attachments || selectedFiles.map((file, index) => ({
+            id: `temp-${index}`,
+            url: filePreviews[index]?.preview || '',
+            key: file.name,
+            fileType: file.type,
+            size: file.size,
             createdAt: new Date(),
             updatedAt: new Date(),
-          }] : []),
+          })),
           replyTo: replyingTo?.id || null,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -156,7 +194,7 @@ export function MessageInput({
         const currentReplyTo = replyingTo?.id;
         
         setContent("");
-        clearFile();
+        clearAllFiles();
         onCancelReply();
 
         const response = await createMessage(
@@ -181,7 +219,8 @@ export function MessageInput({
     },
     [
       content,
-      selectedFile,
+      selectedFiles,
+      filePreviews,
       isSending,
       userId,
       roomData.id,
@@ -191,14 +230,13 @@ export function MessageInput({
       onNewMessage,
       user.username,
       user.avatar,
-      filePreview,
     ],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
       if (e.shiftKey) {
-        if (!content.trim() && !selectedFile) {
+        if (!content.trim() && selectedFiles.length === 0) {
           e.preventDefault();
         }
       } else {
@@ -219,62 +257,92 @@ export function MessageInput({
 
   // Support paste image
   useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
-      const item = e.clipboardData?.items[0];
-      if (item?.type.startsWith("image/")) {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItems = items.filter(item => item.type.startsWith("image/"));
+      
+      if (imageItems.length === 0) return;
+
+      if (selectedFiles.length + imageItems.length > MAX_FILES) {
+        toast.error(`Maksimal ${MAX_FILES} file per pesan`);
+        return;
+      }
+
+      const newFiles: File[] = [];
+      for (const item of imageItems) {
         const file = item.getAsFile();
         if (file) {
-          if (file.size > 10 * 1024 * 1024) {
-            toast.error("Gambar terlalu besar. Maksimal 10MB");
-            return;
+          if (file.size > MAX_FILE_SIZE) {
+            toast.error(`Gambar "${file.name}" terlalu besar. Maksimal 10MB`);
+            continue;
           }
-          setSelectedFile(file);
-          const reader = new FileReader();
-          reader.onloadend = () => setFilePreview(reader.result as string);
-          reader.readAsDataURL(file);
+          newFiles.push(file);
         }
+      }
+
+      if (newFiles.length > 0) {
+        const newPreviews = await Promise.all(
+          newFiles.map(async (file) => ({
+            file,
+            preview: await generatePreview(file),
+          }))
+        );
+
+        setSelectedFiles((prev) => [...prev, ...newFiles]);
+        setFilePreviews((prev) => [...prev, ...newPreviews]);
       }
     };
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, []);
+  }, [selectedFiles.length]);
 
   return (
     <div className="flex flex-col gap-0 px-3 sm:px-6 pb-4 sm:pb-6">
-      {/* File Preview */}
-      {selectedFile && (
-        <div className="relative rounded-t-xl bg-muted/30 border-x border-t border-border/50 backdrop-blur-md px-4 py-3 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {filePreview ? (
-            <div className="relative h-16 w-16 rounded-lg overflow-hidden border border-border/50 shadow-sm">
-              <img src={filePreview} alt="Preview" className="h-full w-full object-cover" />
+      {/* File Previews */}
+      {selectedFiles.length > 0 && (
+        <div className="relative rounded-t-xl bg-muted/30 border-x border-t border-border/50 backdrop-blur-md px-4 py-3 flex flex-wrap gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {filePreviews.map((item, index) => (
+            <div key={index} className="relative group h-20 w-20 sm:h-24 sm:w-24 rounded-lg overflow-hidden border border-border/50 shadow-sm bg-background/50">
+              {item.preview ? (
+                <img src={item.preview} alt="Preview" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center p-2 text-center">
+                  <FileIcon className="h-8 w-8 text-primary/60 mb-1" />
+                  <span className="text-[10px] truncate w-full px-1">{item.file.name}</span>
+                </div>
+              )}
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-6 w-6 rounded-full shadow-lg"
+                  onClick={() => removeFile(index)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-[9px] text-white px-1 py-0.5 truncate backdrop-blur-sm">
+                {(item.file.size / 1024).toFixed(0)} KB
+              </div>
             </div>
-          ) : (
-            <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center border border-border/50 shadow-sm">
-              <FileIcon className="h-8 w-8 text-primary/60" />
-            </div>
+          ))}
+          {selectedFiles.length < MAX_FILES && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="h-20 w-20 sm:h-24 sm:w-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all bg-muted/20"
+            >
+              <Paperclip className="h-6 w-6 mb-1" />
+              <span className="text-[10px]">Tambah</span>
+            </button>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold truncate">{selectedFile.name}</div>
-            <div className="text-[10px] text-muted-foreground uppercase">
-              {(selectedFile.size / 1024).toFixed(1)} KB
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
-            onClick={clearFile}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       )}
 
       {replyingTo && (
         <div className={cn(
           "relative bg-muted/50 border-x border-border/50 backdrop-blur-md px-4 py-3 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300",
-          selectedFile ? "border-t border-border/20" : "rounded-t-xl border-t"
+          selectedFiles.length > 0 ? "border-t border-border/20" : "rounded-t-xl border-t"
         )}>
           <div className="bg-primary/20 p-1.5 rounded-lg">
             <CornerLeftUp className="h-3.5 w-3.5 text-primary" />
@@ -301,11 +369,12 @@ export function MessageInput({
       <div
         className={cn(
           "flex items-end gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
-          (replyingTo || selectedFile) ? "rounded-b-xl border-t-0" : "rounded-xl",
+          (replyingTo || selectedFiles.length > 0) ? "rounded-b-xl border-t-0" : "rounded-xl",
         )}
       >
         <input
           type="file"
+          multiple
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"
@@ -343,7 +412,7 @@ export function MessageInput({
 
         <Button
           onClick={() => handleSend()}
-          disabled={(!content.trim() && !selectedFile) || isSending}
+          disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
           className="h-9 w-9 p-0 mb-0.5 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
         >
           {isSending ? (

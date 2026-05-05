@@ -7,7 +7,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ImageLightbox, ImageSource } from "@/components/ui/image-lightbox";
 
 function truncate(str: string, max = 100) {
   return str.length > max ? str.slice(0, max) + "..." : str;
@@ -43,6 +44,8 @@ export function MessageItem({
   onScrollToMessage?: (messageId: string) => void;
 }) {
   const router = useRouter();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [initialImageIndex, setInitialImageIndex] = useState(0);
 
   const handleStartDM = async (targetUserId: string) => {
     if (targetUserId === currentUserId) return;
@@ -95,6 +98,21 @@ export function MessageItem({
     } catch {
       return 'Attachment';
     }
+  };
+
+  const images = useMemo(() => {
+    return (message.attachments || [])
+      .filter(a => isImage(a.url))
+      .map(a => ({ url: a.url, filename: getFileName(a.url) } as ImageSource));
+  }, [message.attachments]);
+
+  const otherFiles = useMemo(() => {
+    return (message.attachments || []).filter(a => !isImage(a.url));
+  }, [message.attachments]);
+
+  const openLightbox = (index: number) => {
+    setInitialImageIndex(index);
+    setLightboxOpen(true);
   };
 
   const renderContent = (content: string) => {
@@ -243,38 +261,73 @@ export function MessageItem({
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-col gap-2 mt-2">
-            {message.attachments.map((attachment) => (
-              <div key={attachment.id} className="relative group-media overflow-hidden rounded-lg border border-border/50 max-w-sm bg-muted/20">
-                {isImage(attachment.url) ? (
-                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block relative cursor-zoom-in">
+          <div className="flex flex-col gap-2 mt-2 max-w-[500px]">
+            {/* Images Grid */}
+            {images.length > 0 && (
+              <div className={cn(
+                "grid gap-1 overflow-hidden rounded-xl border border-border/50 bg-muted/20 shadow-sm",
+                images.length === 1 && "grid-cols-1 max-w-sm",
+                images.length === 2 && "grid-cols-2",
+                images.length >= 3 && "grid-cols-2",
+              )}>
+                {images.slice(0, 4).map((img, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto",
+                      images.length === 1 ? "aspect-auto max-h-[400px]" : "aspect-[4/3]",
+                      images.length === 3 && idx === 0 && "col-span-2 aspect-[2/1]",
+                    )}
+                    onClick={() => openLightbox(idx)}
+                  >
                     <img
-                      src={attachment.url}
-                      alt="attachment"
-                      className="w-full object-cover transition-transform duration-300 group-media:hover:scale-105"
+                      src={img.url}
+                      alt={img.filename}
+                      className="w-full h-full object-cover transition-transform duration-500 group-media:hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <ExternalLink className="w-6 h-6 text-white opacity-0 group-media:hover:opacity-100 transition-opacity drop-shadow-md" />
+                    <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <ExternalLink className="w-8 h-8 text-white opacity-0 group-media:hover:opacity-100 transition-all scale-75 group-media:hover:scale-100 drop-shadow-lg" />
                     </div>
-                  </a>
-                ) : (
-                  <div className="p-3 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileIcon className="h-6 w-6 text-primary" />
+                    {images.length > 4 && idx === 3 && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                        <span className="text-white text-xl font-bold">+{images.length - 4}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Other Files */}
+            {otherFiles.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                {otherFiles.map((attachment) => (
+                  <div key={attachment.id} className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-md max-w-sm">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <FileIcon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{getFileName(attachment.url)}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase">File Attachment</p>
+                      <p className="text-[13px] font-semibold truncate text-foreground/90">{getFileName(attachment.url)}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                        {attachment.size ? `${(attachment.size / 1024).toFixed(1)} KB` : "Attachment"}
+                      </p>
                     </div>
-                    <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full shrink-0">
-                      <a href={attachment.url} target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
+                        <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
+                        <a href={attachment.url} download={getFileName(attachment.url)}>
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -308,6 +361,13 @@ export function MessageItem({
           </div>
         </div>
       </div>
+
+      <ImageLightbox 
+        images={images} 
+        initialIndex={initialImageIndex} 
+        open={lightboxOpen} 
+        onOpenChange={setLightboxOpen} 
+      />
     </div>
   );
 }

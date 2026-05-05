@@ -56,7 +56,7 @@ describe("SendMessageUseCase", () => {
   })
 
   it("should handle message with attachments and replyTo", async () => {
-    const attachments = [{ url: "https://example.com/image.jpg", key: "image.jpg", fileType: "image/jpeg", size: 1234 }]
+    const attachments = [{ id: "att1", url: "https://example.com/image.jpg", key: "image.jpg", fileType: "image/jpeg", size: 1234, createdAt: new Date(), updatedAt: new Date() }]
     const mockMessage = {
       ...baseMessage,
       user: { username: "user1" },
