@@ -348,7 +348,7 @@ export class RoomRepository implements IRoomRepository {
       );
   }
 
-  async updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean }): Promise<void> {
+  async updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean; avatar?: string }): Promise<void> {
     await this.client
       .update(rooms)
       .set(data)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Settings,
   Hash,
@@ -14,6 +14,7 @@ import {
   User,
   Shield,
   Calendar,
+  Camera,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,6 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { updateChannel, deleteChannel } from "../room.action";
+import { uploadFileAction } from "../messages.action";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -71,6 +73,9 @@ export function RoomDetailDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const isOwner = currentUserId === roomData.ownerId;
@@ -86,6 +91,8 @@ export function RoomDetailDialog({
       return () => clearTimeout(timer);
     } else {
       setIsLoading(true);
+      setAvatarPreview(null);
+      setAvatarFile(null);
     }
   }, [open]);
 
@@ -100,26 +107,65 @@ export function RoomDetailDialog({
     ? roomData.participants.find((p) => p.user.id !== currentUserId)?.user
     : null;
 
+  const handleAvatarClick = () => {
+    if (isOwner && !isDirect) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 5MB");
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       toast.error("Nama channel tidak boleh kosong");
       return;
     }
 
-    if (onUpdateRoom) {
-      onUpdateRoom({
-        name: name.trim(),
-        description: description.trim(),
-        isPublic,
-      });
-    }
-
     setIsSaving(true);
     try {
+      let avatarUrl = roomData.avatar;
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+        const uploadRes = await uploadFileAction(formData, "room-avatars");
+        if (uploadRes.status === "success" && uploadRes.data) {
+          avatarUrl = uploadRes.data.fileurl;
+        } else {
+          toast.error("Gagal mengunggah avatar");
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      if (onUpdateRoom) {
+        onUpdateRoom({
+          name: name.trim(),
+          description: description.trim(),
+          isPublic,
+          avatar: avatarUrl,
+        });
+      }
+
       const response = await updateChannel(roomData.id, currentUserId, {
         name: name.trim(),
         description: description.trim() || undefined,
         isPublic,
+        avatar: avatarUrl,
       });
 
       if (response.status === "success") {
@@ -156,15 +202,32 @@ export function RoomDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden gap-0">
         <div className="relative h-32 bg-gradient-to-r from-indigo-500/10 via-slate-400/5 to-transparent border-b">
-          <div className="absolute -bottom-10 left-6 ring-4 ring-background rounded-2xl overflow-hidden shadow-xl">
+          <div className="absolute -bottom-10 left-6 ring-4 ring-background rounded-2xl overflow-hidden shadow-xl group">
             {isLoading ? (
               <Skeleton className="h-20 w-20 rounded-2xl" />
             ) : (
-              <UserAvatar
-                src={isDirect ? otherUser?.avatar || "" : roomData.avatar}
-                alt={isDirect ? otherUser?.username || "" : roomData.name}
-                className="h-20 w-20 rounded-2xl text-2xl"
-              />
+              <div className="relative">
+                <UserAvatar
+                  src={avatarPreview || (isDirect ? otherUser?.avatar || "" : roomData.avatar)}
+                  alt={isDirect ? otherUser?.username || "" : roomData.name}
+                  className="h-20 w-20 rounded-2xl text-2xl"
+                />
+                {isOwner && !isDirect && (
+                  <button
+                    onClick={handleAvatarClick}
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"
+                  >
+                    <Camera className="w-6 h-6 text-white" />
+                  </button>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
             )}
           </div>
         </div>

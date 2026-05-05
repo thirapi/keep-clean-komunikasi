@@ -231,7 +231,7 @@ export const removeParticipant = async (
 export const updateChannel = async (
   roomId: string,
   requesterId: string,
-  data: { name?: string; description?: string; isPublic?: boolean }
+  data: { name?: string; description?: string; isPublic?: boolean; avatar?: string }
 ): Promise<ServerResponse<boolean>> => {
   try {
     await updateRoomController(roomId, requesterId, data);

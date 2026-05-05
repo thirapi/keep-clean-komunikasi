@@ -24,6 +24,6 @@ export interface IRoomRepository {
   getPublicRooms(excludeUserId: string): Promise<RoomWithParticipantsDTO[]>;
   addParticipant(roomId: string, userId: string): Promise<void>;
   removeParticipant(roomId: string, userId: string): Promise<void>;
-  updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean }): Promise<void>;
+  updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean; avatar?: string }): Promise<void>;
   deleteRoom(roomId: string): Promise<void>;
 }
