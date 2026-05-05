@@ -33,6 +33,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
       id: string;
       username: string;
       avatar: string;
+      createdAt: Date;
       userRoles: {
         role: {
           name: string;

@@ -49,6 +49,7 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
           })),
@@ -128,6 +129,7 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
           })),
@@ -261,6 +263,7 @@ export class RoomRepository implements IRoomRepository {
             id: p.user.id,
             username: p.user.username,
             avatar: p.user.avatar,
+            createdAt: p.user.createdAt,
             userRoles: p.user.userRoles.map((ur) => ({
               role: { name: ur.role.name },
             })),
@@ -316,6 +319,7 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
           })),

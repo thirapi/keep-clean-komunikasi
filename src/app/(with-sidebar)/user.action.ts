@@ -4,6 +4,7 @@ import { ServerResponse } from "@/lib/entities/models/response.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { updateUserController } from "@/lib/interface-adapters/controllers/users/update.controller";
 import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
+import { changePasswordController } from "@/lib/interface-adapters/controllers/users/change-password.controller";
 
 export const updateUserAction = async (
   userId: string,
@@ -25,6 +26,29 @@ export const updateUserAction = async (
       error: {
         type: "UNKNOWN_ERROR",
         message: err.message || "Something went wrong",
+      },
+    };
+  }
+};
+
+export const changePasswordAction = async (
+  userId: string,
+  data: { oldPassword?: string; newPassword: string }
+): Promise<ServerResponse<null>> => {
+  try {
+    await changePasswordController(userId, data);
+    return {
+      status: "success",
+      data: null,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: null,
+      error: {
+        type: "VALIDATION_ERROR",
+        message: err.message,
       },
     };
   }

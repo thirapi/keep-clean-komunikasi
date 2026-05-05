@@ -26,7 +26,7 @@ export default async function ChatPage({
         <div className="absolute inset-0 z-0">
           <ColorBends
             className="w-full h-full"
-            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            colors={["#ff7aa2", "#8b7bff", "#4dd6c6"]}
             rotation={90}
             speed={0.2}
             scale={1}

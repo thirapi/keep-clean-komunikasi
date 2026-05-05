@@ -3,40 +3,27 @@
 import * as React from "react";
 import {
   Bell,
-  Calendar,
   Check,
   Edit3,
-  Globe,
-  Home,
-  Keyboard,
-  Link,
   Lock,
   Mail,
-  Menu,
-  MessageCircle,
-  Paintbrush,
   Settings,
   Shield,
   User,
   UserCircle,
   UserPen,
-  Video,
   X,
+  Loader2,
+  Camera,
+  Key,
 } from "lucide-react";
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -50,26 +37,56 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { CurrentAvatar } from "./current-avatar";
-import { updateUserAction } from "./user.action";
+import { updateUserAction, changePasswordAction } from "./user.action";
+import { uploadFileAction } from "./channels/[roomId]/messages.action";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 const data = {
   nav: [
-    { name: "Account Info", icon: Settings },
-    { name: "Change Avatar", icon: UserCircle },
+    { name: "Profil", icon: User },
+    { name: "Keamanan", icon: Shield },
+    { name: "Tampilan", icon: Paintbrush },
   ],
 };
+
+function Paintbrush(props: any) {
+    return (
+      <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m14.622 17.897-3.458-3.458 3.458-3.458 3.458 3.458Z" />
+        <path d="M18.396 15.642 20 17.246a1 1 0 0 1 0 1.414l-1.417 1.417a1 1 0 0 1-1.414 0l-1.604-1.604" />
+        <path d="M8 11.414 3.414 6.828a2 2 0 0 1 0-2.828l1.414-1.414a2 2 0 0 1 2.828 0L12.242 7.172" />
+        <path d="m2 21 5-5" />
+        <path d="M5 11h2" />
+        <path d="M11 5v2" />
+        <path d="M13 13h2" />
+        <path d="M11 11v2" />
+      </svg>
+    )
+}
 
 const presetAvatars = [
   "/avatars/avatar1.png",
   "/avatars/avatar2.png",
   "/avatars/avatar3.png",
   "/avatars/avatar4.png",
-  // "/avatars/avatar5.png",
-  // "/avatars/avatar6.png",
+  "/avatars/avatar5.png",
+  "/avatars/avatar6.png",
 ];
 
 export function UserSettingsDialog({
@@ -85,301 +102,289 @@ export function UserSettingsDialog({
   };
 }) {
   const [open, setOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState("Account Info");
-  const [selectedAvatar, setSelectedAvatar] = React.useState<string | null>(
-    null
-  );
+  const [selectedItem, setSelectedItem] = React.useState("Profil");
+  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [username, setUsername] = React.useState(user.name);
+  const [avatar, setAvatar] = React.useState(user.avatar);
+  const [isUploading, setIsUploading] = React.useState(false);
 
-  const handleAvatarSelect = (src: string) => {
-    setSelectedAvatar(src);
-  };
+  // Password fields
+  const [oldPassword, setOldPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
 
-  const handleSaveAvatar = async () => {
-    if (!selectedAvatar) return toast("Pilih avatar terlebih dahulu!");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const handleUpdateProfile = async () => {
+    if (!username.trim()) return toast.error("Username tidak boleh kosong");
+    setIsUpdating(true);
     try {
       const response = await updateUserAction(user.id, {
-        avatar: selectedAvatar,
+        username: username.trim(),
+        avatar: avatar,
       });
 
       if (response.status === "success") {
-        console.log("Avatar berhasil disimpan:", selectedAvatar);
-        toast("Avatar berhasil diperbarui!");
-        // Opsional: update state/context user di frontend jika perlu
-        // setUser((prev) => ({ ...prev, avatar: selectedAvatar }));
+        toast.success("Profil berhasil diperbarui!");
       } else {
-        toast(`Gagal memperbarui avatar: ${response.error?.message}`);
+        toast.error(`Gagal memperbarui profil: ${response.error?.message}`);
       }
-    } catch (err) {
-      console.error(err);
-      toast("Terjadi kesalahan saat memperbarui avatar");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword) return toast.error("Password baru tidak boleh kosong");
+    if (newPassword !== confirmPassword) return toast.error("Konfirmasi password tidak cocok");
+
+    setIsUpdating(true);
+    try {
+      const response = await changePasswordAction(user.id, {
+        oldPassword,
+        newPassword,
+      });
+
+      if (response.status === "success") {
+        toast.success("Password berhasil diubah!");
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(response.error?.message || "Gagal mengubah password");
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 2MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await uploadFileAction(formData, "avatars");
+      
+      if (response.status === "success" && response.data) {
+        setAvatar(response.data.fileurl);
+        toast.success("Foto profil berhasil diunggah!");
+      } else {
+        toast.error(response.error?.message || "Gagal mengunggah foto");
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50">
-          <UserPen className="h-4 w-4" />
+        <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 rounded-md transition-colors">
+          <UserPen className="h-4 w-4 text-muted-foreground" />
           Edit Profile
         </button>
       </DialogTrigger>
-      <DialogContent className="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]">
-        <DialogTitle className="sr-only">Settings</DialogTitle>
-        <DialogDescription className="sr-only">
-          Customize your settings here.
-        </DialogDescription>
-        <SidebarProvider className="items-start">
-          <Sidebar collapsible="none" className="hidden md:flex">
-            <SidebarContent>
-              <SidebarGroup>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {data.nav.map((item) => (
-                      <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton asChild>
-                          <button
-                            onClick={() => setSelectedItem(item.name)}
-                            className="flex items-center gap-2 w-full"
-                          >
-                            <item.icon />
-                            <span>{item.name}</span>
-                          </button>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+      <DialogContent className="overflow-hidden p-0 md:max-h-[600px] md:max-w-[750px] lg:max-w-[850px] gap-0">
+        <SidebarProvider className="items-start min-h-0">
+          <Sidebar collapsible="none" className="hidden md:flex w-52 border-r bg-muted/20">
+            <SidebarContent className="p-2">
+              <div className="px-3 py-4">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                  User Settings
+                </h2>
+              </div>
+              <SidebarMenu>
+                {data.nav.map((item) => (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton 
+                        isActive={selectedItem === item.name}
+                        onClick={() => setSelectedItem(item.name)}
+                        className={cn(
+                            "w-full justify-start gap-3 px-3 py-2 rounded-lg transition-all",
+                            selectedItem === item.name 
+                                ? "bg-primary/10 text-primary font-semibold" 
+                                : "text-muted-foreground hover:bg-muted/50"
+                        )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
             </SidebarContent>
           </Sidebar>
-          <main className="flex h-[480px] flex-1 flex-col overflow-hidden">
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-              <div className="flex items-center gap-2 px-4">
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">Edit Profile</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{selectedItem}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
-            </header>
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
-              {selectedItem === "Change Avatar" && (
-                <div className="space-y-4">
-                  <CurrentAvatar
-                    user={{
-                      ...user,
-                      avatar: selectedAvatar ?? user.avatar,
-                    }}
-                  />
-                  <h2 className="text-lg font-semibold mb-0.5">
-                    Choose Avatar
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Choose one of the avatars below to change your look.
-                  </p>
-                  <div className="grid grid-cols-4 gap-4">
-                    {presetAvatars.map((src, idx) => {
-                      const isSelected = selectedAvatar === src;
+          
+          <main className="flex flex-1 flex-col min-h-0">
+            <DialogHeader className="p-6 pb-0 sm:text-left">
+              <DialogTitle className="text-xl font-bold tracking-tight">{selectedItem}</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Kelola informasi akun dan preferensi Anda.
+              </DialogDescription>
+            </DialogHeader>
 
-                      return (
-                        <div key={idx} className="relative">
-                          {isSelected && (
-                            <button
-                              onClick={() => setSelectedAvatar(null)}
-                              className="absolute top-1 right-1 z-10 bg-white rounded-full p-0.5 hover:bg-gray-100 shadow-md"
-                            >
-                              <X className="w-4 h-4 text-gray-500" />
-                            </button>
-                          )}
+            <ScrollArea className="flex-1 px-6 py-6">
+              <div className="space-y-8 max-w-2xl">
+                {selectedItem === "Profil" && (
+                  <div className="space-y-8 animate-in fade-in duration-300">
+                    <section className="space-y-4">
+                        <div className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl border bg-muted/10">
+                            <div className="relative group">
+                                <UserAvatar 
+                                    src={avatar} 
+                                    className="h-24 w-24 rounded-md ring-background shadow-xl"
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isUploading}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                                >
+                                    {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
+                                </button>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileUpload} 
+                                    className="hidden" 
+                                    accept="image/*"
+                                />
+                            </div>
+                            <div className="flex-1 text-center sm:text-left space-y-2">
+                                <h3 className="font-bold text-lg">Foto Profil</h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Unggah foto kustom atau pilih dari avatar yang tersedia. Maksimal 2MB (JPG, PNG).
+                                </p>
+                                <div className="flex flex-wrap justify-center sm:justify-start gap-2 pt-1">
+                                    {presetAvatars.map((src) => (
+                                        <button
+                                            key={src}
+                                            onClick={() => setAvatar(src)}
+                                            className={cn(
+                                                "h-8 w-8 rounded-md border-2 transition-all hover:scale-110",
+                                                avatar === src ? "border-primary scale-110" : "border-transparent"
+                                            )}
+                                        >
+                                            <img src={src} className="h-full w-full rounded-md" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-                          <button
-                            onClick={() => handleAvatarSelect(src)}
-                            className={`border-2 rounded-lg overflow-hidden w-full aspect-square ${
-                              isSelected
-                                ? "border-blue-500"
-                                : "border-transparent hover:border-gray-300"
-                            }`}
-                          >
-                            <img
-                              src={src || "/placeholder.svg"}
-                              alt={`Avatar ${idx + 1}`}
-                              className="w-full h-full object-cover"
+                    <section className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="username" className="text-sm font-bold">Username</Label>
+                            <Input 
+                                id="username" 
+                                value={username} 
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="bg-muted/30"
+                                placeholder="Masukkan username Anda"
                             />
-                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="grid gap-2 opacity-60">
+                            <Label className="text-sm font-bold">Email Address</Label>
+                            <div className="px-3 py-2 rounded-md bg-muted border text-sm font-medium">
+                                {user.email}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1 italic">
+                                <Lock className="h-3 w-3" /> Email tidak dapat diubah secara manual.
+                            </p>
+                        </div>
+                    </section>
 
-                  <Button
-                    onClick={() => handleSaveAvatar()}
-                    variant={"outline"}
-                  >
-                    Save Avatar
-                  </Button>
-                </div>
-              )}
-              {selectedItem === "Account Info" && (
-                <div className="flex flex-col h-full">
-                  <div className="flex-shrink-0 mb-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-2">
-                      Account Information
-                    </h2>
-                    <p className="text-muted-foreground">
-                      View and manage your account details below.
-                    </p>
-                  </div>
-                  <ScrollArea className="flex-1">
-                    <div className="space-y-6 pr-4">
-                      <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="relative">
-                            <div className="overflow-hidden flex items-center justify-center p-4 bg-card rounded-lg">
-                              <UserAvatar 
-                                src={user.avatar} 
-                                alt={user.name}
-                                className="w-16 h-16 rounded-lg ring-4 ring-primary/20"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-foreground">
-                              {user.name}
-                            </h3>
-                            <p className="text-muted-foreground">{user.role}</p>
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 mt-1">
-                              Active
-                            </span>
-                          </div>
-                          <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors">
-                            <Edit3 className="w-4 h-4 mr-2" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid gap-4">
-                        <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                              <User className="w-5 h-5 text-blue-600 dark:text-blue-300" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Personal Information
-                            </h3>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center py-3 border-b border-border/50 last:border-b-0">
-                              <div className="flex items-center gap-3">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  Full Name
-                                </span>
-                              </div>
-                              <span className="text-sm text-foreground font-medium">
-                                {user.name}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-3 border-b border-border/50 last:border-b-0">
-                              <div className="flex items-center gap-3">
-                                <Shield className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  User ID
-                                </span>
-                              </div>
-                              <span className="text-sm text-muted-foreground font-mono bg-accent px-2 py-1 rounded">
-                                {user.id}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                              <Mail className="w-5 h-5 text-green-600 dark:text-green-300" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Contact Information
-                            </h3>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center py-3">
-                              <div className="flex items-center gap-3">
-                                <Mail className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  Email Address
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-foreground font-medium">
-                                  {user.email}
-                                </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                                  Verified
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg">
-                              <Lock className="w-5 h-5 text-amber-600 dark:text-amber-300" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Security & Access
-                            </h3>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center py-3 border-b border-border/50">
-                              <div className="flex items-center gap-3">
-                                <Shield className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  Account Role
-                                </span>
-                              </div>
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 capitalize">
-                                {user.role}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-3">
-                              <div className="flex items-center gap-3">
-                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  Last Login
-                                </span>
-                              </div>
-                              <span className="text-sm text-foreground">
-                                2 hours ago
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 pt-2">
-                        <Button className="flex-1" disabled={true}>
-                          <Edit3 className="w-4 h-4 mr-2" />
-                          Edit Profile
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-transparent"
-                          disabled={true}
+                    <div className="pt-4 flex justify-end">
+                        <Button 
+                            onClick={handleUpdateProfile} 
+                            disabled={isUpdating || (username === user.name && avatar === user.avatar)}
+                            className="px-8 font-bold shadow-lg shadow-primary/20"
                         >
-                          <Lock className="w-4 h-4 mr-2" />
-                          Change Password
+                            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Perubahan"}
                         </Button>
-                      </div>
                     </div>
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+
+                {selectedItem === "Keamanan" && (
+                  <div className="space-y-8 animate-in fade-in duration-300">
+                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/30 flex gap-3">
+                        <Shield className="h-5 w-5 text-amber-600 shrink-0" />
+                        <div>
+                            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Keamanan Akun</p>
+                            <p className="text-xs text-amber-700/80 dark:text-amber-300/60 leading-relaxed mt-0.5">
+                                Gunakan password yang kuat dan unik untuk melindungi akun Anda dari akses yang tidak sah.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-5">
+                        <div className="grid gap-2">
+                            <Label className="text-sm font-bold">Password Saat Ini</Label>
+                            <Input 
+                                type="password" 
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                                className="bg-muted/30"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-sm font-bold">Password Baru</Label>
+                            <Input 
+                                type="password" 
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="bg-muted/30"
+                                placeholder="Minimal 8 karakter"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-sm font-bold">Konfirmasi Password</Label>
+                            <Input 
+                                type="password" 
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="bg-muted/30"
+                                placeholder="Ulangi password baru"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end">
+                        <Button 
+                            variant="default"
+                            onClick={handleChangePassword}
+                            disabled={isUpdating || !newPassword}
+                            className="px-8 font-bold"
+                        >
+                            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Ganti Password</>}
+                        </Button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedItem === "Tampilan" && (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center animate-in fade-in duration-300">
+                    <Paintbrush className="h-12 w-12 text-muted-foreground/30" />
+                    <div className="space-y-1">
+                        <h3 className="font-bold">Tema & Kustomisasi</h3>
+                        <p className="text-sm text-muted-foreground max-w-xs">
+                            Fitur untuk mengubah tema gelap/terang dan warna aksen akan segera hadir.
+                        </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </main>
         </SidebarProvider>
       </DialogContent>

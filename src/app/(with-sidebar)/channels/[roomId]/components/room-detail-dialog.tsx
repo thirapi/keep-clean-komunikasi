@@ -262,7 +262,7 @@ export function RoomDetailDialog({
                                 (p) => p.user.id === roomData.ownerId,
                               )?.user.avatar || ""
                             }
-                            className="h-8 w-8"
+                            className="h-8 w-8 rounded-md"
                           />
                           <span className="text-sm font-medium">
                             {roomData.participants.find(
@@ -287,7 +287,15 @@ export function RoomDetailDialog({
                       </span>
                       <span className="text-sm flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5" />
-                        - - -
+                        {isLoading ? (
+                          <Skeleton className="h-4 w-20" />
+                        ) : (
+                          new Date(isDirect ? (otherUser?.createdAt || roomData.createdAt) : roomData.createdAt).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        )}
                       </span>
                     </div>
                     <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
