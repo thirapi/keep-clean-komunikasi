@@ -28,6 +28,7 @@ interface ChatRoomProps {
   roomData: RoomWithParticipantsDTO;
   initialMessages: MessageWithUserDTO[];
   lastReadMessageId: string | null;
+  lastReadAt: Date | null;
   user: {
     id: string;
     username: string;
@@ -40,6 +41,7 @@ export function ChatRoom({
   roomData,
   initialMessages,
   lastReadMessageId,
+  lastReadAt,
   user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
@@ -53,6 +55,9 @@ export function ChatRoom({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [lastReadIdState, setLastReadIdState] = useState<string | null>(
     lastReadMessageId,
+  );
+  const [lastReadAtState, setLastReadAtState] = useState<Date | null>(
+    lastReadAt,
   );
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | null
@@ -72,10 +77,11 @@ export function ChatRoom({
   // Sync state with props when they change (e.g. after server fetch in wrapper)
   useEffect(() => {
     setLastReadIdState(lastReadMessageId);
+    setLastReadAtState(lastReadAt);
     // Only update persisted ref if it's null or the prop is newer (this is tricky)
     // For simplicity, if prop arrives from server, we assume server knows it
     lastPersistedReadIdRef.current = lastReadMessageId;
-  }, [lastReadMessageId]);
+  }, [lastReadMessageId, lastReadAt]);
 
   const scrollToMessage = useCallback((messageId: string) => {
     const element = document.getElementById(`message-${messageId}`);
@@ -148,6 +154,7 @@ export function ChatRoom({
       // If the message is from the current user, treat it as read automatically
       if (msg.userId === userId) {
         setLastReadIdState(msg.id);
+        setLastReadAtState(new Date());
         // Sync to cache immediately for current user's messages
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
           m.clientChatCache.setLastRead(localRoomData.id, msg.id);
@@ -202,6 +209,7 @@ export function ChatRoom({
 
         // Update local state and persisted ref
         setLastReadIdState(targetId);
+        setLastReadAtState(new Date());
         lastPersistedReadIdRef.current = targetId;
 
         // Sync to sidebar and cache
@@ -306,6 +314,12 @@ export function ChatRoom({
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) =>
       handleNewMessage(msg),
     );
+    chatChannel.bind("message-deleted", ({ messageId }: { messageId: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      import("@/lib/infrastructure/cache/client-cache").then((m) => {
+        m.clientChatCache.removeMessage(roomData.id, messageId);
+      });
+    });
     const handleConnected = () => syncMessages();
     pusher.connection.bind("connected", handleConnected);
     const handleFocus = () => syncMessages();
@@ -354,6 +368,7 @@ export function ChatRoom({
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
               lastReadMessageId={lastReadIdState}
+              lastReadAt={lastReadAtState}
               onLoadMore={loadMoreMessages}
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}

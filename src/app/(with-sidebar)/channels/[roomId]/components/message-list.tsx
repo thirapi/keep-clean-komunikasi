@@ -21,6 +21,7 @@ export function MessageList({
   onlineUserIds,
   onReply,
   lastReadMessageId,
+  lastReadAt,
   userId,
   onLoadMore,
   hasMore,
@@ -36,6 +37,7 @@ export function MessageList({
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
   lastReadMessageId: string | null;
+  lastReadAt: Date | null;
   userId: string;
   onLoadMore: () => void;
   hasMore: boolean;
@@ -48,10 +50,13 @@ export function MessageList({
   // ... rest of the component
   // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
   const unreadSeparatorIndex = useMemo(() => {
-    if (!lastReadMessageId || messages.length === 0) return -1;
+    if ((!lastReadMessageId && !lastReadAt) || messages.length === 0) return -1;
     
-    const lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
-    
+    let lastReadIndex = -1;
+    if (lastReadMessageId) {
+      lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
+    }
+
     // If message is found, check for the next message from someone else
     if (lastReadIndex !== -1) {
       if (lastReadIndex >= messages.length - 1) return -1;
@@ -61,15 +66,23 @@ export function MessageList({
       return -1;
     }
 
-    // If lastReadMessageId is NOT found, it means it's an older message (not in the current 50).
-    // In this case, everything in the current view could be unread.
-    // We find the first message that is not from the current user.
+    // Fallback: If lastReadMessageId is NOT found (deleted or missing), use lastReadAt timestamp
+    if (lastReadAt) {
+      const firstUnreadIndex = messages.findIndex(msg => 
+        new Date(msg.createdAt).getTime() > new Date(lastReadAt).getTime() && 
+        msg.userId !== userId
+      );
+      // IMPORTANT: strictly return the result of findIndex, even if -1
+      return firstUnreadIndex;
+    }
+
+    // Only if BOTH ID and timestamp are missing do we fallback to marking top as unread
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].userId !== userId) return i;
     }
     
     return -1;
-  }, [messages, lastReadMessageId, userId]);
+  }, [messages, lastReadMessageId, lastReadAt, userId]);
 
   let lastDate: string | null = null;
 

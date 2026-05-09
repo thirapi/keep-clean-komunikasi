@@ -19,12 +19,14 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
     roomData: any;
     initialMessages: any[];
     lastReadMessageId: string | null;
+    lastReadAt: Date | null;
     user: any;
   } | null>(cachedRoom ? {
     userId: "",
     roomData: cachedRoom,
     initialMessages: clientChatCache.getMessages(roomId) || [],
     lastReadMessageId: cachedLastRead,
+    lastReadAt: null,
     user: { id: "", username: "...", avatar: null }
   } : null);
 
@@ -36,7 +38,7 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
         const session = await getUserSession();
         const userId = session?.user?.id ?? "";
 
-        const [roomResponse, initialMessagesResponse, lastReadAtResponse, userInfo] =
+        const [roomResponse, initialMessagesResponse, lastReadResponse, userInfo] =
           await Promise.all([
             getRoom(roomId),
             getMessage(roomId, 50),
@@ -46,11 +48,11 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
 
         if (roomResponse.status === "success" && roomResponse.data) {
           const fetchedMessages = (initialMessagesResponse.status === "success" ? initialMessagesResponse.data : []) ?? [];
-          const fetchedLastRead = lastReadAtResponse.status === "success" ? lastReadAtResponse.data : null;
+          const fetchedLastRead = lastReadResponse.status === "success" ? lastReadResponse.data : null;
           
           clientChatCache.setRoom(roomId, roomResponse.data);
           clientChatCache.setMessages(roomId, fetchedMessages);
-          clientChatCache.setLastRead(roomId, fetchedLastRead);
+          clientChatCache.setLastRead(roomId, fetchedLastRead?.id || null);
           
           setMessages(fetchedMessages);
 
@@ -58,7 +60,8 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
             userId,
             roomData: roomResponse.data,
             initialMessages: fetchedMessages,
-            lastReadMessageId: fetchedLastRead,
+            lastReadMessageId: fetchedLastRead?.id || null,
+            lastReadAt: fetchedLastRead?.at ? new Date(fetchedLastRead.at) : null,
             user: {
               id: userId,
               username: userInfo.name,
@@ -97,6 +100,7 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
       roomData={data.roomData}
       initialMessages={messages}
       lastReadMessageId={data.lastReadMessageId}
+      lastReadAt={data.lastReadAt}
       user={data.user}
     />
   );

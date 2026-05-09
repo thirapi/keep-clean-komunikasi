@@ -8,6 +8,6 @@ const getLastReadAtUseCase = new GetLastReadAtUseCase(roomRepository);
 export async function getLastReadAtController(
   userId: string,
   roomId: string
-): Promise<string | null> {
+): Promise<{ id: string | null; at: Date | null }> {
   return await getLastReadAtUseCase.execute(userId, roomId);
 }

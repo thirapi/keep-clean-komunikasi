@@ -12,6 +12,7 @@ import { getLastReadAtController } from "@/lib/interface-adapters/controllers/ro
 import { uploadFileController } from "@/lib/interface-adapters/controllers/storage/upload-file.controller";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { revalidatePath } from "next/cache";
+import { deleteMessageController } from "@/lib/interface-adapters/controllers/messages/delete-message.controller";
 
 export const setTypingStatusAction = async (
   userId: string,
@@ -24,6 +25,31 @@ export const setTypingStatusAction = async (
     } else {
       await stopTypingController(userId, roomId);
     }
+    return {
+      status: "success",
+      data: null,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: null,
+      error: {
+        message: err.message,
+        type: err.name,
+        meta: err.fields,
+      },
+    };
+  }
+};
+
+export const deleteMessageAction = async (
+  userId: string,
+  messageId: string
+): Promise<ServerResponse<null>> => {
+  try {
+    await deleteMessageController(userId, messageId);
+
     return {
       status: "success",
       data: null,
@@ -153,11 +179,10 @@ export const updateLastReadAt = async (
     };
   }
 };
-
 export const getLastReadAt = async (
   userId: string,
   roomId: string
-): Promise<ServerResponse<string | null>> => {
+): Promise<ServerResponse<{ id: string | null; at: Date | null } | null>> => {
   try {
     const lastReadAt = await getLastReadAtController(userId, roomId);
 

@@ -68,7 +68,7 @@ export class MessageRepository implements IMessageRepository {
   }
 
   async getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]> {
-    const filters = [eq(messages.roomId, roomId)];
+    const filters = [eq(messages.roomId, roomId), eq(messages.isDeleted, false)];
     if (before) {
       filters.push(lt(messages.createdAt, before));
     }
@@ -108,5 +108,35 @@ export class MessageRepository implements IMessageRepository {
     }
 
     return result;
+  }
+
+  async getMessageById(messageId: string): Promise<MessageWithUserDTO | null> {
+    const message = await this.client.query.messages.findFirst({
+      where: and(eq(messages.id, messageId), eq(messages.isDeleted, false)),
+      with: {
+        user: {
+          columns: {
+            username: true,
+            avatar: true,
+          },
+        },
+        replyToMessage: {
+          with: {
+            user: {
+              columns: {
+                username: true,
+              },
+            },
+          },
+        },
+        attachments: true,
+      },
+    });
+
+    return (message as unknown as MessageWithUserDTO) || null;
+  }
+
+  async deleteMessage(messageId: string): Promise<void> {
+    await this.client.update(messages).set({ isDeleted: true }).where(eq(messages.id, messageId));
   }
 }

@@ -7,7 +7,7 @@ export interface IRoomRepository {
     options?: { isDirect?: boolean }
   ): Promise<RoomWithParticipantsDTO[] | null>;
   updateLastReadAt(userId: string, roomId: string, messageId: string): Promise<void>;
-  getLastReadAt(userId: string, roomId: string): Promise<string | null>;
+  getLastReadAt(userId: string, roomId: string): Promise<{ id: string | null; at: Date | null }>;
   getOtherParticipants(
     roomId: string,
     excludeUserId: string

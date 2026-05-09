@@ -125,6 +125,10 @@ export function AppSidebar({
       router.refresh();
     });
 
+    channel.bind("message-deleted-notification", () => {
+      router.refresh();
+    });
+
     return () => {
       pusher.unsubscribe(`user-${user.id}`);
     };

@@ -25,6 +25,14 @@ class ClientChatCache {
     this.persistMessages(roomId, merged);
   }
 
+  removeMessage(roomId: string, messageId: string) {
+    const existing = this.getMessages(roomId) || [];
+    const updated = existing.filter(m => m.id !== messageId);
+    
+    this.messages.set(roomId, updated);
+    this.persistMessages(roomId, updated);
+  }
+
   setRoom(roomId: string, roomData: any) {
     this.rooms.set(roomId, roomData);
     this.persistRoom(roomId, roomData);

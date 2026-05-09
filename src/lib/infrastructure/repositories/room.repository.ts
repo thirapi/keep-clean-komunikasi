@@ -97,6 +97,7 @@ export class RoomRepository implements IRoomRepository {
           },
         },
         messages: {
+          where: eq(messages.isDeleted, false),
           limit: 1,
           orderBy: [desc(messages.createdAt)],
           columns: {
@@ -156,7 +157,10 @@ export class RoomRepository implements IRoomRepository {
   ): Promise<void> {
     await this.client
       .update(roomParticipants)
-      .set({ lastReadMessageId: messageId })
+      .set({ 
+        lastReadMessageId: messageId,
+        lastReadAt: new Date()
+      })
       .where(
         and(
           eq(roomParticipants.roomId, roomId),
@@ -165,7 +169,7 @@ export class RoomRepository implements IRoomRepository {
       );
   }
 
-  async getLastReadAt(userId: string, roomId: string): Promise<string | null> {
+  async getLastReadAt(userId: string, roomId: string): Promise<{ id: string | null; at: Date | null }> {
     const participant = await this.client.query.roomParticipants.findFirst({
       where: and(
         eq(roomParticipants.roomId, roomId),
@@ -173,10 +177,14 @@ export class RoomRepository implements IRoomRepository {
       ),
       columns: {
         lastReadMessageId: true,
+        lastReadAt: true,
       },
     });
 
-    return participant?.lastReadMessageId ?? null;
+    return {
+      id: participant?.lastReadMessageId ?? null,
+      at: participant?.lastReadAt ?? null,
+    };
   }
 
   async getOtherParticipants(

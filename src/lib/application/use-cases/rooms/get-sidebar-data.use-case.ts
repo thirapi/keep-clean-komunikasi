@@ -28,10 +28,8 @@ export class GetSidebarDataUseCase {
 
       // Determine display text for last message
       let lastMessageDisplay = latestMessage?.content;
-      
-      if (latestMessage?.isDeleted) {
-        lastMessageDisplay = "🚫 Pesan ini telah dihapus";
-      } else if (latestMessage && !latestMessage.content && latestMessage.attachments && latestMessage.attachments.length > 0) {
+
+      if (latestMessage && !latestMessage.content && latestMessage.attachments && latestMessage.attachments.length > 0) {
         const firstAttachment = latestMessage.attachments[0];
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
         const isImage = imageExtensions.some(ext => firstAttachment.url?.toLowerCase().includes(ext)) || firstAttachment.fileType.startsWith('image/');
@@ -39,7 +37,7 @@ export class GetSidebarDataUseCase {
       }
 
       if (room.isDirect) {
-        // Find other participant, fallback to self for DM with self
+
         const otherParticipant = room.participants.find(
           (participant) => participant.user.id !== userId
         ) || room.participants.find(

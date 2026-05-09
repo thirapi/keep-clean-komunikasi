@@ -1,6 +1,6 @@
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink } from "lucide-react";
+import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2 } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { createRoom } from "../room.action";
+import { deleteMessageAction } from "../messages.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ export function MessageItem({
   const router = useRouter();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [initialImageIndex, setInitialImageIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleStartDM = async (targetUserId: string) => {
     if (targetUserId === currentUserId) return;
@@ -55,6 +57,19 @@ export function MessageItem({
       router.push(`/channels/${response.data.id}`);
     } else {
       toast.error(response.error?.message || "Gagal membuat percakapan");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    
+    setIsDeleting(true);
+    const response = await deleteMessageAction(currentUserId, message.id);
+    if (response.status === "error") {
+      toast.error(response.error?.message || "Gagal menghapus pesan");
+      setIsDeleting(false);
+    } else {
+      toast.success("Pesan dihapus");
     }
   };
 
@@ -357,6 +372,28 @@ export function MessageItem({
                   <p>Reply</p>
                 </TooltipContent>
               </Tooltip>
+
+              {message.userId === currentUserId && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={isDeleting}
+                      onClick={handleDelete}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="text-[10px] font-bold py-1 px-2"
+                  >
+                    <p>Delete</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </TooltipProvider>
           </div>
         </div>
