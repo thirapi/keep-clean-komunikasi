@@ -207,9 +207,13 @@ export function ChatRoom({
           
         if (prevIndex !== -1 && currentIndex <= prevIndex) return;
 
+        // Find the message's createdAt to use as the precision timestamp
+        const targetMsg = messagesRef.current[currentIndex];
+        const targetAt = targetMsg ? new Date(targetMsg.createdAt) : new Date();
+
         // Update local state and persisted ref
         setLastReadIdState(targetId);
-        setLastReadAtState(new Date());
+        setLastReadAtState(targetAt);
         lastPersistedReadIdRef.current = targetId;
 
         // Sync to sidebar and cache
@@ -219,7 +223,7 @@ export function ChatRoom({
         });
 
         // Server update
-        updateLastReadAt(userId, roomData.id, targetId).catch(console.error);
+        updateLastReadAt(userId, roomData.id, targetId, targetAt).catch(console.error);
       }, 500),
     [userId, roomData.id, markSidebarAsRead],
   );
@@ -229,8 +233,12 @@ export function ChatRoom({
     const flushReadState = async () => {
       const lastReadId = lastPersistedReadIdRef.current;
       if (lastReadId) {
+        // Find the message in current ref to get its timestamp if possible
+        const msg = messagesRef.current.find(m => m.id === lastReadId);
+        const at = msg ? new Date(msg.createdAt) : undefined;
+
         markSidebarAsRead(roomData.id);
-        updateLastReadAt(userId, roomData.id, lastReadId).catch(console.error);
+        updateLastReadAt(userId, roomData.id, lastReadId, at).catch(console.error);
 
         // Also update cache on flush
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
@@ -315,7 +323,34 @@ export function ChatRoom({
       handleNewMessage(msg),
     );
     chatChannel.bind("message-deleted", ({ messageId }: { messageId: string }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setMessages((prev) => {
+        const deletedIndex = prev.findIndex((m) => m.id === messageId);
+        if (deletedIndex === -1) return prev;
+
+        // If the deleted message is our current "last read" anchor, pick a new one.
+        // We pick the message immediately BEFORE it to maintain the read position.
+        if (messageId === lastPersistedReadIdRef.current) {
+          const newAnchorMsg = prev[deletedIndex - 1];
+          const newAnchorId = newAnchorMsg?.id || null;
+          const newAnchorAt = newAnchorMsg ? new Date(newAnchorMsg.createdAt) : null;
+
+          setLastReadIdState(newAnchorId);
+          setLastReadAtState(newAnchorAt);
+          lastPersistedReadIdRef.current = newAnchorId;
+          
+          // Also update cache and server
+          import("@/lib/infrastructure/cache/client-cache").then((m) => {
+            m.clientChatCache.setLastRead(roomData.id, newAnchorId, newAnchorAt);
+          });
+
+          if (newAnchorId && newAnchorAt) {
+            updateLastReadAt(userId, roomData.id, newAnchorId, newAnchorAt).catch(console.error);
+          }
+        }
+
+        return prev.filter((m) => m.id !== messageId);
+      });
+      
       import("@/lib/infrastructure/cache/client-cache").then((m) => {
         m.clientChatCache.removeMessage(roomData.id, messageId);
       });

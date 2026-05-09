@@ -12,7 +12,7 @@ import LoadingRoom from "../room-skeleton";
 export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
   const [messages, setMessages] = useState<any[]>(clientChatCache.getMessages(roomId) || []);
   const cachedRoom = clientChatCache.getRoom(roomId);
-  const cachedLastRead = clientChatCache.getLastRead(roomId) || null;
+  const cachedLastRead = clientChatCache.getLastRead(roomId);
 
   const [data, setData] = useState<{
     userId: string;
@@ -25,8 +25,8 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
     userId: "",
     roomData: cachedRoom,
     initialMessages: clientChatCache.getMessages(roomId) || [],
-    lastReadMessageId: cachedLastRead,
-    lastReadAt: null,
+    lastReadMessageId: cachedLastRead.id,
+    lastReadAt: cachedLastRead.at,
     user: { id: "", username: "...", avatar: null }
   } : null);
 

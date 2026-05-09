@@ -1,18 +1,21 @@
 import { UpdateLastReadAtUseCase } from "@/lib/application/use-cases/rooms/update-last-read-at.use-case";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
+import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { db } from "@/lib/db";
 
 const roomRepository = new RoomRepository(db);
-const updateLastReadAtUseCase = new UpdateLastReadAtUseCase(roomRepository);
+const pusherService = new PusherService();
+const updateLastReadAtUseCase = new UpdateLastReadAtUseCase(roomRepository, pusherService);
 
 export async function updateLastReadAtController(
   userId: string,
   roomId: string,
-  messageId: string
+  messageId: string,
+  lastReadAt?: Date
 ): Promise<void> {
   if (!userId || !roomId || !messageId) {
     throw new Error("Invalid input parameters");
   }
 
-  await updateLastReadAtUseCase.execute(userId, roomId, messageId);
+  await updateLastReadAtUseCase.execute(userId, roomId, messageId, lastReadAt);
 }

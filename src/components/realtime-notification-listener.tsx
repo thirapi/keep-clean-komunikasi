@@ -5,6 +5,7 @@ import Pusher from "pusher-js";
 import { toast } from "sonner";
 import { requestNotificationPermission } from "@/utils/notifications";
 import { usePathname } from "next/navigation";
+import { useUnread } from "./unread-provider";
 
 interface Props {
   user: {
@@ -15,6 +16,7 @@ interface Props {
 
 export function RealtimeNotificationListener({ user }: Props) {
   const pathname = usePathname();
+  const { markAsUnread, markAsRead } = useUnread();
 
   useEffect(() => {
     requestNotificationPermission();
@@ -31,21 +33,23 @@ export function RealtimeNotificationListener({ user }: Props) {
       const { message } = data;
       const sender = message.user.username || "unknown";
       const content = message.content || "[Pesan Gambar]";
-      const roomUrl = `/channels/${message.roomId}`;
+      const roomId = message.roomId;
+      const roomUrl = `/channels/${roomId}`;
 
       const isViewingRoom = pathname === roomUrl;
 
-      // toast(`📨 Pesan baru dari ${sender}: ${content}`);
-
       if (!isViewingRoom) {
+        // Mark as unread in sidebar context
+        markAsUnread(roomId);
+
         if (Notification.permission === "granted") {
           const notification = new Notification(
             "📩 Pesan Baru dari " + sender,
             {
               body: content,
               icon: "/logo.png",
-              tag: `chat-${message.roomId}`,
-              data: { url: `/channels/${message.roomId}` },
+              tag: `chat-${roomId}`,
+              data: { url: roomUrl },
             }
           );
 
@@ -58,11 +62,16 @@ export function RealtimeNotificationListener({ user }: Props) {
       }
     });
 
+    // Listen for read sync across devices
+    channel.bind("room-marked-read", (data: { roomId: string }) => {
+      markAsRead(data.roomId);
+    });
+
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(`user-${user.id}`);
     };
-  }, [user.id]);
+  }, [user.id, pathname, markAsUnread, markAsRead]);
 
   return null;
 }

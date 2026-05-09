@@ -29,6 +29,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
   updatedAt: Date;
   participants: {
     lastReadMessageId: string | null;
+    lastReadAt: Date | null;
     user: {
       id: string;
       username: string;
@@ -46,6 +47,7 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
     content: string;
     createdAt: Date;
     updatedAt: Date;
+    userId: string;
     attachments?: AttachmentRecord[];
     isDeleted?: boolean;
   }[];

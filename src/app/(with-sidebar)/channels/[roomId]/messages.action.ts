@@ -155,10 +155,11 @@ export const uploadFileAction = async (
 export const updateLastReadAt = async (
   userId: string,
   roomId: string,
-  messageId: string
+  messageId: string,
+  lastReadAt?: Date
 ): Promise<ServerResponse<null>> => {
   try {
-    await updateLastReadAtController(userId, roomId, messageId);
+    await updateLastReadAtController(userId, roomId, messageId, lastReadAt);
 
     revalidatePath("/(with-sidebar)", "layout");
 

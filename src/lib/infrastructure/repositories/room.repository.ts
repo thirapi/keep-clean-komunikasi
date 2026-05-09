@@ -45,6 +45,7 @@ export class RoomRepository implements IRoomRepository {
       updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
+        lastReadAt: p.lastReadAt,
         user: {
           id: p.user.id,
           username: p.user.username,
@@ -103,6 +104,7 @@ export class RoomRepository implements IRoomRepository {
           columns: {
             id: true,
             content: true,
+            userId: true,
             createdAt: true,
             updatedAt: true,
             isDeleted: true,
@@ -126,6 +128,7 @@ export class RoomRepository implements IRoomRepository {
       updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
+        lastReadAt: p.lastReadAt,
         user: {
           id: p.user.id,
           username: p.user.username,
@@ -153,13 +156,14 @@ export class RoomRepository implements IRoomRepository {
   async updateLastReadAt(
     userId: string,
     roomId: string,
-    messageId: string
+    messageId: string,
+    lastReadAt?: Date
   ): Promise<void> {
     await this.client
       .update(roomParticipants)
       .set({ 
         lastReadMessageId: messageId,
-        lastReadAt: new Date()
+        lastReadAt: lastReadAt ?? new Date()
       })
       .where(
         and(
@@ -267,6 +271,7 @@ export class RoomRepository implements IRoomRepository {
         updatedAt: newRoom.updatedAt,
         participants: newRoom.participants.map((p) => ({
           lastReadMessageId: p.lastReadMessageId,
+          lastReadAt: p.lastReadAt,
           user: {
             id: p.user.id,
             username: p.user.username,
@@ -323,6 +328,7 @@ export class RoomRepository implements IRoomRepository {
       updatedAt: room.updatedAt,
       participants: room.participants.map((p) => ({
         lastReadMessageId: p.lastReadMessageId,
+        lastReadAt: p.lastReadAt,
         user: {
           id: p.user.id,
           username: p.user.username,

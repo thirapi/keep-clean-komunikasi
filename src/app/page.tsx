@@ -11,12 +11,12 @@ import { LoaderCircle } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Komunikasi.qzz.io",
+  title: "Komunikasi",
   description: "Komunikasi adalah platform pesan instan modern yang dirancang untuk kecepatan, keamanan, dan produktivitas. Hubungkan tim Anda dan berbagi ide dengan lancar.",
   keywords: ["chat", "real-time", "komunikasi", "pesan instan", "kolaborasi", "platform chat", "aman"],
   authors: [{ name: "Thirafi" }],
   openGraph: {
-    title: "Komunikasi - Web Chat App",
+    title: "Komunikasi",
     description: "Hubungkan tim Anda dan berbagi ide dengan lancar di platform komunikasi masa depan.",
     url: "https://komunikasi.qzz.io",
     siteName: "Komunikasi",

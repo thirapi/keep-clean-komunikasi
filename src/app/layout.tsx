@@ -15,7 +15,7 @@ const doto = Doto({
 });
 
 export const metadata: Metadata = {
-  title: "Komunikasi - Web Chat App",
+  title: "Komunikasi",
   description:
     "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
   keywords: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "grup chat Indonesia",
   ],
   openGraph: {
-    title: "Komunikasi - Web Chat App",
+    title: "Komunikasi",
     description:
       "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
     url: "https://komunikasi.qzz.io/",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Komunikasi - Web Chat App",
+        alt: "Komunikasi",
       },
     ],
     locale: "id_ID",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Komunikasi - Web Chat App",
+    title: "Komunikasi",
     description:
       "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman.",
     images: ["/og-image.png"],

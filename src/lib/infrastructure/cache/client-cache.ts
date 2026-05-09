@@ -38,13 +38,19 @@ class ClientChatCache {
     this.persistRoom(roomId, roomData);
   }
 
-  setLastRead(roomId: string, messageId: string | null) {
+  setLastRead(roomId: string, messageId: string | null, lastReadAt?: Date | null) {
     this.lastRead.set(roomId, messageId);
     if (typeof window !== "undefined") {
       if (messageId) {
         localStorage.setItem(`chat_last_read_${roomId}`, messageId);
       } else {
         localStorage.removeItem(`chat_last_read_${roomId}`);
+      }
+
+      if (lastReadAt) {
+        localStorage.setItem(`chat_last_read_at_${roomId}`, lastReadAt.toISOString());
+      } else {
+        localStorage.removeItem(`chat_last_read_at_${roomId}`);
       }
     }
   }
@@ -85,13 +91,16 @@ class ClientChatCache {
     return undefined;
   }
 
-  getLastRead(roomId: string): string | null | undefined {
-    if (this.lastRead.has(roomId)) return this.lastRead.get(roomId);
-    
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(`chat_last_read_${roomId}`);
-    }
-    return undefined;
+  getLastRead(roomId: string): { id: string | null; at: Date | null } {
+    if (typeof window === "undefined") return { id: null, at: null };
+
+    const cachedId = this.lastRead.get(roomId) ?? localStorage.getItem(`chat_last_read_${roomId}`);
+    const cachedAt = localStorage.getItem(`chat_last_read_at_${roomId}`);
+
+    return {
+      id: cachedId || null,
+      at: cachedAt ? new Date(cachedAt) : null,
+    };
   }
 
   invalidate(roomId: string) {
@@ -102,6 +111,7 @@ class ClientChatCache {
       localStorage.removeItem(`chat_msg_${roomId}`);
       localStorage.removeItem(`chat_room_${roomId}`);
       localStorage.removeItem(`chat_last_read_${roomId}`);
+      localStorage.removeItem(`chat_last_read_at_${roomId}`);
     }
   }
 

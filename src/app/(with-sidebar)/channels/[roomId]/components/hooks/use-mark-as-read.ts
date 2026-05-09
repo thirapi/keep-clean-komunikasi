@@ -8,6 +8,7 @@ export function useMarkAsRead(
 ) {
   const markAsReadRef = useRef(markAsRead);
   const [isReady, setIsReady] = useState(false);
+  const timersRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     markAsReadRef.current = markAsRead;
@@ -34,7 +35,8 @@ export function useMarkAsRead(
         ([entry]) => {
           setIsAtBottom(entry.isIntersecting);
           if (entry.isIntersecting) {
-            markAsReadRef.current(); // Mark all as read if we reached the bottom
+            // Immediately mark all as read if we reach bottom
+            markAsReadRef.current();
           }
         },
         { 
@@ -43,36 +45,45 @@ export function useMarkAsRead(
         }
       );
 
-      // Message observer to mark individual messages as read as they enter the viewport
+      // Message observer to mark individual messages as read with throttle/delay
       messageObserver = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
+            const messageId = entry.target.getAttribute("data-message-id");
+            if (!messageId) return;
+
             if (entry.isIntersecting) {
-              const messageId = entry.target.getAttribute("data-message-id");
-              if (messageId) {
-                markAsReadRef.current(messageId);
+              // Start a timer to mark as read if it stays in view
+              if (!timersRef.current[messageId]) {
+                timersRef.current[messageId] = setTimeout(() => {
+                  markAsReadRef.current(messageId);
+                  delete timersRef.current[messageId];
+                }, 1500); // 1.5 seconds delay (Slack-style throttled)
+              }
+            } else {
+              // If it leaves the viewport before the timer finishes, cancel it
+              if (timersRef.current[messageId]) {
+                clearTimeout(timersRef.current[messageId]);
+                delete timersRef.current[messageId];
               }
             }
           });
         },
         { 
           root: viewportRef.current,
-          threshold: 0.1, // Mark as read when 10% of the message is visible
-          rootMargin: "0px 0px -10% 0px" // Slightly before it hits bottom
+          threshold: 0.5, // 50% visible to consider "viewing"
+          rootMargin: "0px"
         }
       );
 
       if (bottomRef.current) bottomObserver.observe(bottomRef.current);
       
-      // Observe all message containers
       const messageElements = viewportRef.current?.querySelectorAll(".message-container");
       messageElements?.forEach((el) => messageObserver?.observe(el));
     };
 
     attach();
 
-    // Re-attach when new messages might have been added
-    // We use MutationObserver to watch for new message elements
     const mutationObserver = new MutationObserver(() => {
       const messageElements = viewportRef.current?.querySelectorAll(".message-container");
       messageElements?.forEach((el) => messageObserver?.observe(el));
@@ -86,6 +97,9 @@ export function useMarkAsRead(
       bottomObserver?.disconnect();
       messageObserver?.disconnect();
       mutationObserver.disconnect();
+      // Cleanup all timers on unmount
+      Object.values(timersRef.current).forEach(clearTimeout);
+      timersRef.current = {};
     };
   }, [isReady, bottomRef, viewportRef, setIsAtBottom]);
 }

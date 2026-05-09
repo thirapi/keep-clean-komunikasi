@@ -47,40 +47,32 @@ export function MessageList({
   highlightedMessageId?: string | null;
   onScrollToMessage?: (messageId: string) => void;
 }) {
-  // ... rest of the component
   // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
   const unreadSeparatorIndex = useMemo(() => {
-    if ((!lastReadMessageId && !lastReadAt) || messages.length === 0) return -1;
-    
-    let lastReadIndex = -1;
+    // 1. If we have a valid ID, try to find it
     if (lastReadMessageId) {
-      lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
-    }
-
-    // If message is found, check for the next message from someone else
-    if (lastReadIndex !== -1) {
-      if (lastReadIndex >= messages.length - 1) return -1;
-      for (let i = lastReadIndex + 1; i < messages.length; i++) {
-        if (messages[i].userId !== userId) return i;
+      const lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
+      if (lastReadIndex !== -1) {
+        // ID found: look for the first message AFTER it that isn't from the user
+        for (let i = lastReadIndex + 1; i < messages.length; i++) {
+          if (messages[i].userId !== userId) return i;
+        }
+        // If all messages after anchor are from user, no separator
+        return -1;
       }
-      return -1;
     }
 
-    // Fallback: If lastReadMessageId is NOT found (deleted or missing), use lastReadAt timestamp
+    // 2. Fallback: Use lastReadAt timestamp
+    // If ID is missing (deleted) or not found in current messages, trust the timestamp
     if (lastReadAt) {
+      const lastReadTime = new Date(lastReadAt).getTime();
       const firstUnreadIndex = messages.findIndex(msg => 
-        new Date(msg.createdAt).getTime() > new Date(lastReadAt).getTime() && 
+        new Date(msg.createdAt).getTime() > lastReadTime && 
         msg.userId !== userId
       );
-      // IMPORTANT: strictly return the result of findIndex, even if -1
       return firstUnreadIndex;
     }
 
-    // Only if BOTH ID and timestamp are missing do we fallback to marking top as unread
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].userId !== userId) return i;
-    }
-    
     return -1;
   }, [messages, lastReadMessageId, lastReadAt, userId]);
 

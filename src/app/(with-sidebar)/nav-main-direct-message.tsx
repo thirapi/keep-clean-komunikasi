@@ -149,25 +149,30 @@ export function NavMainDirectMessage({
                       {isActive && !isCollapsed && (
                         <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
                       )}
-                      <div className="relative flex-shrink-0">
+                      <div className="relative shrink-0">
                         <UserAvatar 
                           src={item.avatar} 
                           alt={item.name}
-                          className="h-10 w-10 rounded-md border shadow-sm flex-shrink-0"
+                          className="h-10 w-10 rounded-md border shadow-sm shrink-0"
                         />
                         {onlineUserIds.includes(item.userId) && (
                           <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-sidebar group-hover/btn:bg-sidebar-accent transition-colors">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                           </span>
                         )}
+                        {item.hasUnread && (
+                          <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-sidebar pointer-events-none" />
+                        )}
                       </div>
 
                       {!isCollapsed && (
                         <div className="flex flex-col flex-1 min-w-0 ml-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className={cn("truncate font-medium", item.hasUnread && "font-bold text-foreground")}>
-                              {item.name}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={cn("truncate font-medium", item.hasUnread && "font-bold text-foreground")}>
+                                {item.name}
+                              </span>
+                            </div>
                             {item.lastMessageTime && (
                               <span className="text-[10px] text-muted-foreground shrink-0 font-normal">
                                 {formatTime(item.lastMessageTime)}
@@ -186,10 +191,6 @@ export function NavMainDirectMessage({
                       )}
                     </Link>
                   </SidebarMenuButton>
-
-                  {item.hasUnread && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary animate-pulse pointer-events-none" />
-                  )}
                 </SidebarMenuItem>
               );
             })
