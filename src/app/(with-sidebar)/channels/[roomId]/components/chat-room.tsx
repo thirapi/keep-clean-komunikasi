@@ -99,7 +99,8 @@ export function ChatRoom({
   useEffect(() => {
     messagesRef.current = messages;
     import("@/lib/infrastructure/cache/client-cache").then((m) => {
-      m.clientChatCache.setMessages(localRoomData.id, messages);
+      const persistedMsgs = messages.filter(msg => !msg.isOptimistic);
+      m.clientChatCache.setMessages(localRoomData.id, persistedMsgs);
     });
   }, [messages, localRoomData.id]);
 
@@ -178,9 +179,11 @@ export function ChatRoom({
           nextMessages = [...prev, msg];
         }
 
-        import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.mergeMessages(localRoomData.id, [msg]);
-        });
+        if (!msg.isOptimistic) {
+          import("@/lib/infrastructure/cache/client-cache").then((m) => {
+            m.clientChatCache.mergeMessages(localRoomData.id, [msg]);
+          });
+        }
 
         return nextMessages;
       });
@@ -293,7 +296,11 @@ export function ChatRoom({
     const response = await getMessage(roomData.id, 50, beforeDate);
     if (response.status === "success" && response.data) {
       if (response.data.length < 50) setHasMore(false);
-      setMessages((prev) => [...response.data!, ...prev]);
+      setMessages((prev) => {
+        const prevIds = new Set(prev.map(m => m.id));
+        const nonDuplicates = response.data!.filter(m => !prevIds.has(m.id));
+        return [...nonDuplicates, ...prev];
+      });
     }
     setIsLoadingMore(false);
   };

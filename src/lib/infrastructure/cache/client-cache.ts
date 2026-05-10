@@ -41,6 +41,23 @@ class ClientChatCache {
       const limited = messages.slice(-50);
       this.memMessages.set(roomId, limited);
       await db.messages.bulkPut(limited); // Will update existing, insert new
+
+      // Purge leftovers and enforce 50 limit
+      const allMsgs = await db.messages.where('roomId').equals(roomId).sortBy('createdAt');
+      const toDeleteIds: string[] = [];
+
+      const optimistics = allMsgs.filter(m => m.id.startsWith('optimistic-') || m.isOptimistic);
+      toDeleteIds.push(...optimistics.map(m => m.id));
+
+      const validMsgs = allMsgs.filter(m => !m.id.startsWith('optimistic-') && !m.isOptimistic);
+      if (validMsgs.length > 50) {
+        const excess = validMsgs.slice(0, validMsgs.length - 50);
+        toDeleteIds.push(...excess.map(m => m.id));
+      }
+
+      if (toDeleteIds.length > 0) {
+        await db.messages.bulkDelete(toDeleteIds);
+      }
     } catch (e) {
       console.warn("Failed to set messages in IndexedDB", e);
     }
@@ -59,12 +76,24 @@ class ClientChatCache {
         .sortBy('createdAt');
 
       let limited = allMsgs;
-      if (allMsgs.length > 50) {
-        limited = allMsgs.slice(allMsgs.length - 50);
-        const toDelete = allMsgs.slice(0, allMsgs.length - 50);
-        const keysToDelete = toDelete.map(m => m.id);
-        await db.messages.bulkDelete(keysToDelete);
+      const toDeleteIds: string[] = [];
+
+      const optimistics = allMsgs.filter(m => m.id.startsWith('optimistic-') || m.isOptimistic);
+      toDeleteIds.push(...optimistics.map(m => m.id));
+
+      const validMsgs = allMsgs.filter(m => !m.id.startsWith('optimistic-') && !m.isOptimistic);
+      if (validMsgs.length > 50) {
+        const excess = validMsgs.slice(0, validMsgs.length - 50);
+        toDeleteIds.push(...excess.map(m => m.id));
+        limited = validMsgs.slice(validMsgs.length - 50);
+      } else {
+        limited = validMsgs;
       }
+
+      if (toDeleteIds.length > 0) {
+        await db.messages.bulkDelete(toDeleteIds);
+      }
+
       this.memMessages.set(roomId, limited);
     } catch (e) {
       console.warn("Failed to merge messages in IndexedDB", e);
