@@ -38,6 +38,10 @@ export function RealtimeNotificationListener({ user }: Props) {
 
       const isViewingRoom = pathname === roomUrl;
 
+      if (message.userId === user.id) {
+        return;
+      }
+
       if (!isViewingRoom) {
         // Mark as unread in sidebar context
         markAsUnread(roomId);

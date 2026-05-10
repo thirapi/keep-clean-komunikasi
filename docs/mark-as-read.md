@@ -32,12 +32,12 @@ Untuk menjaga konsistensi antara tampilan chat dan sidebar:
 
 ## Aturan Pengembangan (Guardrails)
 1. **Prioritas Kebenaran**: Selalu gunakan `lastReadAt` (timestamp) sebagai *Primary Source of Truth*. `lastReadAt` kini menyimpan **waktu pembuatan pesan** (`createdAt`) terakhir yang dibaca, bukan waktu aksi "mark as read". `lastReadMessageId` berfungsi sebagai anchor sekunder.
-2. **Sender Awareness**: Filter ketat `userId !== currentUserId` wajib diterapkan di semua logika penentuan status unread agar pesan sendiri tidak memicu indikator.
+2. **Sender Awareness**: Filter ketat `userId !== currentUserId` wajib diterapkan di semua logika penentuan status unread (seperti `if (message.userId === user.id) return;` di `RealtimeNotificationListener.tsx`) agar pesan sendiri tidak memicu indikator.
 3. **Clean Architecture**: Logika broadcast dan penentuan unread harus tetap berada di layer Use Case.
 
 ## Handling Message Deletions (Robust Deletion Strategy)
 Untuk menjaga konsistensi posisi separator unread saat ada pesan yang dihapus:
-1. **Neighbor Anchor**: Jika pesan yang menjadi `lastReadMessageId` dihapus, sistem akan mencoba mencari pesan **tepat sebelum** pesan yang dihapus tersebut sebagai anchor baru. Ini menjaga posisi "sudah dibaca" tetap stabil.
+1. **Neighbor Anchor**: Jika pesan yang menjadi `lastReadMessageId` dihapus, sistem akan mencoba mencari pesan **tepat sebelum** pesan yang dihapus tersebut sebagai anchor baru. Ini dienkapsulasi menggunakan method `fallbackLastReadMessageId` di dalam `IRoomRepository` dan dieksekusi oleh `DeleteMessageUseCase`. Ini menjaga posisi "sudah dibaca" tetap stabil.
 2. **Timestamp Fallback**: Jika anchor baru tidak ditemukan, sistem jatuh (fallback) ke penggunaan `lastReadAt`. Karena `lastReadAt` menyimpan waktu pembuatan pesan terakhir yang valid, posisi unread akan tetap akurat.
 3. **Self-Correction**: Jika setelah penghapusan pesan, semua pesan yang tersisa adalah milik user sendiri, indikator unread akan otomatis hilang.
 

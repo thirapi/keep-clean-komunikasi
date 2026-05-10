@@ -161,7 +161,7 @@ export class RoomRepository implements IRoomRepository {
   ): Promise<void> {
     await this.client
       .update(roomParticipants)
-      .set({ 
+      .set({
         lastReadMessageId: messageId,
         lastReadAt: lastReadAt ?? new Date()
       })
@@ -296,7 +296,7 @@ export class RoomRepository implements IRoomRepository {
     const joinedIds = joinedRoomIds.map(p => p.roomId);
 
     const publicRooms = await this.client.query.rooms.findMany({
-      where: joinedIds.length > 0 
+      where: joinedIds.length > 0
         ? and(eq(rooms.isPublic, true), not(inArray(rooms.id, joinedIds)))
         : eq(rooms.isPublic, true),
       with: {
@@ -373,5 +373,49 @@ export class RoomRepository implements IRoomRepository {
     await this.client.delete(roomParticipants).where(eq(roomParticipants.roomId, roomId));
     await this.client.delete(messages).where(eq(messages.roomId, roomId));
     await this.client.delete(rooms).where(eq(rooms.id, roomId));
+  }
+
+  async fallbackLastReadMessageId(
+    roomId: string,
+    deletedMessageId: string,
+    fallbackBeforeDate: Date
+  ): Promise<void> {
+    const previousMessage = await this.client.query.messages.findFirst({
+      where: and(
+        eq(messages.roomId, roomId),
+        not(eq(messages.id, deletedMessageId)),
+        sql`${messages.createdAt} <= ${fallbackBeforeDate.toISOString()}`
+      ),
+      orderBy: [desc(messages.createdAt)],
+    });
+
+    if (previousMessage) {
+      await this.client
+        .update(roomParticipants)
+        .set({
+          lastReadMessageId: previousMessage.id,
+          lastReadAt: previousMessage.createdAt,
+        })
+        .where(
+          and(
+            eq(roomParticipants.roomId, roomId),
+            eq(roomParticipants.lastReadMessageId, deletedMessageId)
+          )
+        );
+    } else {
+      await this.client
+        .update(roomParticipants)
+        .set({
+          lastReadMessageId: null,
+          // We don't overwrite lastReadAt here as part of Timestamp Fallback
+          // so that the unread position remains mathematically valid.
+        })
+        .where(
+          and(
+            eq(roomParticipants.roomId, roomId),
+            eq(roomParticipants.lastReadMessageId, deletedMessageId)
+          )
+        );
+    }
   }
 }

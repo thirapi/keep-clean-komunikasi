@@ -20,6 +20,8 @@ export class DeleteMessageUseCase {
       throw new Error("Anda tidak memiliki izin untuk menghapus pesan ini");
     }
 
+    await this.roomRepository.fallbackLastReadMessageId(message.roomId, messageId, message.createdAt);
+
     await this.messageRepository.deleteMessage(messageId);
 
     // Notify room channel for real-time removal in ChatRoom

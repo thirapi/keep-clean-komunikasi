@@ -13,3 +13,5 @@
     - Refer to `useMarkAsRead.ts` for implementation details.
 3. **Multi-device Sync**:
     - Backend must broadcast `room-marked-read` to the user's private channel after a successful update.
+4. **Robust Deletion Strategy**:
+    - Message deletions MUST execute `fallbackLastReadMessageId` from `roomRepository` prior to deletion to adjust anchors safely.
