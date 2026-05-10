@@ -28,10 +28,10 @@ interface MobileMemberListProps {
   currentUserId: string;
 }
 
-export function MobileMemberList({ 
-  roomData, 
-  onlineUserIds, 
-  isOpen, 
+export function MobileMemberList({
+  roomData,
+  onlineUserIds,
+  isOpen,
   onClose,
   currentUserId
 }: MobileMemberListProps) {
@@ -103,18 +103,18 @@ export function MobileMemberList({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
             {roomData.participants.map((participant) => {
               const isParticipantOnline = onlineUserIds.includes(participant.user.id);
               const isParticipantOwner = participant.user.id === roomData.ownerId;
               const isSelf = participant.user.id === currentUserId;
 
               return (
-                <div key={participant.user.id} className="p-3 bg-accent/30 rounded-2xl border border-border/50 space-y-3">
+                <div key={participant.user.id} className="p-3 bg-card shadow-sm rounded-xl border border-border/40 space-y-3 relative overflow-hidden">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <UserAvatar 
-                        src={participant.user.avatar} 
+                      <UserAvatar
+                        src={participant.user.avatar}
                         alt={participant.user.username}
                         className="h-10 w-10 rounded-xl shadow-sm border-2 border-background"
                       />
@@ -195,14 +195,14 @@ export function MobileMemberList({
               {confirmData?.isSelf ? "Keluar dari Channel" : "Keluarkan Anggota"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmData?.isSelf 
+              {confirmData?.isSelf
                 ? "Apakah Anda yakin ingin keluar dari channel ini? Anda perlu undangan kembali jika channel ini privat."
                 : "Apakah Anda yakin ingin mengeluarkan anggota ini dari channel?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={executeAction}
               className="bg-destructive hover:bg-destructive/90 rounded-xl"
             >
@@ -213,5 +213,4 @@ export function MobileMemberList({
       </AlertDialog>
     </>
   );
-} 
- 
+}

@@ -1,13 +1,15 @@
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2 } from "lucide-react";
+import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
   TooltipContent,
@@ -59,6 +61,18 @@ export function MessageItem({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [initialImageIndex, setInitialImageIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Auto hide mobile actions after 3.5s to free up screen and prevent stuck UI
+  useEffect(() => {
+    if (showMobileActions) {
+      const timer = setTimeout(() => setShowMobileActions(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [showMobileActions]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [mobileActionOpen, setMobileActionOpen] = useState(false);
 
   const handleStartDM = async (targetUserId: string) => {
     if (targetUserId === currentUserId) return;
@@ -73,7 +87,7 @@ export function MessageItem({
 
   const handleDelete = async () => {
     if (isDeleting) return;
-    
+
     setIsDeleting(true);
     const response = await deleteMessageAction(currentUserId, message.id);
     if (response.status === "error") {
@@ -81,7 +95,14 @@ export function MessageItem({
       setIsDeleting(false);
     } else {
       toast.success("Pesan dihapus");
+      setDeleteConfirmOpen(false);
     }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content || "");
+    toast.success("Teks disalin");
+    setMobileActionOpen(false);
   };
 
   const formatTime = (date: Date) => {
@@ -94,10 +115,10 @@ export function MessageItem({
 
   const formatTimestamp = (date: Date) => {
     const isToday = (d: Date) => {
-        const now = new Date();
-        return d.getDate() === now.getDate() &&
-          d.getMonth() === now.getMonth() &&
-          d.getFullYear() === now.getFullYear();
+      const now = new Date();
+      return d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
     };
 
     const time = formatTime(date);
@@ -169,30 +190,33 @@ export function MessageItem({
   return (
     <div
       className={cn(
-        "relative group flex items-start gap-4 px-4 transition-all duration-300 ease-in-out",
-        isContinuation 
-          ? "pt-0" 
+        "relative group flex items-start gap-4 px-4 transition-all duration-300 ease-in-out cursor-default",
+        isContinuation
+          ? "pt-0"
           : cn("pt-2 hover:bg-muted/40 first:mt-0", isAfterSeparator ? "mt-1" : "mt-4"),
         isHovered && isContinuation && "bg-muted/30",
-        isHighlighted && "bg-primary/10 ring-1 ring-primary/20 scale-[1.01] z-10"
+        isHighlighted && "bg-primary/10 ring-1 ring-primary/20 scale-[1.01] z-10",
+        showMobileActions && isMobile && "bg-muted/40"
       )}
+      onClick={() => {
+        if (isMobile) setShowMobileActions(!showMobileActions);
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative pt-0.5 w-9 shrink-0 flex justify-center">
         {!isContinuation ? (
           <>
-            <UserAvatar 
-              src={message.user?.avatar || "/avatars/avatar1.png"} 
+            <UserAvatar
+              src={message.user?.avatar || "/avatars/avatar1.png"}
               alt={message.user?.username}
               className="w-9 h-9 rounded-md ring-1 ring-border/50"
             />
             <div
-              className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${
-                isOnline
-                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                  : "bg-muted-foreground/30"
-              }`}
+              className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${isOnline
+                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                : "bg-muted-foreground/30"
+                }`}
             ></div>
           </>
         ) : (
@@ -206,7 +230,6 @@ export function MessageItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        {/* Username + Timestamp */}
         {!isContinuation && (
           <div className="flex items-baseline gap-2">
             <HoverCard openDelay={200}>
@@ -218,8 +241,8 @@ export function MessageItem({
               <HoverCardContent className="w-64 glass shadow-xl border-border/50">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
-                    <UserAvatar 
-                      src={message.user?.avatar || "/avatars/avatar1.png"} 
+                    <UserAvatar
+                      src={message.user?.avatar || "/avatars/avatar1.png"}
                       alt={message.user?.username}
                       className="w-12 h-12 rounded-lg ring-2 ring-primary/20"
                     />
@@ -253,9 +276,8 @@ export function MessageItem({
           </div>
         )}
 
-        {/* Reply Preview */}
         {message.replyToMessage && (
-          <div 
+          <div
             className="flex items-center gap-2 mt-0.5 mb-1 group/reply cursor-pointer hover:bg-primary/5 p-1 rounded-sm transition-colors border-l-2 border-primary/20 pl-2"
             onClick={() => message.replyTo && onScrollToMessage?.(message.replyTo)}
           >
@@ -271,7 +293,6 @@ export function MessageItem({
           </div>
         )}
 
-        {/* Message Content */}
         {message.content && (
           <div
             className="
@@ -285,10 +306,8 @@ export function MessageItem({
           </div>
         )}
 
-        {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-col gap-2 mt-2 max-w-[500px]">
-            {/* Images Grid */}
             {images.length > 0 && (
               <div className={cn(
                 "grid gap-1 overflow-hidden rounded-xl border border-border/50 bg-muted/20 shadow-sm",
@@ -297,14 +316,14 @@ export function MessageItem({
                 images.length >= 3 && "grid-cols-2",
               )}>
                 {images.slice(0, 4).map((img, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className={cn(
                       "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto",
                       images.length === 1 ? "aspect-auto max-h-[400px]" : "aspect-[4/3]",
                       images.length === 3 && idx === 0 && "col-span-2 aspect-[2/1]",
                     )}
-                    onClick={() => openLightbox(idx)}
+                    onClick={(e) => { e.stopPropagation(); openLightbox(idx); }}
                   >
                     <img
                       src={img.url}
@@ -324,7 +343,6 @@ export function MessageItem({
               </div>
             )}
 
-            {/* Other Files */}
             {otherFiles.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 {otherFiles.map((attachment) => (
@@ -339,12 +357,12 @@ export function MessageItem({
                       </p>
                     </div>
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
+                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary" onClick={(e) => e.stopPropagation()}>
                         <a href={attachment.url} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       </Button>
-                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
+                      <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary" onClick={(e) => e.stopPropagation()}>
                         <a href={attachment.url} download={getFileName(attachment.url)}>
                           <Download className="h-4 w-4" />
                         </a>
@@ -357,11 +375,17 @@ export function MessageItem({
           </div>
         )}
 
-        {/* Hover Actions Bar - Premium Blur */}
+        {/* Actions Bar - Tap to Reveal on Mobile / Hover on Desktop */}
         <div
           className={cn(
-            "absolute -top-3 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-1 group-hover:translate-y-0 z-10",
+            "absolute -top-3 right-4 transition-all duration-300 transform z-10",
+            isMobile
+              ? (showMobileActions
+                ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+                : "opacity-0 translate-y-2 scale-95 pointer-events-none")
+              : "opacity-0 md:opacity-0 md:group-hover:opacity-100 md:translate-y-1 md:group-hover:translate-y-0"
           )}
+          onClick={(e) => isMobile && e.stopPropagation()}
         >
           <div className="flex items-center gap-1 bg-background/80 backdrop-blur-md shadow-lg border border-border/40 rounded-lg p-0.5 ring-1 ring-black/5">
             <TooltipProvider>
@@ -370,7 +394,7 @@ export function MessageItem({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onReply(message)}
+                    onClick={(e) => { e.stopPropagation(); onReply(message); }}
                     className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <CornerUpLeft className="w-3.5 h-3.5" />
@@ -430,11 +454,11 @@ export function MessageItem({
         </div>
       </div>
 
-      <ImageLightbox 
-        images={images} 
-        initialIndex={initialImageIndex} 
-        open={lightboxOpen} 
-        onOpenChange={setLightboxOpen} 
+      <ImageLightbox
+        images={images}
+        initialIndex={initialImageIndex}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
       />
     </div>
   );
