@@ -12,7 +12,7 @@ import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 import { Button } from "@/components/ui/button";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 
 export function MessageList({
   messages,
@@ -66,8 +66,8 @@ export function MessageList({
     // If ID is missing (deleted) or not found in current messages, trust the timestamp
     if (lastReadAt) {
       const lastReadTime = new Date(lastReadAt).getTime();
-      const firstUnreadIndex = messages.findIndex(msg => 
-        new Date(msg.createdAt).getTime() > lastReadTime && 
+      const firstUnreadIndex = messages.findIndex(msg =>
+        new Date(msg.createdAt).getTime() > lastReadTime &&
         msg.userId !== userId
       );
       return firstUnreadIndex;
@@ -78,117 +78,143 @@ export function MessageList({
 
   let lastDate: string | null = null;
 
-  return (
-    <ScrollArea viewportRef={viewportRef} className="h-full w-full px-4 pt-3">
-      <div className="flex flex-col">
-        {hasMore && (
-          <div className="flex justify-center pb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              className="text-xs text-muted-foreground hover:text-primary"
-            >
-              {isLoadingMore ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Memuat...
-                </>
-              ) : (
-                "Muat pesan lama"
-              )}
-            </Button>
-          </div>
-        )}
-        {!hasMore && (
-          <div className="flex flex-col items-start px-4 pt-8 space-y-4">
-            <UserAvatar 
-              src={roomData.isDirect 
-                ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.avatar || "/avatars/avatar1.png")
-                : (roomData.avatar || "/avatars/avatar6.png")
-              }
-              alt={roomData.isDirect 
-                ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.username
-                : roomData.name
-              }
-              className="h-16 w-16 rounded-2xl shadow-sm border-2 border-background"
-            />
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">
-                Welcome to #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name}!
-              </h1>
-              <p className="text-muted-foreground">
-                This is the start of the #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name} channel.
-              </p>
-            </div>
-            {messages.length > 0 && (
-              <div className="w-full">
-                <DateSeparator date={new Date(messages[0].createdAt)} />
-              </div>
-            )}
-            {messages.length === 0 && (
-              <div className="w-full pt-4 opacity-50 italic text-[11px]">
-                Belum ada pesan di sini. Jadilah yang pertama!
-              </div>
-            )}
-          </div>
-        )}
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!hasMore || isLoadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { root: viewportRef?.current, threshold: 0.1 }
+    );
+    const currentRef = loadMoreRef.current;
+    if (currentRef) observer.observe(currentRef);
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
+  }, [hasMore, isLoadingMore, onLoadMore, viewportRef]);
 
-        {messages.map((msg, index) => {
-          const currentDate = new Date(msg.createdAt).toDateString();
-          const shouldShowDate = currentDate !== lastDate;
-          const isUnread =
-            unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
-          const showDateSeparator = shouldShowDate && !isUnread;
-          const showUnreadAndDate = shouldShowDate && isUnread;
+  // We compute the chronologically arranged nodes first so prevMsg logic remains identically sound.
+  const nodes: React.ReactNode[] = [];
 
-          const prevMsg = index > 0 ? messages[index - 1] : null;
-          const isSameSender = prevMsg?.userId === msg.userId;
-          const msgTime = new Date(msg.createdAt).getTime();
-          const prevTime = prevMsg ? new Date(prevMsg.createdAt).getTime() : 0;
-          const isRecent = msgTime - prevTime < 5 * 60 * 1000; // 5 minutes
-          const isContinuation = isSameSender && isRecent && !shouldShowDate && !isUnread;
+  messages.forEach((msg, index) => {
+    const currentDate = new Date(msg.createdAt).toDateString();
+    const shouldShowDate = currentDate !== lastDate;
+    const isUnread =
+      unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
+    const showDateSeparator = shouldShowDate && !isUnread;
+    const showUnreadAndDate = shouldShowDate && isUnread;
 
-          lastDate = currentDate;
+    const prevMsg = index > 0 ? messages[index - 1] : null;
+    const isSameSender = prevMsg?.userId === msg.userId;
+    const msgTime = new Date(msg.createdAt).getTime();
+    const prevTime = prevMsg ? new Date(prevMsg.createdAt).getTime() : 0;
+    const isRecent = msgTime - prevTime < 5 * 60 * 1000; // 5 minutes
+    const isContinuation = isSameSender && isRecent && !shouldShowDate && !isUnread;
 
-          return (
-            <div 
-              id={`message-${msg.id}`}
-              key={`msg-container-${msg.id}`} 
-              ref={isUnread ? unreadRef : null}
-              data-message-id={msg.id}
-              className="message-container"
-            >
-              <>
-                {showDateSeparator && index > 0 && (
-                  <DateSeparator date={new Date(msg.createdAt)} />
-                )}
+    lastDate = currentDate;
 
-                {showUnreadAndDate && (
-                  <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
-                )}
+    nodes.push(
+      <div
+        id={`message-${msg.id}`}
+        key={`msg-container-${msg.id}`}
+        ref={isUnread ? unreadRef : null}
+        data-message-id={msg.id}
+        className="message-container"
+      >
+        <>
+          {showDateSeparator && index > 0 && (
+            <DateSeparator date={new Date(msg.createdAt)} />
+          )}
 
-                {!showDateSeparator && !showUnreadAndDate && isUnread && (
-                  <UnreadSeparator />
-                )}
-              </>
+          {showUnreadAndDate && (
+            <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
+          )}
 
-              <MessageItem
-                message={msg}
-                onlineUserIds={onlineUserIds}
-                onReply={onReply}
-                currentUserId={userId}
-                isContinuation={isContinuation}
-                isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isUnread)}
-                isHighlighted={msg.id === highlightedMessageId}
-                onScrollToMessage={onScrollToMessage}
-              />
-            </div>
-          );
-        })}
-        <div ref={bottomRef} className="h-4" />
+          {!showDateSeparator && !showUnreadAndDate && isUnread && (
+            <UnreadSeparator />
+          )}
+        </>
+
+        <MessageItem
+          message={msg}
+          onlineUserIds={onlineUserIds}
+          onReply={onReply}
+          currentUserId={userId}
+          isContinuation={isContinuation}
+          isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isUnread)}
+          isHighlighted={msg.id === highlightedMessageId}
+          onScrollToMessage={onScrollToMessage}
+        />
       </div>
-    </ScrollArea>
+    );
+  });
+
+  return (
+    <div
+      ref={viewportRef}
+      className="h-full w-full overflow-y-auto overflow-x-hidden flex flex-col-reverse px-4 pt-3 scrollbar-thin overflow-anchor-auto"
+    >
+      <div ref={bottomRef} className="h-4 shrink-0" />
+      {nodes.reverse()}
+
+      {/* Header and Load More button are at the very end of the flex-col-reverse -> visual top */}
+      {!hasMore && (
+        <div className="flex flex-col items-start px-4 pt-8 pb-4 space-y-4 shrink-0">
+          <UserAvatar
+            src={roomData.isDirect
+              ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.avatar || "/avatars/avatar1.png")
+              : (roomData.avatar || "/avatars/avatar6.png")
+            }
+            alt={roomData.isDirect
+              ? roomData.participants.find((p: any) => p.user.id !== userId)?.user.username
+              : roomData.name
+            }
+            className="h-16 w-16 rounded-2xl shadow-sm border-2 border-background"
+          />
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Welcome to #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name}!
+            </h1>
+            <p className="text-muted-foreground">
+              This is the start of the #{roomData.isDirect ? (roomData.participants.find((p: any) => p.user.id !== userId)?.user.username) : roomData.name} channel.
+            </p>
+          </div>
+          {messages.length > 0 && (
+            <div className="w-full">
+              <DateSeparator date={new Date(messages[0].createdAt)} />
+            </div>
+          )}
+          {messages.length === 0 && (
+            <div className="w-full pt-4 opacity-50 italic text-[11px]">
+              Belum ada pesan di sini. Jadilah yang pertama!
+            </div>
+          )}
+        </div>
+      )}
+
+      {hasMore && (
+        <div ref={loadMoreRef} className="flex justify-center py-4 shrink-0 mt-4 h-16">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="text-xs text-muted-foreground hover:text-primary"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                Memuat...
+              </>
+            ) : (
+              "Memuat pesan lama..."
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

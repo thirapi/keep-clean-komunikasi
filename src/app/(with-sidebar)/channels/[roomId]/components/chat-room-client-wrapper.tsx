@@ -10,10 +10,11 @@ import { AlertTriangle } from "lucide-react";
 import LoadingRoom from "../room-skeleton";
 
 export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
-  const [messages, setMessages] = useState<any[]>(clientChatCache.getMessages(roomId) || []);
-  const cachedRoom = clientChatCache.getRoom(roomId);
-  const cachedLastRead = clientChatCache.getLastRead(roomId);
+  const syncRoom = clientChatCache.getRoomSync(roomId);
+  const syncMessages = clientChatCache.getMessagesSync(roomId);
+  const syncLastRead = clientChatCache.getLastReadSync(roomId);
 
+  const [messages, setMessages] = useState<any[]>(syncMessages || []);
   const [data, setData] = useState<{
     userId: string;
     roomData: any;
@@ -21,23 +22,44 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
     lastReadMessageId: string | null;
     lastReadAt: Date | null;
     user: any;
-  } | null>(cachedRoom ? {
-    userId: "",
-    roomData: cachedRoom,
-    initialMessages: clientChatCache.getMessages(roomId) || [],
-    lastReadMessageId: cachedLastRead.id,
-    lastReadAt: cachedLastRead.at,
+  } | null>(syncRoom ? {
+    userId: "", // Will be hydrated securely via Server Action
+    roomData: syncRoom,
+    initialMessages: syncMessages || [],
+    lastReadMessageId: syncLastRead.id,
+    lastReadAt: syncLastRead.at,
     user: { id: "", username: "...", avatar: null }
   } : null);
 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function init() {
       try {
+        // --- 1. LOCAL FIRST HYDRATION ---
+        // Fetch from IndexedDB for zero-latency initial UI paint
+        const cachedRoom = await clientChatCache.getRoom(roomId);
+        const cachedMessages = await clientChatCache.getMessages(roomId);
+        const cachedLastRead = await clientChatCache.getLastRead(roomId);
         const session = await getUserSession();
         const userId = session?.user?.id ?? "";
 
+        if (cachedRoom && isMounted) {
+          const initMessages = cachedMessages || [];
+          setMessages(initMessages);
+          setData({
+            userId,
+            roomData: cachedRoom,
+            initialMessages: initMessages,
+            lastReadMessageId: cachedLastRead?.id || null,
+            lastReadAt: cachedLastRead?.at ?? null,
+            user: { id: userId, username: "...", avatar: null }
+          });
+        }
+
+        // --- 2. BACKGROUND SYNC OVER NETWORK ---
         const [roomResponse, initialMessagesResponse, lastReadResponse, userInfo] =
           await Promise.all([
             getRoom(roomId),
@@ -46,14 +68,14 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
             sidaBarUserInfo(),
           ]);
 
-        if (roomResponse.status === "success" && roomResponse.data) {
+        if (roomResponse.status === "success" && roomResponse.data && isMounted) {
           const fetchedMessages = (initialMessagesResponse.status === "success" ? initialMessagesResponse.data : []) ?? [];
           const fetchedLastRead = lastReadResponse.status === "success" ? lastReadResponse.data : null;
-          
-          clientChatCache.setRoom(roomId, roomResponse.data);
-          clientChatCache.setMessages(roomId, fetchedMessages);
-          clientChatCache.setLastRead(roomId, fetchedLastRead?.id || null);
-          
+
+          await clientChatCache.setRoom(roomId, roomResponse.data);
+          await clientChatCache.setMessages(roomId, fetchedMessages);
+          await clientChatCache.setLastRead(roomId, fetchedLastRead?.id || null, fetchedLastRead?.at ? new Date(fetchedLastRead.at) : null);
+
           setMessages(fetchedMessages);
 
           setData({
@@ -68,16 +90,20 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
               avatar: userInfo.avatar,
             },
           });
-        } else {
+        } else if (!cachedRoom && isMounted) {
           setError("Gagal memuat room");
         }
       } catch (e) {
         console.error("Initialization error:", e);
-        setError("Terjadi kesalahan sistem");
+        if (isMounted) setError("Terjadi kesalahan sistem");
       }
     }
 
     init();
+
+    return () => {
+      isMounted = false;
+    };
   }, [roomId]);
 
   if (error) {

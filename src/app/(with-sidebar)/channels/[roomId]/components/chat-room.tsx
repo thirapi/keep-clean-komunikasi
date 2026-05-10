@@ -192,19 +192,19 @@ export function ChatRoom({
     () =>
       debounce(async (messageId?: string) => {
         if (!userId || userId === "") return;
-        
+
         // If no messageId provided, use the last message in the list
         const targetId = messageId || messagesRef.current[messagesRef.current.length - 1]?.id;
-        
+
         if (!targetId || targetId === lastPersistedReadIdRef.current)
           return;
 
         // Check if targetId is actually newer than lastPersistedReadIdRef.current
         const currentIndex = messagesRef.current.findIndex(m => m.id === targetId);
-        const prevIndex = lastPersistedReadIdRef.current 
+        const prevIndex = lastPersistedReadIdRef.current
           ? messagesRef.current.findIndex(m => m.id === lastPersistedReadIdRef.current)
           : -1;
-          
+
         if (prevIndex !== -1 && currentIndex <= prevIndex) return;
 
         // Find the message's createdAt to use as the precision timestamp
@@ -294,12 +294,6 @@ export function ChatRoom({
     if (response.status === "success" && response.data) {
       if (response.data.length < 50) setHasMore(false);
       setMessages((prev) => [...response.data!, ...prev]);
-
-      setTimeout(() => {
-        if (viewport) {
-          viewport.scrollTop = viewport.scrollHeight - previousScrollHeight;
-        }
-      }, 0);
     }
     setIsLoadingMore(false);
   };
@@ -337,7 +331,7 @@ export function ChatRoom({
           setLastReadIdState(newAnchorId);
           setLastReadAtState(newAnchorAt);
           lastPersistedReadIdRef.current = newAnchorId;
-          
+
           // Also update cache and server
           import("@/lib/infrastructure/cache/client-cache").then((m) => {
             m.clientChatCache.setLastRead(roomData.id, newAnchorId, newAnchorAt);
@@ -350,7 +344,7 @@ export function ChatRoom({
 
         return prev.filter((m) => m.id !== messageId);
       });
-      
+
       import("@/lib/infrastructure/cache/client-cache").then((m) => {
         m.clientChatCache.removeMessage(roomData.id, messageId);
       });

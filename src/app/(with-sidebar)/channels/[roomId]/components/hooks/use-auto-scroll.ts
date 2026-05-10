@@ -15,7 +15,7 @@ export function useAutoScroll(
     wasAtBottomRef.current = isAtBottom;
   }, [isAtBottom]);
 
-  // Initial scroll and new message scroll
+  // Auto scroll untuk pesan baru
   useEffect(() => {
     if (messages.length === 0) return;
 
@@ -23,27 +23,17 @@ export function useAutoScroll(
     const isNewMessage = lastMessage?.id !== lastIdRef.current;
 
     if (isNewMessage) {
-      if (lastMessage?.userId === userId || wasAtBottomRef.current) {
+      // Jika pesan dari user sendiri, kita paksa geser halus ke bawah meski ia sedang scroll di atas
+      if (lastMessage?.userId === userId) {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       }
+      // Jika wasAtBottomRef.current true, CSS flex-col-reverse sudah MENGONTROL secara otomatis tanpa JS.
+
       lastIdRef.current = lastMessage?.id ?? null;
     }
   }, [messages, userId, bottomRef]);
 
-  // Handle height changes (images loading, etc)
-  useEffect(() => {
-    const container = bottomRef.current?.parentElement;
-    if (!container) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (wasAtBottomRef.current) {
-        // Use behavior: "auto" (instant) for height changes to stay pinned to bottom
-        bottomRef.current?.scrollIntoView({ behavior: "auto" });
-      }
-    });
-
-    resizeObserver.observe(container);
-
-    return () => resizeObserver.disconnect();
-  }, [bottomRef]);
+  // Hapus ResizeObserver: 
+  // CSS modern (flex-col-reverse + overflow-anchor) sudah natively menangani load gambar telat
+  // tanpa perlu kalkulasi Javascript yang memberatkan memori.
 }
