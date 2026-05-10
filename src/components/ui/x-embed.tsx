@@ -22,7 +22,7 @@ declare global {
 
 export function XEmbed({ tweetUrl, className }: XEmbedProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
     const { resolvedTheme } = useTheme();
     const theme = resolvedTheme === "dark" ? "dark" : "light";
 

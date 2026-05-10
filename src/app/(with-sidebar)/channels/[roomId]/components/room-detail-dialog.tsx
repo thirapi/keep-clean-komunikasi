@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,6 +76,7 @@ export function RoomDetailDialog({
   const [isLoading, setIsLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -106,6 +108,9 @@ export function RoomDetailDialog({
   const otherUser = isDirect
     ? roomData.participants.find((p) => p.user.id !== currentUserId)?.user
     : null;
+
+  const currentAvatarSrc = avatarPreview || (isDirect ? otherUser?.avatar || "" : roomData.avatar);
+  const currentAvatarName = isDirect ? otherUser?.username || "" : roomData.name;
 
   const handleAvatarClick = () => {
     if (isOwner && !isDirect) {
@@ -202,22 +207,28 @@ export function RoomDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden gap-0">
         <div className="relative h-32 bg-gradient-to-r from-indigo-500/10 via-slate-400/5 to-transparent border-b">
-          <div className="absolute -bottom-10 left-6 ring-4 ring-background rounded-2xl overflow-hidden shadow-xl group">
+          <div className="absolute -bottom-10 left-6 group">
             {isLoading ? (
-              <Skeleton className="h-20 w-20 rounded-2xl" />
+              <Skeleton className="h-20 w-20 rounded-2xl ring-4 ring-background shadow-xl" />
             ) : (
               <div className="relative">
-                <UserAvatar
-                  src={avatarPreview || (isDirect ? otherUser?.avatar || "" : roomData.avatar)}
-                  alt={isDirect ? otherUser?.username || "" : roomData.name}
-                  className="h-20 w-20 rounded-2xl text-2xl"
-                />
+                <div
+                  className="cursor-pointer ring-4 ring-background rounded-2xl overflow-hidden shadow-xl"
+                  onClick={() => setIsLightboxOpen(true)}
+                >
+                  <UserAvatar
+                    src={currentAvatarSrc}
+                    alt={currentAvatarName}
+                    className="h-20 w-20 rounded-2xl text-2xl hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
                 {isOwner && !isDirect && (
                   <button
                     onClick={handleAvatarClick}
-                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"
+                    className="absolute -bottom-2 -right-2 z-10 bg-primary text-primary-foreground p-1.5 rounded-full shadow-lg hover:bg-primary/90 transition-transform active:scale-95"
+                    title="Ubah Foto Channel"
                   >
-                    <Camera className="w-6 h-6 text-white" />
+                    <Camera className="w-4 h-4" />
                   </button>
                 )}
                 <input
@@ -519,6 +530,14 @@ export function RoomDetailDialog({
           </Tabs>
         </div>
       </DialogContent>
+      <ImageLightbox
+        images={[{
+          url: currentAvatarSrc,
+          filename: `Avatar ${currentAvatarName}`
+        }]}
+        open={isLightboxOpen}
+        onOpenChange={setIsLightboxOpen}
+      />
     </Dialog>
   );
 }

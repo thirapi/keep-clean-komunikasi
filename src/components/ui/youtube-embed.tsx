@@ -10,7 +10,7 @@ interface YouTubeEmbedProps {
 
 export function YouTubeEmbed({ videoId, className }: YouTubeEmbedProps) {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
 
     const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
