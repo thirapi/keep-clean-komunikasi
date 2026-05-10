@@ -45,7 +45,7 @@ export function MessageInput({
   const { displayNames } = useTypingIndicator(roomData.id, userId);
 
   const MAX_FILES = 5;
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for video support
 
   const sendTypingEvent = useRef(
     debounce(() => {
@@ -80,6 +80,13 @@ export function MessageInput({
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
+      } else if (file.type.startsWith("video/")) {
+        // For video, we could generate a thumbnail, but for now we'll just indicate it's a video
+        // or let the browser handle it if we used a <video> element.
+        // For preview, we'll return a special string 'video-preview' or similar
+        // to be handled in the UI.
+        const url = URL.createObjectURL(file);
+        resolve(url);
       } else {
         resolve(null);
       }
@@ -115,7 +122,7 @@ export function MessageInput({
 
     setSelectedFiles((prev) => [...prev, ...validFiles]);
     setFilePreviews((prev) => [...prev, ...newPreviews]);
-    
+
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -192,7 +199,7 @@ export function MessageInput({
         onNewMessage(optimisticMessage);
         const currentContent = content;
         const currentReplyTo = replyingTo?.id;
-        
+
         setContent("");
         clearAllFiles();
         onCancelReply();
@@ -260,7 +267,7 @@ export function MessageInput({
     const handlePaste = async (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items || []);
       const imageItems = items.filter(item => item.type.startsWith("image/"));
-      
+
       if (imageItems.length === 0) return;
 
       if (selectedFiles.length + imageItems.length > MAX_FILES) {
@@ -305,7 +312,20 @@ export function MessageInput({
           {filePreviews.map((item, index) => (
             <div key={index} className="relative group h-20 w-20 sm:h-24 sm:w-24 rounded-lg overflow-hidden border border-border/50 shadow-sm bg-background/50">
               {item.preview ? (
-                <img src={item.preview} alt="Preview" className="h-full w-full object-cover" />
+                item.file.type.startsWith("video/") ? (
+                  <div className="h-full w-full relative">
+                    <video src={item.preview} className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="bg-primary/80 rounded-full p-1.5 shadow-lg">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.841z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <img src={item.preview} alt="Preview" className="h-full w-full object-cover" />
+                )
               ) : (
                 <div className="h-full w-full flex flex-col items-center justify-center p-2 text-center">
                   <FileIcon className="h-8 w-8 text-primary/60 mb-1" />
@@ -378,9 +398,9 @@ export function MessageInput({
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"
-          accept="image/*,.pdf,.doc,.docx,.txt"
+          accept="image/*,video/*,.pdf,.doc,.docx,.txt"
         />
-        
+
         <Button
           type="button"
           variant="ghost"

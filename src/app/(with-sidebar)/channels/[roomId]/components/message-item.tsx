@@ -136,6 +136,10 @@ export function MessageItem({
     return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url) || url.startsWith('data:image/');
   };
 
+  const isVideo = (url: string) => {
+    return /\.(mp4|webm|ogg)$/i.test(url) || url.startsWith('data:video/');
+  };
+
   const getFileName = (url: string) => {
     try {
       const parts = url.split('/');
@@ -147,14 +151,18 @@ export function MessageItem({
     }
   };
 
-  const images = useMemo(() => {
+  const imagesAndVideos = useMemo(() => {
     return (message.attachments || [])
-      .filter(a => isImage(a.url))
-      .map(a => ({ url: a.url, filename: getFileName(a.url) } as ImageSource));
+      .filter(a => isImage(a.url) || isVideo(a.url))
+      .map(a => ({
+        url: a.url,
+        filename: getFileName(a.url),
+        type: isVideo(a.url) ? 'video' : 'image'
+      }));
   }, [message.attachments]);
 
   const otherFiles = useMemo(() => {
-    return (message.attachments || []).filter(a => !isImage(a.url));
+    return (message.attachments || []).filter(a => !isImage(a.url) && !isVideo(a.url));
   }, [message.attachments]);
 
   const openLightbox = (index: number) => {
@@ -308,34 +316,51 @@ export function MessageItem({
 
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-col gap-2 mt-2 max-w-[500px]">
-            {images.length > 0 && (
+            {imagesAndVideos.length > 0 && (
               <div className={cn(
                 "grid gap-1 overflow-hidden rounded-xl border border-border/50 bg-muted/20 shadow-sm",
-                images.length === 1 && "grid-cols-1 max-w-sm",
-                images.length === 2 && "grid-cols-2",
-                images.length >= 3 && "grid-cols-2",
+                imagesAndVideos.length === 1 && "grid-cols-1 max-w-sm",
+                imagesAndVideos.length === 2 && "grid-cols-2",
+                imagesAndVideos.length >= 3 && "grid-cols-2",
               )}>
-                {images.slice(0, 4).map((img, idx) => (
+                {imagesAndVideos.slice(0, 4).map((item, idx) => (
                   <div
                     key={idx}
                     className={cn(
                       "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto",
-                      images.length === 1 ? "aspect-auto max-h-[400px]" : "aspect-[4/3]",
-                      images.length === 3 && idx === 0 && "col-span-2 aspect-[2/1]",
+                      imagesAndVideos.length === 1 ? "aspect-auto max-h-[400px]" : "aspect-[4/3]",
+                      imagesAndVideos.length === 3 && idx === 0 && "col-span-2 aspect-[2/1]",
                     )}
                     onClick={(e) => { e.stopPropagation(); openLightbox(idx); }}
                   >
-                    <img
-                      src={img.url}
-                      alt={img.filename}
-                      className="w-full h-full object-cover transition-transform duration-500 group-media:hover:scale-110"
-                    />
+                    {item.type === 'video' ? (
+                      <div className="w-full h-full relative">
+                        <video
+                          src={item.url}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-media:hover:bg-black/40 transition-colors">
+                          <div className="bg-primary/80 rounded-full p-3 shadow-xl transform transition-transform group-media:hover:scale-110">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.841z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={item.filename}
+                        className="w-full h-full object-cover transition-transform duration-500 group-media:hover:scale-110"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/20 transition-colors flex items-center justify-center">
                       <ExternalLink className="w-8 h-8 text-white opacity-0 group-media:hover:opacity-100 transition-all scale-75 group-media:hover:scale-100 drop-shadow-lg" />
                     </div>
-                    {images.length > 4 && idx === 3 && (
+                    {imagesAndVideos.length > 4 && idx === 3 && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
-                        <span className="text-white text-xl font-bold">+{images.length - 4}</span>
+                        <span className="text-white text-xl font-bold">+{imagesAndVideos.length - 4}</span>
                       </div>
                     )}
                   </div>
@@ -455,7 +480,7 @@ export function MessageItem({
       </div>
 
       <ImageLightbox
-        images={images}
+        images={imagesAndVideos as any}
         initialIndex={initialImageIndex}
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}

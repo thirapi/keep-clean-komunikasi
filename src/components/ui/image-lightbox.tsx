@@ -7,6 +7,7 @@ import { Button } from "./button";
 export interface ImageSource {
   url: string;
   filename: string;
+  type?: 'image' | 'video';
 }
 
 interface ImageLightboxProps {
@@ -42,7 +43,7 @@ export function ImageLightbox({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-          
+
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent z-10">
             <div className="text-white flex flex-col">
@@ -55,7 +56,7 @@ export function ImageLightbox({
                 </span>
               )}
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -83,14 +84,24 @@ export function ImageLightbox({
             </div>
           </div>
 
-          {/* Image Container */}
+          {/* Media Container */}
           <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-12">
-            <img
-              src={currentImage.url}
-              alt={currentImage.filename}
-              className="max-w-full max-h-full object-contain select-none shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {currentImage.type === 'video' ? (
+              <video
+                src={currentImage.url}
+                controls
+                autoPlay
+                className="max-w-full max-h-full shadow-2xl outline-none"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img
+                src={currentImage.url}
+                alt={currentImage.filename}
+                className="max-w-full max-h-full object-contain select-none shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
 
             {/* Navigation */}
             {images.length > 1 && (
@@ -111,7 +122,7 @@ export function ImageLightbox({
                 >
                   <ChevronRight className="h-8 w-8" />
                 </Button>
-                
+
                 {/* Mobile Navigation Area */}
                 <div className="absolute inset-y-0 left-0 w-1/4 sm:hidden" onClick={prev} />
                 <div className="absolute inset-y-0 right-0 w-1/4 sm:hidden" onClick={next} />

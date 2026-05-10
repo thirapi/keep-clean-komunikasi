@@ -38,7 +38,22 @@ describe("SendMessageUseCase", () => {
   } as unknown as INotifierService
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
+    vi.mocked(mockRoomRepo.getRoomById).mockResolvedValue({
+      name: "General",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      participants: [],
+      messages: [],
+      id: "",
+      isDirect: false,
+      description: null,
+      avatar: "",
+      isPublic: false,
+      ownerId: null
+    })
+    vi.mocked(mockRoomRepo.getOtherParticipants).mockResolvedValue([])
+    vi.mocked(mockPusher.trigger).mockResolvedValue(undefined as any)
   })
 
   const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier)
@@ -106,5 +121,38 @@ describe("SendMessageUseCase", () => {
 
     expect(mockRepo.createMessage).toHaveBeenCalled()
     expect(mockPusher.trigger).toHaveBeenCalled()
+  })
+
+  it("should handle video attachments correctly", async () => {
+    const videoAttachments = [{
+      id: "vid1",
+      url: "https://example.com/video.mp4",
+      key: "video.mp4",
+      fileType: "video/mp4",
+      size: 50 * 1024 * 1024,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
+    const mockMessage = {
+      ...baseMessage,
+      user: { username: "user1" },
+      attachments: videoAttachments,
+    }
+    vi.mocked(mockRepo.createMessage).mockResolvedValue(mockMessage)
+
+    const useCase = createUseCase()
+
+    const result = await useCase.execute(
+      "user1",
+      "Check out this video",
+      "room1",
+      undefined,
+      videoAttachments
+    )
+
+    expect(mockRepo.createMessage).toHaveBeenCalledWith("user1", "Check out this video", "room1", undefined, videoAttachments)
+    expect(mockPusher.trigger).toHaveBeenCalledWith("chat-room1", "new-message", mockMessage)
+    expect(result.attachments?.[0].fileType).toBe("video/mp4")
+    expect(result).toEqual(mockMessage)
   })
 })
