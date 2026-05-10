@@ -1,5 +1,14 @@
+import React from "react";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { YouTubeEmbed } from "@/components/ui/youtube-embed";
+import { XEmbed } from "@/components/ui/x-embed";
 import { UserAvatar } from "@/components/ui/user-avatar";
+
+// Module-level constants — compiled once, not on every render
+const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
+// Extracts all URL tokens from message text, stripping trailing punctuation
+const URL_TOKEN_REGEX = /https?:\/\/[^\s]+/g;
 import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -170,6 +179,36 @@ export function MessageItem({
     setLightboxOpen(true);
   };
 
+  const socialEmbeds = useMemo(() => {
+    if (!message.content) return [];
+
+    // Extract all URLs from the message, stripping trailing punctuation (.,!?)
+    const urls = Array.from(message.content.matchAll(URL_TOKEN_REGEX), (m) =>
+      m[0].replace(/[.,!?]+$/, "")
+    );
+
+    const embeds: React.ReactNode[] = [];
+    const seen = new Set<string>();
+
+    urls.forEach((url) => {
+      if (seen.has(url)) return;
+      seen.add(url);
+
+      const ytMatch = url.match(YOUTUBE_REGEX);
+      if (ytMatch) {
+        embeds.push(<YouTubeEmbed key={url} videoId={ytMatch[1]} />);
+        return;
+      }
+
+      const xMatch = url.match(X_REGEX);
+      if (xMatch) {
+        embeds.push(<XEmbed key={url} tweetUrl={url} />);
+      }
+    });
+
+    return embeds;
+  }, [message.content]);
+
   const renderContent = (content: string) => {
     const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/g;
     return content.split(urlRegex).map((part, index) => {
@@ -311,6 +350,12 @@ export function MessageItem({
               "
           >
             {renderContent(message.content)}
+          </div>
+        )}
+
+        {socialEmbeds.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {socialEmbeds}
           </div>
         )}
 
