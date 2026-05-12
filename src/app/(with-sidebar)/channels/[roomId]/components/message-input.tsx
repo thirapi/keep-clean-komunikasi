@@ -13,6 +13,7 @@ import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { CornerLeftUp, X, Paperclip, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmojiPickerComponent } from "./emoji-picker";
 
 interface Props {
   userId: string;
@@ -21,6 +22,7 @@ interface Props {
   onCancelReply: () => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onNewMessage: (message: MessageWithUserDTO) => void;
+  onStartEditLast: () => void;
   user: {
     id: string;
     username: string;
@@ -35,6 +37,7 @@ export function MessageInput({
   onCancelReply,
   inputRef,
   onNewMessage,
+  onStartEditLast,
   user,
 }: Props) {
   const [content, setContent] = useState("");
@@ -138,6 +141,8 @@ export function MessageInput({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+
+
   const handleSend = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
@@ -206,6 +211,8 @@ export function MessageInput({
         clearAllFiles();
         onCancelReply();
 
+
+
         const response = await createMessage(
           userId,
           currentContent,
@@ -253,8 +260,11 @@ export function MessageInput({
         e.preventDefault();
         handleSend();
       }
-    } else if (e.key === "Escape" && replyingTo) {
-      onCancelReply();
+    } else if (e.key === "Escape") {
+      if (replyingTo) onCancelReply();
+    } else if (e.key === "ArrowUp" && !content.trim() && !replyingTo) {
+      e.preventDefault();
+      onStartEditLast();
     }
   };
 
@@ -362,6 +372,8 @@ export function MessageInput({
         </div>
       )}
 
+
+
       {replyingTo && (
         <div className={cn(
           "relative bg-muted/50 border-x border-border/50 backdrop-blur-md px-4 py-3 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300",
@@ -414,7 +426,13 @@ export function MessageInput({
           <Paperclip className="h-5 w-5" />
         </Button>
 
-        <div className="flex-1 relative flex items-center">
+        <div className="flex-1 relative flex items-center gap-1">
+          <EmojiPickerComponent
+            onEmojiSelect={(emoji) => {
+              setContent((prev) => prev + emoji);
+              inputRef.current?.focus();
+            }}
+          />
           <textarea
             autoFocus
             ref={inputRef}

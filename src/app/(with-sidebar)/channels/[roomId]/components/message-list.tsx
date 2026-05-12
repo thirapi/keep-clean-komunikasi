@@ -21,6 +21,10 @@ export function MessageList({
   unreadRef,
   onlineUserIds,
   onReply,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  editingMessageId,
   lastReadMessageId,
   lastReadAt,
   userId,
@@ -37,6 +41,10 @@ export function MessageList({
   unreadRef: React.RefObject<HTMLDivElement | null>;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
+  onStartEdit: (message: MessageWithUserDTO) => void;
+  onSaveEdit: (messageId: string, content: string) => void;
+  onCancelEdit: () => void;
+  editingMessageId: string | null;
   lastReadMessageId: string | null;
   lastReadAt: Date | null;
   userId: string;
@@ -127,7 +135,7 @@ export function MessageList({
     const currentDate = new Date(msg.createdAt).toDateString();
     const shouldShowDate = currentDate !== lastDate;
     const isInitialUnread = initialUnreadId === msg.id && !isUnreadCleared;
-    
+
     const showDateSeparator = shouldShowDate && !isInitialUnread;
     const showUnreadAndDate = shouldShowDate && isInitialUnread;
 
@@ -189,6 +197,10 @@ export function MessageList({
           message={msg}
           onlineUserIds={onlineUserIds}
           onReply={onReply}
+          onStartEdit={onStartEdit}
+          onSaveEdit={onSaveEdit}
+          onCancelEdit={onCancelEdit}
+          isEditing={editingMessageId === msg.id}
           currentUserId={userId}
           isContinuation={isContinuation}
           isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isInitialUnread)}

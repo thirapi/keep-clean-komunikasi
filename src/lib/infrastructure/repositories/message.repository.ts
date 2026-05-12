@@ -18,7 +18,7 @@ export class MessageRepository implements IMessageRepository {
     attachments?: { url: string; key: string; fileType: string; size?: number }[]
   ): Promise<MessageWithUserDTO> {
     const id = createId();
-    
+
     return await this.client.transaction(async (tx) => {
       await tx.insert(messages).values({
         id,
@@ -134,6 +134,28 @@ export class MessageRepository implements IMessageRepository {
     });
 
     return (message as unknown as MessageWithUserDTO) || null;
+  }
+
+  async updateMessage(messageId: string, content: string): Promise<MessageWithUserDTO> {
+    const updatedMessages = await this.client
+      .update(messages)
+      .set({
+        content,
+        updatedAt: new Date(),
+      })
+      .where(eq(messages.id, messageId))
+      .returning();
+
+    if (updatedMessages.length === 0) {
+      throw new Error("Message not found or update failed");
+    }
+
+    const message = await this.getMessageById(messageId);
+    if (!message) {
+      throw new Error("Failed to retrieve updated message");
+    }
+
+    return message;
   }
 
   async deleteMessage(messageId: string): Promise<void> {

@@ -13,6 +13,7 @@ import { uploadFileController } from "@/lib/interface-adapters/controllers/stora
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { revalidatePath } from "next/cache";
 import { deleteMessageController } from "@/lib/interface-adapters/controllers/messages/delete-message.controller";
+import { editMessageController } from "@/lib/interface-adapters/controllers/messages/edit-message.controller";
 
 export const setTypingStatusAction = async (
   userId: string,
@@ -54,6 +55,33 @@ export const deleteMessageAction = async (
     return {
       status: "success",
       data: null,
+      error: null,
+    };
+  } catch (err: any) {
+    console.error("Action Error:", err);
+    return {
+      status: "error",
+      data: null,
+      error: {
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
+        type: err.name,
+        meta: err.fields,
+      },
+    };
+  }
+};
+
+export const editMessageAction = async (
+  userId: string,
+  messageId: string,
+  content: string
+): Promise<ServerResponse<MessageWithUserDTO | null>> => {
+  try {
+    const data = await editMessageController(userId, messageId, content);
+
+    return {
+      status: "success",
+      data,
       error: null,
     };
   } catch (err: any) {

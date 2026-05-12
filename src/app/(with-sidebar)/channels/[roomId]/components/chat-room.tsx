@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
-import { getMessage, updateLastReadAt } from "../messages.action";
+import { getMessage, updateLastReadAt, editMessageAction } from "../messages.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -50,6 +50,7 @@ export function ChatRoom({
   const { markAsRead: markSidebarAsRead } = useUnread();
   const [showMembers, setShowMembers] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length === 50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -176,11 +177,11 @@ export function ChatRoom({
         if (targetMsg.isOptimistic || targetId.startsWith('optimistic-')) {
           const lastRealMsgIndex = messagesRef.current.slice(0, currentIndex + 1).findLastIndex(m => !m.isOptimistic && !m.id.startsWith('optimistic-'));
           if (lastRealMsgIndex === -1) return; // No real messages to mark as read yet
-          
+
           currentIndex = lastRealMsgIndex;
           targetMsg = messagesRef.current[currentIndex];
           targetId = targetMsg.id;
-          
+
           // Check again if this real message was already persisted
           if (targetId === lastPersistedReadIdRef.current) return;
         }
@@ -229,7 +230,7 @@ export function ChatRoom({
         setLastReadIdState(msg.id);
         const at = new Date(msg.createdAt);
         setLastReadAtState(at);
-        
+
         // Sync to cache immediately for current user's messages
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
           m.clientChatCache.setLastRead(localRoomData.id, msg.id, at);
@@ -251,10 +252,10 @@ export function ChatRoom({
         const existingIndex = prev.findIndex((m) => {
           // 1. Direct ID match (for server-pushed updates of existing messages)
           if (m.id === msg.id) return true;
-          
+
           // 2. Optimistic ID match (for replacing the placeholder with the real server message)
           if (msg.optimisticId && m.optimisticId === msg.optimisticId) return true;
-          
+
           return false;
         });
 
@@ -285,7 +286,7 @@ export function ChatRoom({
       if (lastReadId) {
         // Find the message in current ref to get its timestamp if possible
         let msg = messagesRef.current.find(m => m.id === lastReadId);
-        
+
         // HARDENING: If the last tracked ID is optimistic, find the latest real one before it
         if (!msg || msg.isOptimistic || lastReadId.startsWith('optimistic-')) {
           const lastRealMsg = messagesRef.current.findLast(m => !m.isOptimistic && !m.id.startsWith('optimistic-'));
@@ -379,6 +380,9 @@ export function ChatRoom({
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) =>
       handleNewMessage(msg),
     );
+    chatChannel.bind("message-updated", (updatedMsg: MessageWithUserDTO) => {
+      setMessages((prev) => prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)));
+    });
     chatChannel.bind("message-deleted", ({ messageId }: { messageId: string }) => {
       setMessages((prev) => {
         const deletedIndex = prev.findIndex((m) => m.id === messageId);
@@ -437,6 +441,24 @@ export function ChatRoom({
     setReplyingTo(null);
   }, []);
 
+  const handleSaveEdit = useCallback(async (messageId: string, content: string) => {
+    const response = await editMessageAction(userId, messageId, content);
+    if (response.status === "success" && response.data) {
+      setMessages((prev) => prev.map((m) => (m.id === response.data!.id ? response.data! : m)));
+      setEditingMessageId(null);
+    } else {
+      toast.error(response.error?.message || "Gagal mengedit pesan");
+    }
+  }, [userId]);
+
+  const handleStartEditLast = useCallback(() => {
+    const userMessages = messages.filter((m) => m.userId === userId && !m.isOptimistic);
+    if (userMessages.length > 0) {
+      const lastMsg = userMessages[userMessages.length - 1];
+      setEditingMessageId(lastMsg.id);
+    }
+  }, [messages, userId]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <ChatHeader
@@ -459,6 +481,10 @@ export function ChatRoom({
               unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
               onReply={(message) => setReplyingTo(message)}
+              onStartEdit={(message) => setEditingMessageId(message.id)}
+              onSaveEdit={handleSaveEdit}
+              onCancelEdit={() => setEditingMessageId(null)}
+              editingMessageId={editingMessageId}
               lastReadMessageId={lastReadIdState}
               lastReadAt={lastReadAtState}
               onLoadMore={loadMoreMessages}
@@ -477,6 +503,7 @@ export function ChatRoom({
             onCancelReply={handleCancelReply}
             inputRef={inputRef}
             onNewMessage={handleMessageSend}
+            onStartEditLast={handleStartEditLast}
             user={user}
           />
         </div>

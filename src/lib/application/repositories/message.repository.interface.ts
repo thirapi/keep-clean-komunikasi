@@ -10,5 +10,6 @@ export interface IMessageRepository {
   ): Promise<MessageWithUserDTO>;
   getMessagesByRoomId(roomId: string, limit?: number, before?: Date, after?: Date): Promise<MessageWithUserDTO[]>;
   getMessageById(messageId: string): Promise<MessageWithUserDTO | null>;
+  updateMessage(messageId: string, content: string): Promise<MessageWithUserDTO>;
   deleteMessage(messageId: string): Promise<void>;
 }

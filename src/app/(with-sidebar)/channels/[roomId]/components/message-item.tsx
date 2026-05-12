@@ -9,7 +9,7 @@ const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|yout
 const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
 // Extracts all URL tokens from message text, stripping trailing punctuation
 const URL_TOKEN_REGEX = /https?:\/\/[^\s]+/g;
-import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy } from "lucide-react";
+import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy, Pencil, Check, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   HoverCard,
@@ -17,7 +17,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
@@ -51,6 +51,10 @@ export function MessageItem({
   message,
   onlineUserIds,
   onReply,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  isEditing,
   currentUserId,
   isContinuation,
   isAfterSeparator,
@@ -60,6 +64,10 @@ export function MessageItem({
   message: MessageWithUserDTO;
   onlineUserIds: string[];
   onReply: (message: MessageWithUserDTO) => void;
+  onStartEdit: (message: MessageWithUserDTO) => void;
+  onSaveEdit: (messageId: string, content: string) => void;
+  onCancelEdit: () => void;
+  isEditing: boolean;
   currentUserId: string;
   isContinuation?: boolean;
   isAfterSeparator?: boolean;
@@ -72,6 +80,75 @@ export function MessageItem({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const isMobile = useIsMobile();
+
+  // Inline edit state
+  const [editContent, setEditContent] = useState(message.content || "");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // When entering edit mode, populate and focus
+  useEffect(() => {
+    if (isEditing) {
+      setEditContent(message.content || "");
+      // Small delay to ensure DOM is ready
+      requestAnimationFrame(() => {
+        editInputRef.current?.focus();
+        // Place cursor at end
+        const len = editInputRef.current?.value.length || 0;
+        editInputRef.current?.setSelectionRange(len, len);
+      });
+    }
+  }, [isEditing, message.content]);
+
+  // Auto-resize edit textarea
+  useLayoutEffect(() => {
+    if (isEditing && editInputRef.current) {
+      editInputRef.current.style.height = "auto";
+      const scrollHeight = editInputRef.current.scrollHeight;
+      editInputRef.current.style.height = `${Math.min(scrollHeight, 300)}px`;
+    }
+  }, [editContent, isEditing]);
+
+  const handleSaveEdit = async () => {
+    const trimmed = editContent.trim();
+    if (!trimmed || trimmed === message.content || isSavingEdit) return;
+    setIsSavingEdit(true);
+    try {
+      await onSaveEdit(message.id, trimmed);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancelEdit();
+    }
+  };
+
+  // Detect if message was edited
+  const isEdited = useMemo(() => {
+    if (!message.updatedAt || !message.createdAt) return false;
+    const created = new Date(message.createdAt).getTime();
+    const updated = new Date(message.updatedAt).getTime();
+    // Allow 1 second tolerance for DB write delay
+    return updated - created > 1000;
+  }, [message.createdAt, message.updatedAt]);
+
+  const formatEditedTime = (date: Date) => {
+    return new Date(date).toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
 
   // Auto hide mobile actions after 3.5s to free up screen and prevent stuck UI
   useEffect(() => {
@@ -141,6 +218,21 @@ export function MessageItem({
     return time;
   };
 
+  const isOnlyEmoji = (str: string) => {
+    if (!str) return false;
+    const cleanStr = str.replace(/\s/g, "");
+    if (!cleanStr) return false;
+    // Modern regex using Unicode property escapes to match all emojis, 
+    // including ZWJ sequences, modifiers, and variation selectors.
+    // We filter out digits/text if they aren't part of an emoji sequence.
+    const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji_Modifier_Base}|\p{Emoji_Modifier}|\p{Emoji_Component}|[\u200D\uFE0F])*$/u;
+
+    // Hardening: make sure it's not JUST numbers or punctuation that happen to have emoji properties
+    const hasActualEmoji = /\p{Extended_Pictographic}/u.test(cleanStr);
+
+    return emojiRegex.test(cleanStr) && hasActualEmoji;
+  };
+
   const isImage = (url: string) => {
     return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url) || url.startsWith('data:image/');
   };
@@ -153,7 +245,6 @@ export function MessageItem({
     try {
       const parts = url.split('/');
       const lastPart = parts[parts.length - 1];
-      // Remove timestamp prefix if exists (e.g. 123456789-filename.pdf)
       return lastPart.replace(/^\d+-/, '');
     } catch {
       return 'Attachment';
@@ -182,7 +273,6 @@ export function MessageItem({
   const socialEmbeds = useMemo(() => {
     if (!message.content) return [];
 
-    // Extract all URLs from the message, stripping trailing punctuation (.,!?)
     const urls = Array.from(message.content.matchAll(URL_TOKEN_REGEX), (m) =>
       m[0].replace(/[.,!?]+$/, "")
     );
@@ -243,10 +333,11 @@ export function MessageItem({
           : cn("pt-2 hover:bg-muted/40 first:mt-0", isAfterSeparator ? "mt-1" : "mt-4"),
         isHovered && isContinuation && "bg-muted/30",
         isHighlighted && "bg-primary/10 ring-1 ring-primary/20 scale-[1.01] z-10",
-        showMobileActions && isMobile && "bg-muted/40"
+        showMobileActions && isMobile && "bg-muted/40",
+        isEditing && "bg-primary/5 ring-1 ring-primary/20"
       )}
       onClick={() => {
-        if (isMobile) setShowMobileActions(!showMobileActions);
+        if (isMobile && !isEditing) setShowMobileActions(!showMobileActions);
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -340,17 +431,53 @@ export function MessageItem({
           </div>
         )}
 
-        {message.content && (
-          <div
-            className="
-              text-[13.5px] leading-relaxed text-foreground/90 mt-0.5
-              whitespace-pre-wrap
-              break-words
-              pr-10
-              "
-          >
-            {renderContent(message.content)}
+        {/* === INLINE EDIT MODE === */}
+        {isEditing ? (
+          <div className="mt-1 mb-1">
+            <textarea
+              ref={editInputRef}
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              className="w-full bg-background border border-primary/30 rounded-lg px-3 py-2 text-[13.5px] leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none min-h-[40px] max-h-[300px]"
+              rows={1}
+            />
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[11px] text-muted-foreground">
+                escape untuk <button onClick={onCancelEdit} className="text-primary hover:underline font-medium">membatalkan</button>
+                {" "}&bull;{" "}
+                enter untuk <button onClick={handleSaveEdit} className="text-primary hover:underline font-medium">menyimpan</button>
+              </span>
+            </div>
           </div>
+        ) : (
+          /* === NORMAL VIEW MODE === */
+          <>
+            {message.content && (
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <div
+                  className={cn(
+                    "leading-relaxed text-foreground/90 mt-0.5 whitespace-pre-wrap break-words pr-10",
+                    isOnlyEmoji(message.content) ? "text-5xl leading-none" : "text-[13.5px]"
+                  )}
+                >
+                  {renderContent(message.content)}
+                </div>
+                {isEdited && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-[10px] text-muted-foreground/50 cursor-default select-none hover:text-muted-foreground/80 transition-colors">
+                        (edited)
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-[10px] font-medium py-1 px-2">
+                      <p>{formatEditedTime(new Date(message.updatedAt))}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {socialEmbeds.length > 0 && (
@@ -446,82 +573,108 @@ export function MessageItem({
         )}
 
         {/* Actions Bar - Tap to Reveal on Mobile / Hover on Desktop */}
-        <div
-          className={cn(
-            "absolute -top-3 right-4 transition-all duration-300 transform z-10",
-            isMobile
-              ? (showMobileActions
-                ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-                : "opacity-0 translate-y-2 scale-95 pointer-events-none")
-              : "opacity-0 md:opacity-0 md:group-hover:opacity-100 md:translate-y-1 md:group-hover:translate-y-0"
-          )}
-          onClick={(e) => isMobile && e.stopPropagation()}
-        >
-          <div className="flex items-center gap-1 bg-background/80 backdrop-blur-md shadow-lg border border-border/40 rounded-lg p-0.5 ring-1 ring-black/5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => { e.stopPropagation(); onReply(message); }}
-                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                  >
-                    <CornerUpLeft className="w-3.5 h-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="text-[10px] font-bold py-1 px-2"
-                >
-                  <p>Reply</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {message.userId === currentUserId && (
+        {!isEditing && (
+          <div
+            className={cn(
+              "absolute -top-3 right-4 transition-all duration-300 transform z-10",
+              isMobile
+                ? (showMobileActions
+                  ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+                  : "opacity-0 translate-y-2 scale-95 pointer-events-none")
+                : "opacity-0 md:opacity-0 md:group-hover:opacity-100 md:translate-y-1 md:group-hover:translate-y-0"
+            )}
+            onClick={(e) => isMobile && e.stopPropagation()}
+          >
+            <div className="flex items-center gap-1 bg-background/80 backdrop-blur-md shadow-lg border border-border/40 rounded-lg p-0.5 ring-1 ring-black/5">
+              <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={isDeleting}
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus Pesan?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Pesan akan dihapus untuk semua orang.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Hapus
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => { e.stopPropagation(); onReply(message); }}
+                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <CornerUpLeft className="w-3.5 h-3.5" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent
                     side="top"
                     className="text-[10px] font-bold py-1 px-2"
                   >
-                    <p>Delete</p>
+                    <p>Reply</p>
                   </TooltipContent>
                 </Tooltip>
-              )}
-            </TooltipProvider>
+
+                {message.userId === currentUserId && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStartEdit(message);
+                          }}
+                          className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="text-[10px] font-bold py-1 px-2"
+                      >
+                        <p>Edit</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={isDeleting}
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Pesan?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tindakan ini tidak dapat dibatalkan. Pesan akan dihapus untuk semua orang.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Hapus
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="text-[10px] font-bold py-1 px-2"
+                      >
+                        <p>Delete</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+              </TooltipProvider>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ImageLightbox
