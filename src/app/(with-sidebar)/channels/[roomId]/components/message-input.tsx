@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { createMessage, uploadFileAction } from "../messages.action";
+import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { debounce } from "lodash";
@@ -171,9 +172,9 @@ export function MessageInput({
         }
 
         // Optimistic message
-        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticId = createId();
         const optimisticMessage: MessageWithUserDTO = {
-          id: optimisticId,
+          id: `optimistic-${optimisticId}`,
           content,
           userId,
           roomId: roomData.id,
@@ -190,6 +191,7 @@ export function MessageInput({
           createdAt: new Date(),
           updatedAt: new Date(),
           isOptimistic: true,
+          optimisticId,
           user: {
             username: user.username,
             avatar: user.avatar,
@@ -209,7 +211,8 @@ export function MessageInput({
           currentContent,
           roomData.id,
           currentReplyTo,
-          attachments
+          attachments,
+          optimisticId
         );
 
         if (response.status === "success" && response.data) {

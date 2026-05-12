@@ -76,11 +76,20 @@ export function ChatRoom({
 
   // Sync state with props when they change (e.g. after server fetch in wrapper)
   useEffect(() => {
-    setLastReadIdState(lastReadMessageId);
-    setLastReadAtState(lastReadAt);
-    // Only update persisted ref if it's null or the prop is newer (this is tricky)
-    // For simplicity, if prop arrives from server, we assume server knows it
-    lastPersistedReadIdRef.current = lastReadMessageId;
+    // HARDENING: Only sync from props if the incoming data is newer than what we have locally.
+    // This prevents stale server responses from overwriting rapid local read-state updates.
+    if (lastReadAt) {
+      const incomingAt = new Date(lastReadAt);
+      if (!lastReadAtState || incomingAt > lastReadAtState) {
+        setLastReadIdState(lastReadMessageId);
+        setLastReadAtState(incomingAt);
+        lastPersistedReadIdRef.current = lastReadMessageId;
+      }
+    } else if (!lastReadAtState && lastReadMessageId) {
+      // Handle case where we have an ID but no timestamp yet (legacy or edge case)
+      setLastReadIdState(lastReadMessageId);
+      lastPersistedReadIdRef.current = lastReadMessageId;
+    }
   }, [lastReadMessageId, lastReadAt]);
 
   const scrollToMessage = useCallback((messageId: string) => {
@@ -146,6 +155,69 @@ export function ChatRoom({
     [roomData.name, roomData.id],
   );
 
+  const markAsReadApi = useMemo(
+    () =>
+      debounce(async (messageId?: string) => {
+        if (!userId || userId === "" || userId === "null") return;
+
+        // If no messageId provided, use the last message in the list
+        let targetId = messageId || messagesRef.current[messagesRef.current.length - 1]?.id;
+
+        if (!targetId || targetId === lastPersistedReadIdRef.current)
+          return;
+
+        // Find the message index
+        let currentIndex = messagesRef.current.findIndex(m => m.id === targetId);
+        if (currentIndex === -1) return;
+
+        // HARDENING: If target message is optimistic, we CANNOT send it to server (FK violation)
+        // Find the latest REAL message at or before this index
+        let targetMsg = messagesRef.current[currentIndex];
+        if (targetMsg.isOptimistic || targetId.startsWith('optimistic-')) {
+          const lastRealMsgIndex = messagesRef.current.slice(0, currentIndex + 1).findLastIndex(m => !m.isOptimistic && !m.id.startsWith('optimistic-'));
+          if (lastRealMsgIndex === -1) return; // No real messages to mark as read yet
+          
+          currentIndex = lastRealMsgIndex;
+          targetMsg = messagesRef.current[currentIndex];
+          targetId = targetMsg.id;
+          
+          // Check again if this real message was already persisted
+          if (targetId === lastPersistedReadIdRef.current) return;
+        }
+
+        const prevIndex = lastPersistedReadIdRef.current
+          ? messagesRef.current.findIndex(m => m.id === lastPersistedReadIdRef.current)
+          : -1;
+
+        if (prevIndex !== -1 && currentIndex <= prevIndex) return;
+
+        // Find the message's createdAt to use as the precision timestamp
+        const targetAt = new Date(targetMsg.createdAt);
+
+        // Update local state and persisted ref
+        setLastReadIdState(targetId);
+        setLastReadAtState(targetAt);
+        lastPersistedReadIdRef.current = targetId;
+
+        // Sync to sidebar and cache
+        markSidebarAsRead(roomData.id);
+        import("@/lib/infrastructure/cache/client-cache").then((m) => {
+          m.clientChatCache.setLastRead(roomData.id, targetId, targetAt);
+        });
+
+        // Server update
+        updateLastReadAt(userId, roomData.id, targetId, targetAt).catch(err => {
+          console.error("Failed to update last read at server:", err);
+        });
+      }, 500),
+    [userId, roomData.id, markSidebarAsRead],
+  );
+
+  const markAsRead = useCallback((messageId?: string) => {
+    if (!userId || userId === "") return;
+    markAsReadApi(messageId);
+  }, [markAsReadApi, userId]);
+
   const handleNewMessage = useCallback(
     (msg: MessageWithUserDTO, isFromSync = false) => {
       if (msg.userId !== userId && !isFromSync && !isInitialLoadRef.current) {
@@ -155,19 +227,34 @@ export function ChatRoom({
       // If the message is from the current user, treat it as read automatically
       if (msg.userId === userId) {
         setLastReadIdState(msg.id);
-        setLastReadAtState(new Date());
+        const at = new Date(msg.createdAt);
+        setLastReadAtState(at);
+        
         // Sync to cache immediately for current user's messages
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.setLastRead(localRoomData.id, msg.id);
+          m.clientChatCache.setLastRead(localRoomData.id, msg.id, at);
         });
+
+        // Update the persisted ref to avoid redundant or out-of-order updates
+        lastPersistedReadIdRef.current = msg.id;
+
+        // HARDENING: If this is a real message (not optimistic), also update server
+        if (!msg.isOptimistic && !msg.id.startsWith('optimistic-')) {
+          updateLastReadAt(userId, localRoomData.id, msg.id, at).catch(console.error);
+        }
+      } else if (isAtBottom && !isFromSync) {
+        // If we receive a message and we're already at the bottom, mark it as read
+        markAsRead(msg.id);
       }
 
       setMessages((prev) => {
         const existingIndex = prev.findIndex((m) => {
+          // 1. Direct ID match (for server-pushed updates of existing messages)
           if (m.id === msg.id) return true;
-          if (m.isOptimistic && m.userId === msg.userId) {
-            return m.content.trim() === msg.content.trim();
-          }
+          
+          // 2. Optimistic ID match (for replacing the placeholder with the real server message)
+          if (msg.optimisticId && m.optimisticId === msg.optimisticId) return true;
+          
           return false;
         });
 
@@ -188,64 +275,38 @@ export function ChatRoom({
         return nextMessages;
       });
     },
-    [userId, localRoomData.id, sendNotification],
-  );
-
-  const markAsReadApi = useMemo(
-    () =>
-      debounce(async (messageId?: string) => {
-        if (!userId || userId === "") return;
-
-        // If no messageId provided, use the last message in the list
-        const targetId = messageId || messagesRef.current[messagesRef.current.length - 1]?.id;
-
-        if (!targetId || targetId === lastPersistedReadIdRef.current)
-          return;
-
-        // Check if targetId is actually newer than lastPersistedReadIdRef.current
-        const currentIndex = messagesRef.current.findIndex(m => m.id === targetId);
-        const prevIndex = lastPersistedReadIdRef.current
-          ? messagesRef.current.findIndex(m => m.id === lastPersistedReadIdRef.current)
-          : -1;
-
-        if (prevIndex !== -1 && currentIndex <= prevIndex) return;
-
-        // Find the message's createdAt to use as the precision timestamp
-        const targetMsg = messagesRef.current[currentIndex];
-        const targetAt = targetMsg ? new Date(targetMsg.createdAt) : new Date();
-
-        // Update local state and persisted ref
-        setLastReadIdState(targetId);
-        setLastReadAtState(targetAt);
-        lastPersistedReadIdRef.current = targetId;
-
-        // Sync to sidebar and cache
-        markSidebarAsRead(roomData.id);
-        import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.setLastRead(roomData.id, targetId);
-        });
-
-        // Server update
-        updateLastReadAt(userId, roomData.id, targetId, targetAt).catch(console.error);
-      }, 500),
-    [userId, roomData.id, markSidebarAsRead],
+    [userId, localRoomData.id, sendNotification, isAtBottom, markAsRead],
   );
 
   // Ensure read state is flushed on unmount/visibility hidden
   useEffect(() => {
     const flushReadState = async () => {
-      const lastReadId = lastPersistedReadIdRef.current;
+      let lastReadId = lastPersistedReadIdRef.current;
       if (lastReadId) {
         // Find the message in current ref to get its timestamp if possible
-        const msg = messagesRef.current.find(m => m.id === lastReadId);
+        let msg = messagesRef.current.find(m => m.id === lastReadId);
+        
+        // HARDENING: If the last tracked ID is optimistic, find the latest real one before it
+        if (!msg || msg.isOptimistic || lastReadId.startsWith('optimistic-')) {
+          const lastRealMsg = messagesRef.current.findLast(m => !m.isOptimistic && !m.id.startsWith('optimistic-'));
+          if (lastRealMsg) {
+            msg = lastRealMsg;
+            lastReadId = msg.id;
+          } else {
+            return; // No real messages to mark as read
+          }
+        }
+
         const at = msg ? new Date(msg.createdAt) : undefined;
+
+        if (!userId || userId === "" || userId === "null") return;
 
         markSidebarAsRead(roomData.id);
         updateLastReadAt(userId, roomData.id, lastReadId, at).catch(console.error);
 
         // Also update cache on flush
         import("@/lib/infrastructure/cache/client-cache").then((m) => {
-          m.clientChatCache.setLastRead(roomData.id, lastReadId);
+          m.clientChatCache.setLastRead(roomData.id, lastReadId, at);
         });
       }
     };
@@ -262,11 +323,6 @@ export function ChatRoom({
       flushReadState(); // Flush on unmount
     };
   }, [userId, roomData.id, markSidebarAsRead]);
-
-  const markAsRead = useCallback((messageId?: string) => {
-    if (!userId || userId === "") return;
-    markAsReadApi(messageId);
-  }, [markAsReadApi, userId]);
 
   const syncMessages = useCallback(async () => {
     const currentMessages = messagesRef.current;

@@ -17,6 +17,12 @@ export class UpdateLastReadAtUseCase {
       throw new Error("Invalid input parameters");
     }
 
+    // Harden against race conditions: only update if the new timestamp is newer
+    const currentStatus = await this.roomRepository.getLastReadAt(userId, roomId);
+    if (currentStatus.at && lastReadAt && lastReadAt < currentStatus.at) {
+      return;
+    }
+
     await this.roomRepository.updateLastReadAt(userId, roomId, messageId, lastReadAt);
 
     // Broadcast read event to other devices/tabs for the same user

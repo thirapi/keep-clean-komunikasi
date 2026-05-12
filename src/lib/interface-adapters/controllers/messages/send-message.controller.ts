@@ -26,6 +26,7 @@ const formSchema = z.object({
         size: z.number().optional(),
     })).optional(),
     replyTo: z.string().optional(),
+    optimisticId: z.string().optional(),
 });
 
 export const sendMessageController = async (
@@ -33,7 +34,8 @@ export const sendMessageController = async (
     content: string,
     roomId: string,
     replyTo?: string,
-    attachments?: { url: string; key: string; fileType: string; size?: number }[]
+    attachments?: { url: string; key: string; fileType: string; size?: number }[],
+    optimisticId?: string
 ) => {
 
     const parsedMessage = formSchema.safeParse({
@@ -41,6 +43,7 @@ export const sendMessageController = async (
         roomId,
         attachments,
         replyTo,
+        optimisticId,
     });
 
     if (!parsedMessage.success) {
@@ -55,6 +58,7 @@ export const sendMessageController = async (
         parsedMessage.data.content,
         parsedMessage.data.roomId,
         parsedMessage.data.replyTo,
-        parsedMessage.data.attachments
+        parsedMessage.data.attachments,
+        parsedMessage.data.optimisticId
     );
 };

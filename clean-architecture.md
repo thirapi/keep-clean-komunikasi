@@ -52,8 +52,10 @@ contoh [auth.action.ts](mdc:src/app/auth.action.ts) [plan.action.ts](mdc:src/app
 - Semua komunikasi frontend ➝ backend harus melalui Action ➝ Controller ➝ Use Case.
 - Use Case tidak boleh memanggil Use Case lain.
 - Tidak ada logic bisnis di Controller, Action, atau Repository.
-- Semua layer wajib berbasis Class.
-- Semua Dependency Injection dilakukan via constructor. pada controller. COntohnya pada [sign-in.controller.ts](mdc:src/lib/interface-adapters/controllers/auth/sign-in.controller.ts) yang memanggil [sign-in.use-case.ts](mdc:src/lib/application/use-cases/auth/sign-in.use-case.ts) dengan dependency yang sesuai.
+- Semua layer wajib berbasis Class, kecuali Controller (boleh fungsi) dan Action.
+- Semua Dependency Injection dilakukan via constructor pada Class-based layers. Untuk Controller berbasis fungsi, dependency harus diinisialisasi di level file atau dipassing secara eksplisit jika diperlukan untuk testing.
+- **Optimistic UI:** Setiap mutasi yang memerlukan feedback instan wajib menggunakan `correlationId` (seperti `optimisticId`) untuk rekonsiliasi state di frontend. Lihat [optimistic-ui-flow.md](mdc:docs/optimistic-ui-flow.md).
+- **Idempotency:** Action dan Controller harus menangani potensi pengiriman ganda. Gunakan validasi timestamp atau ID unik untuk mencegah data basi menimpa data baru.
 - Apabila service dan repository memiliki kemungkinan untuk memndapatkan beberapa implementasi, maka buat interface nya dulu contohnya adalah [email.service.interface.ts](mdc:src/lib/application/services/email.service.interface.ts) dan implementasi nya adalah [resend-email.service.ts](mdc:src/lib/infrastructure/services/email/resend-email.service.ts) sehingga nanti jika saya butuh implementasi dengan email service lain tinggal menggunakan interface nya saja.
 - Use case dan controller bersifat spesifik, sedangkan action bersifat grup, contohnya action [auth.action.ts](mdc:src/app/auth.action.ts) yang dapat berisi [sign-in.controller.ts](mdc:src/lib/interface-adapters/controllers/auth/sign-in.controller.ts) dan controller lain yang berkaitan dengan auth
 

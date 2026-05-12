@@ -13,10 +13,15 @@ Ketika pesan baru tiba, sistem akan memberitahu semua peserta ruangan melalui Pu
 ### 2. Throttled Viewport Marking (Slack-style)
 Untuk menghindari update server yang berlebihan dan memastikan akurasi "pesan benar-benar dibaca", sistem menggunakan pendekatan throttled.
 - **Hook (`useMarkAsRead.ts`)**: Menggunakan `IntersectionObserver` untuk melacak pesan yang masuk ke viewport.
-- **Delay (1.5 Detik)**: Pesan baru ditandai sebagai "dibaca" hanya jika pesan tersebut menetap di viewport selama minimal 1.5 detik. Jika user melakukan scroll cepat melewati pesan tersebut, timer akan dibatalkan (cancel).
+- **Delay (600ms)**: Pesan baru ditandai sebagai "dibaca" jika menetap di viewport selama minimal 600ms (dioptimalkan dari sebelumnya 1.5s untuk responsivitas tinggi).
 - **Auto-Mark All**: Jika user melakukan scroll hingga mencapai bagian paling bawah chat, seluruh pesan di ruangan tersebut akan langsung ditandai sebagai dibaca.
 
-### 3. Sinkronisasi Antar Perangkat (Multi-device Sync)
+### 3. Exit Animations & Initial Anchoring
+Untuk memberikan pengalaman yang mulus dan mencegah separator unread "meloncat" saat pesan mulai dibaca:
+- **Initial Anchor**: Garis unread dikunci pada posisi pesan pertama yang belum dibaca saat user masuk. Garis tidak akan berpindah (turun satu per satu) meskipun pesan di bawahnya dibaca.
+- **Framer Motion Exit**: Saat status unread dibersihkan, garis separator akan menghilang dengan animasi *fade-out* dan *height-collapse* yang halus.
+
+### 4. Sinkronisasi Antar Perangkat (Multi-device Sync)
 Status "sudah dibaca" disinkronkan di semua tab atau perangkat user yang sedang aktif.
 - **Backend (`UpdateLastReadAtUseCase.ts`)**: Setelah database berhasil diupdate, server akan mengirim event `room-marked-read` ke channel pribadi user (`user-{userId}`).
 - **Frontend**: `RealtimeNotificationListener.tsx` mendengarkan event ini dan memanggil `markAsRead(roomId)` pada `UnreadProvider` lokal, sehingga indikator unread di sidebar hilang secara otomatis di tab lain.
@@ -31,9 +36,10 @@ Untuk menjaga konsistensi antara tampilan chat dan sidebar:
     - **Visual**: Animasi pulse dihilangkan untuk tampilan yang lebih bersih.
 
 ## Aturan Pengembangan (Guardrails)
-1. **Prioritas Kebenaran**: Selalu gunakan `lastReadAt` (timestamp) sebagai *Primary Source of Truth*. `lastReadAt` kini menyimpan **waktu pembuatan pesan** (`createdAt`) terakhir yang dibaca, bukan waktu aksi "mark as read". `lastReadMessageId` berfungsi sebagai anchor sekunder.
-2. **Sender Awareness**: Filter ketat `userId !== currentUserId` wajib diterapkan di semua logika penentuan status unread (seperti `if (message.userId === user.id) return;` di `RealtimeNotificationListener.tsx`) agar pesan sendiri tidak memicu indikator.
-3. **Clean Architecture**: Logika broadcast dan penentuan unread harus tetap berada di layer Use Case.
+1. **Prioritas Kebenaran (Timestamp-First)**: Selalu gunakan `lastReadAt` (timestamp) sebagai *Primary Source of Truth*. Update hanya dilakukan jika timestamp baru **lebih besar** (lebih baru) dari yang tersimpan. Hal ini mencegah *stale data* dari server menimpa update lokal yang cepat.
+2. **Auto-Mark at Bottom**: Jika user berada di dasar chat (`isAtBottom: true`), setiap pesan baru yang masuk (via Pusher) harus otomatis ditandai sebagai dibaca tanpa menunggu interaksi scroll tambahan.
+3. **Sender Awareness**: Filter ketat `userId !== currentUserId` wajib diterapkan di semua logika penentuan status unread agar pesan sendiri tidak memicu indikator.
+4. **Clean Architecture**: Logika broadcast dan penentuan unread harus tetap berada di layer Use Case.
 
 ## Handling Message Deletions (Robust Deletion Strategy)
 Untuk menjaga konsistensi posisi separator unread saat ada pesan yang dihapus:

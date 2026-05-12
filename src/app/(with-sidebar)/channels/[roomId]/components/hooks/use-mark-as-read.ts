@@ -58,7 +58,7 @@ export function useMarkAsRead(
                 timersRef.current[messageId] = setTimeout(() => {
                   markAsReadRef.current(messageId);
                   delete timersRef.current[messageId];
-                }, 1500); // 1.5 seconds delay (Slack-style throttled)
+                }, 600); // Reduced to 600ms for near-instant feedback
               }
             } else {
               // If it leaves the viewport before the timer finishes, cancel it
@@ -71,7 +71,7 @@ export function useMarkAsRead(
         },
         { 
           root: viewportRef.current,
-          threshold: 0.5, // 50% visible to consider "viewing"
+          threshold: 0.01, // 1% visible is enough to trigger "read"
           rootMargin: "0px"
         }
       );

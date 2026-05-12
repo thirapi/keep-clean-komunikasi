@@ -132,8 +132,18 @@ class ClientChatCache {
   async setLastRead(roomId: string, messageId: string | null, lastReadAt?: Date | null) {
     if (typeof window === "undefined") return;
     try {
-      this.memLastRead.set(roomId, { id: messageId, at: lastReadAt || null });
       const existing = await db.roomMetadata.get(roomId);
+      
+      // Harden against race conditions: only update if the new timestamp is newer than existing
+      if (existing?.lastReadAt && lastReadAt) {
+        const existingDate = new Date(existing.lastReadAt);
+        if (lastReadAt < existingDate) {
+          console.log("Ignoring out-of-order read state update for room", roomId);
+          return;
+        }
+      }
+
+      this.memLastRead.set(roomId, { id: messageId, at: lastReadAt || null });
       await db.roomMetadata.put({
         roomId,
         roomData: existing?.roomData ?? null,

@@ -12,7 +12,8 @@ import { UnreadSeparator } from "./unread-separator";
 import { DateAndUnreadSeparator } from "./date-and-unread-separator";
 import { Button } from "@/components/ui/button";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function MessageList({
   messages,
@@ -47,34 +48,57 @@ export function MessageList({
   highlightedMessageId?: string | null;
   onScrollToMessage?: (messageId: string) => void;
 }) {
-  // Use useMemo to avoid recalculating on every render, and only calculate if messages are loaded.
-  const unreadSeparatorIndex = useMemo(() => {
-    // 1. If we have a valid ID, try to find it
+  // --- UNREAD SEPARATOR LOGIC ---
+  // We want the separator to stay at its INITIAL position when the user entered.
+  // It should not "jump" or "descend" as messages are marked as read.
+  const [initialUnreadId, setInitialUnreadId] = useState<string | null>(null);
+  const [isUnreadCleared, setIsUnreadCleared] = useState(false);
+
+  // Initialize the initial unread marker ONLY once on mount or when messages first load
+  useEffect(() => {
+    if (initialUnreadId || messages.length === 0) return;
+
+    let firstUnreadIdx = -1;
     if (lastReadMessageId) {
       const lastReadIndex = messages.findIndex(msg => msg.id === lastReadMessageId);
       if (lastReadIndex !== -1) {
-        // ID found: look for the first message AFTER it that isn't from the user
         for (let i = lastReadIndex + 1; i < messages.length; i++) {
-          if (messages[i].userId !== userId) return i;
+          if (messages[i].userId !== userId) {
+            firstUnreadIdx = i;
+            break;
+          }
         }
-        // If all messages after anchor are from user, no separator
-        return -1;
       }
-    }
-
-    // 2. Fallback: Use lastReadAt timestamp
-    // If ID is missing (deleted) or not found in current messages, trust the timestamp
-    if (lastReadAt) {
+    } else if (lastReadAt) {
       const lastReadTime = new Date(lastReadAt).getTime();
-      const firstUnreadIndex = messages.findIndex(msg =>
+      firstUnreadIdx = messages.findIndex(msg =>
         new Date(msg.createdAt).getTime() > lastReadTime &&
         msg.userId !== userId
       );
-      return firstUnreadIndex;
     }
 
-    return -1;
-  }, [messages, lastReadMessageId, lastReadAt, userId]);
+    if (firstUnreadIdx !== -1) {
+      setInitialUnreadId(messages[firstUnreadIdx].id);
+    }
+  }, [messages, lastReadMessageId, lastReadAt, userId, initialUnreadId]);
+
+  // Monitor if the unread state has been cleared (lastReadAt is newer than our initial unread message)
+  useEffect(() => {
+    if (!initialUnreadId || isUnreadCleared) return;
+
+    const unreadMsg = messages.find(m => m.id === initialUnreadId);
+    if (!unreadMsg) return;
+
+    const unreadTime = new Date(unreadMsg.createdAt).getTime();
+    const currentReadTime = lastReadAt ? new Date(lastReadAt).getTime() : 0;
+
+    // If we have now read past the initial unread message OR the ID itself is now the lastReadId
+    if (currentReadTime >= unreadTime || lastReadMessageId === initialUnreadId) {
+      // Small delay for UX so user sees the line for a split second before it fades
+      const timer = setTimeout(() => setIsUnreadCleared(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, lastReadAt, lastReadMessageId, initialUnreadId, isUnreadCleared]);
 
   let lastDate: string | null = null;
 
@@ -102,17 +126,17 @@ export function MessageList({
   messages.forEach((msg, index) => {
     const currentDate = new Date(msg.createdAt).toDateString();
     const shouldShowDate = currentDate !== lastDate;
-    const isUnread =
-      unreadSeparatorIndex !== -1 && index === unreadSeparatorIndex;
-    const showDateSeparator = shouldShowDate && !isUnread;
-    const showUnreadAndDate = shouldShowDate && isUnread;
+    const isInitialUnread = initialUnreadId === msg.id && !isUnreadCleared;
+    
+    const showDateSeparator = shouldShowDate && !isInitialUnread;
+    const showUnreadAndDate = shouldShowDate && isInitialUnread;
 
     const prevMsg = index > 0 ? messages[index - 1] : null;
     const isSameSender = prevMsg?.userId === msg.userId;
     const msgTime = new Date(msg.createdAt).getTime();
     const prevTime = prevMsg ? new Date(prevMsg.createdAt).getTime() : 0;
     const isRecent = msgTime - prevTime < 5 * 60 * 1000; // 5 minutes
-    const isContinuation = isSameSender && isRecent && !shouldShowDate && !isUnread;
+    const isContinuation = isSameSender && isRecent && !shouldShowDate && !isInitialUnread;
 
     lastDate = currentDate;
 
@@ -120,23 +144,46 @@ export function MessageList({
       <div
         id={`message-${msg.id}`}
         key={`msg-container-${msg.id}`}
-        ref={isUnread ? unreadRef : null}
+        ref={isInitialUnread ? unreadRef : null}
         data-message-id={msg.id}
         className="message-container"
       >
-        <>
+        <AnimatePresence mode="popLayout">
           {showDateSeparator && index > 0 && (
-            <DateSeparator date={new Date(msg.createdAt)} />
+            <motion.div
+              key={`date-${msg.id}`}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <DateSeparator date={new Date(msg.createdAt)} />
+            </motion.div>
           )}
 
           {showUnreadAndDate && (
-            <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
+            <motion.div
+              key={`unread-date-${msg.id}`}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
+              className="overflow-hidden"
+            >
+              <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
+            </motion.div>
           )}
 
-          {!showDateSeparator && !showUnreadAndDate && isUnread && (
-            <UnreadSeparator />
+          {!showDateSeparator && !showUnreadAndDate && isInitialUnread && (
+            <motion.div
+              key={`unread-${msg.id}`}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
+              className="overflow-hidden"
+            >
+              <UnreadSeparator />
+            </motion.div>
           )}
-        </>
+        </AnimatePresence>
 
         <MessageItem
           message={msg}
@@ -144,7 +191,7 @@ export function MessageList({
           onReply={onReply}
           currentUserId={userId}
           isContinuation={isContinuation}
-          isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isUnread)}
+          isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isInitialUnread)}
           isHighlighted={msg.id === highlightedMessageId}
           onScrollToMessage={onScrollToMessage}
         />

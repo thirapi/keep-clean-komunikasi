@@ -372,8 +372,8 @@ export function MessageItem({
                   <div
                     key={idx}
                     className={cn(
-                      "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto",
-                      imagesAndVideos.length === 1 ? "aspect-auto max-h-[400px]" : "aspect-[4/3]",
+                      "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto bg-muted/30",
+                      imagesAndVideos.length === 1 ? "aspect-auto min-h-[200px] max-h-[450px]" : "aspect-[4/3]",
                       imagesAndVideos.length === 3 && idx === 0 && "col-span-2 aspect-[2/1]",
                     )}
                     onClick={(e) => { e.stopPropagation(); openLightbox(idx); }}

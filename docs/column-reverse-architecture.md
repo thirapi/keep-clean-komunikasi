@@ -13,6 +13,11 @@ Dengan melakukan pembaharuan pada berkas `message-list.tsx`:
 3. Titik tersebut (scroll-y `0`) selamanya mengakar di dasar chat.
 4. **Natural Anchoring (Tanpa JS)**: Saat barisan teks baru ditembakkan melalui memori cache maupun soket *Pusher*, atau saat memuat rekam jejak gambar (*dynamic image resize*), batas atas dari layout tersebut sekadar menjauh ke teratas langit-langit layar (terekstrusi ke belakang) *TANPA* mengusik/merubah patokan `ScrollTop = 0`. Hal ini menghilangkan mutlak peranan `ResizeObserver` atau komputasi gulir.
 
+## Stabilitas Layout Media
+Meskipun `flex-col-reverse` menangani pertumbuhan konten di atas dengan sangat baik, pemuatan aset media (gambar/video) tetap dapat menyebabkan *layout shift* yang mengganggu jika dimensi akhir tidak diketahui.
+- **Placeholder & Aspect Ratio:** Setiap kontainer media wajib memiliki `bg-muted` dan `min-height` atau `aspect-ratio` yang disetel secara eksplisit (misal: `aspect-[4/3]` untuk grid atau `min-h-[200px]` untuk single image).
+- **Extrusion Direction:** Karena patokan kita berada di dasar (bawah), maka "ledakan" ukuran gambar akan mengekstrusi pesan-pesan lama ke arah atas, menjaga pesan terbaru tetap terlihat tanpa pergerakan tiba-tiba pada area yang sedang dibaca pengguna.
+
 ## Konvensi yang Harus Dijaga
 **DILARANG membalik ulang iterasi di DOM**. 
 Setiap barisan *Component* harus disusun ke dalam koleksi kronologis normal lalu dikunci menggunakan perputaran utuh sebelum diproduksi ulang. Hal ini demi merekayasa pelukisan CSS tetapi tetap menetapkan logika hari dan pemisah unread (*Date And Unread Separators*) menyatu solid dan bermakna normal di balik layar.

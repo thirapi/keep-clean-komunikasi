@@ -17,7 +17,8 @@ export class SendMessageUseCase {
     content: string,
     roomId: string,
     replyTo?: string,
-    attachments?: { url: string; key: string; fileType: string; size?: number }[]
+    attachments?: { url: string; key: string; fileType: string; size?: number }[],
+    optimisticId?: string
   ): Promise<MessageWithUserDTO> {
     const message = await this.messageRepository.createMessage(
       userId,
@@ -27,7 +28,9 @@ export class SendMessageUseCase {
       attachments
     );
 
-    await this.pusherService.trigger(`chat-${roomId}`, "new-message", message);
+    const messageWithOptimisticId = { ...message, optimisticId };
+
+    await this.pusherService.trigger(`chat-${roomId}`, "new-message", messageWithOptimisticId);
 
     // ... existing logic for notifications ...
     const roomName = await this.roomRepository.getRoomById(roomId);
@@ -43,7 +46,7 @@ export class SendMessageUseCase {
       receiverIds,
       "new-message-notification",
       {
-        message,
+        message: messageWithOptimisticId,
         senderId: userId,
       }
     );
@@ -58,6 +61,6 @@ export class SendMessageUseCase {
       ].join("\n")
     );
 
-    return message;
+    return messageWithOptimisticId;
   }
 }

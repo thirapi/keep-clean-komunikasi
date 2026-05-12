@@ -155,4 +155,17 @@ describe("SendMessageUseCase", () => {
     expect(result.attachments?.[0].fileType).toBe("video/mp4")
     expect(result).toEqual(mockMessage)
   })
+
+  it("should pass through optimisticId if provided", async () => {
+    const mockMessage = { ...baseMessage, user: { username: "user1" } }
+    vi.mocked(mockRepo.createMessage).mockResolvedValue(mockMessage)
+    const optimisticId = "opt-123"
+
+    const useCase = createUseCase()
+    const result = await useCase.execute("user1", "Hello", "room1", undefined, undefined, optimisticId)
+
+    const expectedMessage = { ...mockMessage, optimisticId }
+    expect(mockPusher.trigger).toHaveBeenCalledWith("chat-room1", "new-message", expectedMessage)
+    expect(result.optimisticId).toBe(optimisticId)
+  })
 })

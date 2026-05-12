@@ -31,11 +31,12 @@ export const setTypingStatusAction = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -56,11 +57,12 @@ export const deleteMessageAction = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -73,10 +75,11 @@ export const createMessage = async (
   content: string,
   roomId: string,
   replyTo?: string,
-  attachments?: { url: string; key: string; fileType: string; size?: number }[]
+  attachments?: { url: string; key: string; fileType: string; size?: number }[],
+  optimisticId?: string
 ): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
-    const data = await sendMessageController(userId, content, roomId, replyTo, attachments);
+    const data = await sendMessageController(userId, content, roomId, replyTo, attachments, optimisticId);
 
     return {
       status: "success",
@@ -84,11 +87,12 @@ export const createMessage = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -106,11 +110,12 @@ export const getMessage = async (roomId: string, limit?: number, before?: Date, 
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -140,11 +145,12 @@ export const uploadFileAction = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -159,6 +165,14 @@ export const updateLastReadAt = async (
   lastReadAt?: Date
 ): Promise<ServerResponse<null>> => {
   try {
+    if (!userId || userId === "" || userId === "null") {
+      return {
+        status: "error",
+        data: null,
+        error: { message: "User ID is required", type: "ValidationError" },
+      };
+    }
+
     await updateLastReadAtController(userId, roomId, messageId, lastReadAt);
 
     revalidatePath("/(with-sidebar)", "layout");
@@ -169,11 +183,12 @@ export const updateLastReadAt = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },
@@ -193,11 +208,12 @@ export const getLastReadAt = async (
       error: null,
     };
   } catch (err: any) {
+    console.error("Action Error:", err);
     return {
       status: "error",
       data: null,
       error: {
-        message: err.message,
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,
         meta: err.fields,
       },

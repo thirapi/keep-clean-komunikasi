@@ -9,7 +9,7 @@
     - Use `UnreadProvider` for UI state.
     - `RealtimeNotificationListener` is the entry point for Pusher-based unread/read synchronization.
 2. **Viewport Performance**:
-    - Marking as read via scroll should always be throttled (1.5s delay) to prevent server overload.
+    - Marking as read via scroll is optimized for responsiveness (~600ms delay) to balance server load and user experience.
     - Refer to `useMarkAsRead.ts` for implementation details.
 3. **Local-First Caching**:
     - Message fetching is implemented primarily using the **Stale-While-Revalidate** pattern against IndexedDB.
@@ -19,5 +19,5 @@
     - Refer to [docs/column-reverse-architecture.md](./docs/column-reverse-architecture.md) for deep-dive.
 5. **Multi-device Sync**:
     - Backend must broadcast `room-marked-read` to the user's private channel after a successful update.
-4. **Robust Deletion Strategy**:
+6. **Robust Deletion Strategy**:
     - Message deletions MUST execute `fallbackLastReadMessageId` from `roomRepository` prior to deletion to adjust anchors safely.

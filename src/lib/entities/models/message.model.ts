@@ -11,6 +11,7 @@ export interface MessageRecord {
   updatedAt: Date;
   attachments?: AttachmentRecord[];
   isOptimistic?: boolean;
+  optimisticId?: string;
 }
 
 export interface MessageWithUserDTO extends MessageRecord {
