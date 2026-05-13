@@ -14,6 +14,7 @@ import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { revalidatePath } from "next/cache";
 import { deleteMessageController } from "@/lib/interface-adapters/controllers/messages/delete-message.controller";
 import { editMessageController } from "@/lib/interface-adapters/controllers/messages/edit-message.controller";
+import { searchMessagesController } from "@/lib/interface-adapters/controllers/messages/search-messages.controller";
 
 export const setTypingStatusAction = async (
   userId: string,
@@ -36,6 +37,33 @@ export const setTypingStatusAction = async (
     return {
       status: "error",
       data: null,
+      error: {
+        message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
+        type: err.name,
+        meta: err.fields,
+      },
+    };
+  }
+};
+
+export const searchMessagesAction = async (
+  query: string,
+  roomId?: string,
+  limit?: number
+): Promise<ServerResponse<MessageWithUserDTO[]>> => {
+  try {
+    const data = await searchMessagesController(query, roomId, limit);
+
+    return {
+      status: "success",
+      data,
+      error: null,
+    };
+  } catch (err: any) {
+    console.error("Action Error:", err);
+    return {
+      status: "error",
+      data: [],
       error: {
         message: err.message?.includes("Failed query") ? "Gagal memproses permintaan ke database" : err.message || "Terjadi kesalahan internal",
         type: err.name,

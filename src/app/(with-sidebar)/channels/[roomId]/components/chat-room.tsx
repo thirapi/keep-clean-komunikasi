@@ -15,6 +15,7 @@ import { MessageInput } from "./message-input";
 import { ChatHeader } from "./chat-header";
 import { MemberList } from "./member-list";
 import { MobileMemberList } from "./mobile-member-list";
+import { MessageSearch } from "@/components/message-search";
 import { useScrollToInitial } from "./hooks/use-scroll-to-initial";
 import { useAutoScroll } from "./hooks/use-auto-scroll";
 import { useAutoFocusInput } from "./hooks/use-auto-focus-input";
@@ -49,6 +50,7 @@ export function ChatRoom({
   const { onlineUserIds } = usePresence();
   const { markAsRead: markSidebarAsRead } = useUnread();
   const [showMembers, setShowMembers] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<MessageWithUserDTO | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
@@ -126,6 +128,18 @@ export function ChatRoom({
       setMessages(initialMessages);
     }
   }, [initialMessages]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const sendNotification = useCallback(
     (msg: MessageWithUserDTO) => {
@@ -465,6 +479,7 @@ export function ChatRoom({
         roomData={localRoomData}
         currentUserId={userId}
         onToggleMembers={() => setShowMembers((prev) => !prev)}
+        onToggleSearch={() => setIsSearchOpen(true)}
         membersVisible={showMembers}
         onlineUserIds={onlineUserIds}
         onUpdateRoom={(data) =>
@@ -523,6 +538,12 @@ export function ChatRoom({
         isOpen={showMembers && isMobile}
         onClose={() => setShowMembers(false)}
         currentUserId={userId}
+      />
+      <MessageSearch
+        isOpen={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        roomId={localRoomData.id}
+        onSelectMessage={scrollToMessage}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { messages, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, asc, desc, lt, gt, and } from "drizzle-orm";
+import { eq, asc, desc, lt, gt, and, ilike } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
   MessageWithUserDTO,
@@ -160,5 +160,38 @@ export class MessageRepository implements IMessageRepository {
 
   async deleteMessage(messageId: string): Promise<void> {
     await this.client.update(messages).set({ isDeleted: true }).where(eq(messages.id, messageId));
+  }
+
+  async searchMessages(query: string, roomId?: string, limit: number = 20): Promise<MessageWithUserDTO[]> {
+    const filters = [ilike(messages.content, `%${query}%`), eq(messages.isDeleted, false)];
+    if (roomId) {
+      filters.push(eq(messages.roomId, roomId));
+    }
+
+    const results = await this.client.query.messages.findMany({
+      where: and(...filters),
+      orderBy: [desc(messages.createdAt)],
+      limit: limit,
+      with: {
+        user: {
+          columns: {
+            username: true,
+            avatar: true,
+          },
+        },
+        replyToMessage: {
+          with: {
+            user: {
+              columns: {
+                username: true,
+              },
+            },
+          },
+        },
+        attachments: true,
+      },
+    });
+
+    return results as unknown as MessageWithUserDTO[];
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Users, Info } from "lucide-react";
+import { Users, Info, Search } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +20,7 @@ interface ChatHeaderProps {
   roomData: RoomWithParticipantsDTO;
   currentUserId: string;
   onToggleMembers?: () => void;
+  onToggleSearch?: () => void;
   membersVisible: boolean;
   onlineUserIds: string[];
   onUpdateRoom?: (data: Partial<RoomWithParticipantsDTO>) => void;
@@ -28,6 +29,7 @@ interface ChatHeaderProps {
 export function ChatHeader({
   roomData,
   onToggleMembers,
+  onToggleSearch,
   currentUserId,
   membersVisible,
   onlineUserIds,
@@ -171,6 +173,39 @@ export function ChatHeader({
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                {/* Desktop: Prominent Search Bar style button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onToggleSearch}
+                  className="hidden md:flex items-center gap-3 h-9 px-3 text-muted-foreground hover:text-foreground transition-all border-dashed bg-muted/30 hover:bg-muted/50 rounded-lg group"
+                >
+                  <Search className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-medium">Cari pesan...</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
+                </Button>
+
+                {/* Mobile: Simple Icon Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleSearch}
+                  className="md:hidden transition-colors duration-200 flex-shrink-0"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Cari Pesan (⌘K)</p>
+            </TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

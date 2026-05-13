@@ -1,7 +1,7 @@
 // src/app/(with-sidebar)/channels/[roomId]/components/message-input.tsx
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect, useMemo } from "react";
 import { createMessage, uploadFileAction } from "../messages.action";
 import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,10 @@ import { setTypingStatusAction } from "../messages.action";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
-import { CornerLeftUp, X, Paperclip, FileIcon } from "lucide-react";
+import { CornerLeftUp, X, Paperclip, FileIcon, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiPickerComponent } from "./emoji-picker";
+import { MarkdownToolbar } from "./markdown-toolbar";
 
 interface Props {
   userId: string;
@@ -317,6 +318,19 @@ export function MessageInput({
     return () => window.removeEventListener("paste", handlePaste);
   }, [selectedFiles.length]);
 
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  const syncScroll = useCallback(() => {
+    if (inputRef.current && highlightRef.current) {
+      highlightRef.current.scrollTop = inputRef.current.scrollTop;
+    }
+  }, [inputRef]);
+
+  // Sync scroll on content change or scroll event
+  useEffect(() => {
+    syncScroll();
+  }, [content, syncScroll]);
+
   return (
     <div className="flex flex-col gap-0 px-3 sm:px-6 pb-4 sm:pb-6">
       {/* File Previews */}
@@ -401,9 +415,12 @@ export function MessageInput({
         </div>
       )}
 
+      {/* Live Markdown Preview removed in favor of inline highlighting */}
+
+
       <div
         className={cn(
-          "flex items-end gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
+          "flex items-end gap-1 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
           (replyingTo || selectedFiles.length > 0) ? "rounded-b-xl border-t-0" : "rounded-xl",
         )}
       >
@@ -416,21 +433,57 @@ export function MessageInput({
           accept="image/*,video/*,.pdf,.doc,.docx,.txt"
         />
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          className="h-9 w-9 mb-0.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
-        >
-          <Paperclip className="h-5 w-5" />
-        </Button>
-
-        <div className="flex-1 relative flex items-center gap-1">
+        <div className="flex items-center gap-0.5 h-9 mb-0.5 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <Paperclip className="h-4.5 w-4.5" />
+          </Button>
           <EmojiPickerComponent
             onEmojiSelect={(emoji) => {
               setContent((prev) => prev + emoji);
               inputRef.current?.focus();
+            }}
+          />
+          <MarkdownToolbar
+            textareaRef={inputRef as any}
+            onApplyMarkdown={(newContent) => {
+              setContent(newContent);
+              handleTyping();
+            }}
+          />
+        </div>
+
+        <div className="flex-1 relative min-h-[40px] max-h-[200px] mb-0.5">
+          <div
+            ref={highlightRef}
+            aria-hidden="true"
+            className="absolute inset-0 px-3 py-2 text-[14px] leading-relaxed whitespace-pre-wrap break-words pointer-events-none overflow-hidden text-foreground/90 select-none font-sans"
+            dangerouslySetInnerHTML={{
+              __html: content
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                // Bold: **text**
+                .replace(/(\*\*)(.*?)(\*\*)/g, '<span class="text-muted-foreground/30">$1</span><span class="font-bold text-foreground">$2</span><span class="text-muted-foreground/30">$3</span>')
+                // Italic: _text_
+                .replace(/(_)(.*?)(_)/g, '<span class="text-muted-foreground/30">$1</span><span class="italic text-foreground">$2</span><span class="text-muted-foreground/30">$3</span>')
+                // Strikethrough: ~~text~~
+                .replace(/(~~)(.*?)(~~)/g, '<span class="text-muted-foreground/30">$1</span><span class="line-through opacity-70">$2</span><span class="text-muted-foreground/30">$3</span>')
+                // Code Block: ```text``` (multiline)
+                .replace(/(```[\s\S]+?```)/g, '<span class="text-primary/40 opacity-60">$1</span>')
+                // Inline Code: `text`
+                .replace(/(`)([^`]+?)(`)/g, '<span class="text-muted-foreground/40">$1</span><span class="bg-[#F8F8F8] dark:bg-[#2D2D2D] px-1 rounded border border-[#E1E1E1] dark:border-[#3D3D3D] text-[#E01E5A] dark:text-[#FF7B72]">$2</span><span class="text-muted-foreground/40">$3</span>')                // Blockquote: > text
+                .replace(/^(&gt;)(.*)/gm, '<span class="text-primary/40">$1</span><span class="italic opacity-80 border-l-2 border-primary/20 pl-1 ml-0.5">$2</span>')
+                // Header: # text
+                .replace(/^(#{1,6}\s)(.*)/gm, '<span class="text-primary/40">$1</span><span class="font-bold text-primary">$2</span>')
+                // URL/Links (Basic)
+                .replace(/(https?:\/\/[^\s]+)/g, '<span class="text-sky-400 underline opacity-90">$1</span>')
+                + (content.endsWith('\n') ? '\n ' : '')
             }}
           />
           <textarea
@@ -441,12 +494,14 @@ export function MessageInput({
               setContent(e.target.value);
               handleTyping();
             }}
+            onScroll={syncScroll}
             onBlur={() => {
               sendStopTypingEvent();
             }}
             onKeyDown={handleKeyDown}
+            spellCheck="false"
             placeholder={`Tulis pesan di #${roomData.name}`}
-            className="flex-1 bg-transparent border-none text-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none min-h-[40px] max-h-[200px] px-3 py-2.5 text-[14px] leading-relaxed overflow-y-auto"
+            className="relative w-full h-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-[14px] leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
             rows={1}
           />
         </div>
@@ -455,8 +510,7 @@ export function MessageInput({
           onClick={() => handleSend()}
           disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
           className="h-9 w-9 p-0 mb-0.5 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
-        >
-          {isSending ? (
+        >          {isSending ? (
             <div className="flex items-center justify-center gap-1">
               {[0, 0.2, 0.4].map((delay, i) => (
                 <div

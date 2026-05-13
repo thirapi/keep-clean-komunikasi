@@ -1,7 +1,10 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { XEmbed } from "@/components/ui/x-embed";
+import { LinkPreviewCard } from "./link-preview-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
 // Module-level constants — compiled once, not on every render
@@ -293,32 +296,131 @@ export function MessageItem({
       const xMatch = url.match(X_REGEX);
       if (xMatch) {
         embeds.push(<XEmbed key={url} tweetUrl={url} />);
+      } else {
+        embeds.push(<LinkPreviewCard key={url} url={url} />);
       }
     });
 
     return embeds;
   }, [message.content]);
 
-  const renderContent = (content: string) => {
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/g;
-    return content.split(urlRegex).map((part, index) => {
-      if (part.match(/^(https?:\/\/|www\.)/)) {
-        const href = part.startsWith("www.") ? `https://${part}` : part;
-        return (
-          <a
-            key={index}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline break-all font-medium"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </a>
-        );
-      }
-      return part;
-    });
+const renderContent = (content: string) => {
+  if (!content) return null;
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        ...markdownComponents,
+        pre: ({ children }: any) => {
+          const codeElement = React.Children.only(children);
+          const codeContent = String(codeElement.props.children).replace(/\n$/, "");
+
+          return (
+            <div className="group/code relative my-3 w-full max-w-[calc(100vw-3rem)] md:max-w-full overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
+              {/* Code */}
+              <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                {/* Copy Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="
+                    absolute right-3 top-3
+                    h-7 w-7 rounded-md
+                    border border-border/40
+                    bg-background/70 backdrop-blur-sm
+                    text-muted-foreground/60
+                    opacity-0 transition-all duration-200
+                    group-hover/code:opacity-100
+                    hover:bg-black/5 hover:text-foreground
+                    dark:hover:bg-white/5
+                  "
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(codeContent);
+                    toast.success("Kode disalin!");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+
+                {children}
+              </pre>
+            </div>
+          );
+        },
+        code: ({ node, className, children, ...props }: any) => {
+          const isBlock = !!className;
+
+          // Block code
+          if (isBlock) {
+            return (
+              <code
+                className={cn(
+                  "block whitespace-pre font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
+                  className
+                )}
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          }
+
+          // Inline code
+          return (
+            <code
+              className="
+                mx-0.5 break-words rounded-xs
+                bg-[#F8F8F8] dark:bg-[#2D2D2D]
+                px-[5px] py-[1.5px]
+                font-mono text-[12px] font-medium
+                text-[#E01E5A] dark:text-[#FF7B72]
+              "
+              {...props}
+            >
+              {children}
+            </code>
+          );
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+};
+
+  const markdownComponents = {
+    a: ({ node, ...props }: any) => (
+      <a
+        {...props}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary hover:underline break-all transition-colors font-semibold"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    p: ({ children }: any) => <p className="mb-1.5 last:mb-0 leading-relaxed text-[13.5px]">{children}</p>,
+    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-2 space-y-1 mt-1">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-2 space-y-1 mt-1">{children}</ol>,
+    li: ({ children }: any) => <li className="pl-1 leading-relaxed">{children}</li>,
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-4 border-primary/40 px-4 italic text-muted-foreground/90 my-2 bg-muted/20 rounded-r-lg">
+        {children}
+      </blockquote>
+    ),
+    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{children}</h3>,
+    hr: () => <hr className="my-4 border-border/20" />,
+    table: ({ children }: any) => (
+      <div className="overflow-x-auto my-3 rounded-lg border border-border/50">
+        <table className="w-full text-sm border-collapse">{children}</table>
+      </div>
+    ),
+    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
+    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{children}</th>,
+    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{children}</td>,
   };
 
   const isOnline = onlineUserIds.includes(message.userId);

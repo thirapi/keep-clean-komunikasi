@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash } from "lucide-react";
+import { User, Hash, Search } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -25,6 +25,8 @@ import { ExploreChannelsDialog } from "./explore-channels-dialog";
 import { useUnread } from "@/components/unread-provider";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { usePanelRef } from "react-resizable-panels";
+import { MessageSearch } from "@/components/message-search";
+import { Button } from "@/components/ui/button";
 
 const brand = {
   name: "Komunikasi",
@@ -64,6 +66,7 @@ export function AppSidebar({
   const { unreadRooms, initializeUnread } = useUnread();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
+  const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
 
   React.useEffect(() => {
     initializeUnread(
@@ -143,6 +146,20 @@ export function AppSidebar({
     >
       <SidebarHeader>
         <NavBrand brand={brand} />
+        <div className="px-2 pb-0 mb-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
+            onClick={() => setOpenGlobalSearch(true)}
+          >
+            <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
+            <span className="truncate">Pencarian Global...</span>
+            <kbd className="ml-auto pointer-events-none hidden sm:inline-flex h-4 select-none items-center gap-1 rounded border bg-background px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100">
+              ⌘K
+            </kbd>
+          </Button>
+        </div>
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <Group orientation="vertical" className="w-full min-w-0">
@@ -198,6 +215,15 @@ export function AppSidebar({
         open={openExploreChannels}
         onOpenChange={setOpenExploreChannels}
         userId={user.id}
+      />
+      <MessageSearch
+        isOpen={openGlobalSearch}
+        onOpenChange={setOpenGlobalSearch}
+        onSelectMessage={(messageId, roomId) => {
+          if (roomId) {
+            router.push(`/channels/${roomId}?messageId=${messageId}`);
+          }
+        }}
       />
     </Sidebar>
   );
