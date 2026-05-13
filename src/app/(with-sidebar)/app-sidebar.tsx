@@ -12,6 +12,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
@@ -23,10 +24,15 @@ import { pusher } from "@/lib/pusher/pusher.client";
 import { CreateChannelDialog } from "./create-channel-dialog";
 import { ExploreChannelsDialog } from "./explore-channels-dialog";
 import { useUnread } from "@/components/unread-provider";
-import { Group, Panel, Separator } from "react-resizable-panels";
-import { usePanelRef } from "react-resizable-panels";
+import { Group, Panel } from "react-resizable-panels";
 import { MessageSearch } from "@/components/message-search";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const brand = {
   name: "Komunikasi",
@@ -63,6 +69,7 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const router = useRouter();
+  const { state } = useSidebar();
   const { unreadRooms, initializeUnread } = useUnread();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
@@ -116,7 +123,6 @@ export function AppSidebar({
     const channel = pusher.subscribe(`user-${user.id}`);
 
     channel.bind("new-message-notification", (data: { roomId: string }) => {
-      // Play sound
       try {
         const audio = new Audio("/sounds/message-notification.mp3");
         audio.play().catch((e) => console.warn("Audio play failed", e));
@@ -124,7 +130,6 @@ export function AppSidebar({
         console.warn("Audio context failed", e);
       }
 
-      // Update UI
       router.refresh();
     });
 
@@ -147,18 +152,31 @@ export function AppSidebar({
       <SidebarHeader>
         <NavBrand brand={brand} />
         <div className="px-2 pb-0 mb-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
-            onClick={() => setOpenGlobalSearch(true)}
-          >
-            <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
-            <span className="truncate">Pencarian Global...</span>
-            <kbd className="ml-auto pointer-events-none hidden sm:inline-flex h-4 select-none items-center gap-1 rounded border bg-background px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100">
-              ⌘K
-            </kbd>
-          </Button>
+          {state === "expanded" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
+              onClick={() => setOpenGlobalSearch(true)}
+            >
+              <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
+              <span className="truncate">Pencarian Global...</span>
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
+                  onClick={() => setOpenGlobalSearch(true)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Pencarian</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">

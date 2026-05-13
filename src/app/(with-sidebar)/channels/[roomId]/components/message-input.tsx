@@ -458,7 +458,7 @@ export function MessageInput({
           />
         </div>
 
-        <div className="flex-1 relative min-h-[40px] max-h-[200px] mb-0.5">
+        <div className="flex-1 relative flex items-center min-h-[40px] max-h-[200px]">
           <div
             ref={highlightRef}
             aria-hidden="true"
@@ -501,7 +501,7 @@ export function MessageInput({
             onKeyDown={handleKeyDown}
             spellCheck="false"
             placeholder={`Tulis pesan di #${roomData.name}`}
-            className="relative w-full h-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-[14px] leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
+            className="relative w-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-[14px] leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
             rows={1}
           />
         </div>
@@ -509,7 +509,7 @@ export function MessageInput({
         <Button
           onClick={() => handleSend()}
           disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
-          className="h-9 w-9 p-0 mb-0.5 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
+          className="h-8 w-8 p-0 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
         >          {isSending ? (
             <div className="flex items-center justify-center gap-1">
               {[0, 0.2, 0.4].map((delay, i) => (
@@ -521,7 +521,7 @@ export function MessageInput({
               ))}
             </div>
           ) : (
-            <CornerLeftUp className="h-5 w-5 rotate-90" />
+            <CornerLeftUp className="h-4 w-4 rotate-90" />
           )}
         </Button>
       </div>

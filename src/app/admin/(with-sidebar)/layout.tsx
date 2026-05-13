@@ -11,6 +11,8 @@ import {
 } from "@/app/auth.action";
 import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
+import { UnreadProvider } from "@/components/unread-provider";
+import { getInitials } from "@/lib/utils";
 
 export default async function layout({
   children,
@@ -31,15 +33,6 @@ export default async function layout({
   const session = await sidaBarUserInfo();
   const role = await getUserWithRolesFromSession();
 
-  function getInitials(name: string) {
-    if (!name) return "?";
-    const nameParts = name.split(" ");
-    const initials = nameParts
-      .map((part) => part.charAt(0).toUpperCase())
-      .join("");
-    return initials.length <= 2 ? initials : initials.substring(0, 2);
-  }
-
   const user = {
     id: userId.user.id,
     name: session.name,
@@ -52,31 +45,33 @@ export default async function layout({
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <SidebarProvider>
-        <RealtimeNotificationListener
-          user={{ id: user.id, username: user.name }}
-        />
-        <BreadcrumbProvider>
-          <AppSidebar
-            user={user}
-            checkRole={role}
+        <UnreadProvider>
+          <RealtimeNotificationListener
+            user={{ id: user.id, username: user.name }}
           />
+          <BreadcrumbProvider>
+            <AppSidebar
+              user={user}
+              checkRole={role}
+            />
 
-          <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-            {/* Header - Mobile only */}
-            <header className="flex h-16 shrink-0 items-center gap-2 px-4 md:hidden">
-              <SidebarTrigger className="-ml-1" />
-            </header>
+            <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+              {/* Header - Mobile only */}
+              <header className="flex h-16 shrink-0 items-center gap-2 px-4 md:hidden">
+                <SidebarTrigger className="-ml-1" />
+              </header>
 
-            {/* Main content */}
-            <main className="flex-1 min-h-0 overflow-hidden w-full">
-              <div className="h-full w-full rounded-xl overflow-hidden">
-                <div className="h-full w-full overflow-y-auto rounded-xl px-4 pb-4">
-                  <div className="h-full w-full max-w-full">{children}</div>
+              {/* Main content */}
+              <main className="flex-1 min-h-0 overflow-hidden w-full">
+                <div className="h-full w-full rounded-xl overflow-hidden">
+                  <div className="h-full w-full overflow-y-auto rounded-xl px-4 pb-4">
+                    <div className="h-full w-full max-w-full">{children}</div>
+                  </div>
                 </div>
-              </div>
-            </main>
-          </SidebarInset>
-        </BreadcrumbProvider>
+              </main>
+            </SidebarInset>
+          </BreadcrumbProvider>
+        </UnreadProvider>
       </SidebarProvider>
     </div>
   );

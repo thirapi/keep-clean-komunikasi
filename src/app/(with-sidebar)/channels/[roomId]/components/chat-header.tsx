@@ -185,9 +185,6 @@ export function ChatHeader({
                 >
                   <Search className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-medium">Cari pesan...</span>
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                    <span className="text-xs">⌘</span>K
-                  </kbd>
                 </Button>
 
                 {/* Mobile: Simple Icon Button */}
@@ -202,7 +199,7 @@ export function ChatHeader({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Cari Pesan (⌘K)</p>
+              <p>Cari Pesan</p>
             </TooltipContent>
           </Tooltip>
 
