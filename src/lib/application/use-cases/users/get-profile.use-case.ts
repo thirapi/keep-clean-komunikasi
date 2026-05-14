@@ -16,6 +16,7 @@ export class GetProfileUseCase {
             banner: user.banner,
             customStatus: user.customStatus,
             roles: user.roles,
+            createdAt: user.createdAt,
         };
     }
 }

@@ -91,6 +91,7 @@ const presetBanners = [
 
 export function UserSettingsDialog({
   user,
+  trigger,
 }: {
   user: {
     id: string;
@@ -103,6 +104,7 @@ export function UserSettingsDialog({
     banner?: string | null;
     customStatus?: string | null;
   };
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<string | null>("Profil");
@@ -241,10 +243,12 @@ export function UserSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 rounded-md transition-colors">
-          <UserPen className="h-4 w-4 text-muted-foreground" />
-          Edit Profile
-        </button>
+        {trigger || (
+          <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 rounded-md transition-colors">
+            <UserPen className="h-4 w-4 text-muted-foreground" />
+            Edit Profile
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="overflow-hidden p-0 h-[100dvh] w-full md:h-full md:max-h-[800px] md:max-w-[900px] lg:max-w-[1050px] gap-0 border-0 shadow-2xl">
         <SidebarProvider className="items-start min-h-0 h-full">
@@ -434,34 +438,55 @@ export function UserSettingsDialog({
 
                     </div>
 
-                    {/* RIGHT COLUMN: PREVIEW (HIDDEN ON MOBILE) */}
                     <div className="hidden lg:col-span-5 lg:flex flex-col pt-1">
-                      <Label className="text-sm font-bold mb-3 px-1">Pratinjau</Label>
-                      <div className="w-full max-w-[340px] mx-auto rounded-xl overflow-hidden border bg-zinc-950 shadow-md">
+                      <Label className="text-sm font-bold mb-3 px-1">Pratinjau Profil</Label>
+                      <div className="w-full max-w-[300px] mx-auto rounded-xl overflow-hidden bg-zinc-950 ring-1 ring-white/10 shadow-2xl animate-in zoom-in-95 duration-500">
+                        {/* Mini Banner */}
                         <div
-                          className="h-24 w-full bg-muted relative"
+                          className="h-20 w-full bg-muted relative"
                           style={{
                             background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner,
                           }}
-                        />
-                        <div className="relative px-4 pb-6 pt-12">
-                          <div className="absolute -top-12 left-4">
-                            <div className="p-1 bg-zinc-950 rounded-xl">
-                              <UserAvatar src={avatar} className="h-20 w-20 rounded-lg" />
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        </div>
+
+                        <div className="relative px-4 pb-5 pt-10">
+                          {/* Overlapping Avatar */}
+                          <div className="absolute -top-10 left-3">
+                            <div className="p-1 bg-zinc-950 rounded-xl ring-1 ring-white/10">
+                              <UserAvatar src={avatar} className="h-16 w-16 rounded-lg" />
+                              <div className="absolute bottom-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-emerald-500 shadow-sm" />
                             </div>
                           </div>
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="text-lg font-bold text-white tracking-tight">{username || user.name}</h3>
+
+                          {/* Info */}
+                          <div className="space-y-3">
+                            <div className="flex flex-col">
+                              <h3 className="text-base font-bold text-white tracking-tight leading-tight">
+                                {username || user.name}
+                              </h3>
                               {customStatus && (
-                                <p className="text-xs text-zinc-400 mt-1">{customStatus}</p>
+                                <div className="flex items-center gap-1.5 mt-1 opacity-80">
+                                  <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                                  <p className="text-[11px] text-zinc-300 leading-none truncate">{customStatus}</p>
+                                </div>
                               )}
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs font-bold text-zinc-500">Tentang saya</p>
-                              <p className="text-sm text-zinc-300 line-clamp-3">
-                                {bio || "Belum ada bio..."}
-                              </p>
+
+                            <p className="text-[11px] text-zinc-400 leading-relaxed italic">
+                              {bio || "Tidak ada biografi..."}
+                            </p>
+
+                            <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                disabled
+                                className="w-full h-8 text-[11px] font-bold bg-white/5 text-white border-0 opacity-40"
+                              >
+                                Lihat Profil
+                              </Button>
                             </div>
                           </div>
                         </div>

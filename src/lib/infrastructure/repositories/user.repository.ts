@@ -16,6 +16,7 @@ export class UserRepository implements IUserRepository {
     banner?: string | null;
     customStatus?: string | null;
     roles: { id: string; name: string }[];
+    createdAt: Date;
   } | null> {
     const user = await this.client.query.users.findFirst({
       where: eq(users.username, username),
@@ -41,6 +42,7 @@ export class UserRepository implements IUserRepository {
         id: ur.role.id,
         name: ur.role.name,
       })),
+      createdAt: user.createdAt,
     };
   }
 
@@ -160,7 +162,7 @@ export class UserRepository implements IUserRepository {
     await client.update(users).set(user).where(eq(users.id, userId));
   }
 
-  async searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string}[]> {
+  async searchUsers(query: string, limit?: number): Promise<{ id: string; username: string; avatar: string }[]> {
     const results = await this.client.query.users.findMany({
       where: like(users.username, `%${query}%`),
       limit: limit ?? 10,

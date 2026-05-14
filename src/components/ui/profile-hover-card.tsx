@@ -96,7 +96,7 @@ export function ProfileHoverCard({
           </div>
 
           {profile.bio && (
-            <p className="text-[11px] text-zinc-400 leading-relaxed italic line-clamp-2">{profile.bio}</p>
+            <p className="text-[11px] text-zinc-400 leading-relaxed italic">{profile.bio}</p>
           )}
 
           {isLoading && (
