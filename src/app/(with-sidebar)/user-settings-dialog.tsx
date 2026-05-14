@@ -246,7 +246,7 @@ export function UserSettingsDialog({
           Edit Profile
         </button>
       </DialogTrigger>
-      <DialogContent className="overflow-hidden p-0 h-full w-full md:max-h-[800px] md:max-w-[900px] lg:max-w-[1050px] gap-0 border-0 shadow-2xl">
+      <DialogContent className="overflow-hidden p-0 h-[100dvh] w-full md:h-full md:max-h-[800px] md:max-w-[900px] lg:max-w-[1050px] gap-0 border-0 shadow-2xl">
         <SidebarProvider className="items-start min-h-0 h-full">
           <Sidebar collapsible="none" className={cn("hidden md:flex w-52 border-r bg-muted/20", selectedItem && "hidden md:flex")}>
             <SidebarContent className="p-2">
@@ -277,20 +277,27 @@ export function UserSettingsDialog({
             </SidebarContent>
           </Sidebar>
 
-          <main className={cn("flex flex-1 flex-col min-h-0 bg-background h-full", !selectedItem && "hidden md:flex")}>
+          <main className="flex flex-1 flex-col min-h-0 bg-background h-full relative">
             <div className="flex items-center justify-between p-4 md:p-6 pb-2 border-b md:border-0">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => setSelectedItem(null)} className="md:hidden h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedItem(null)}
+                  className={cn("md:hidden h-8 w-8", !selectedItem && "invisible")}
+                >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">{selectedItem}</DialogTitle>
+                  <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">
+                    {selectedItem || "Pengaturan"}
+                  </DialogTitle>
                 </div>
               </div>
             </div>
 
             <ScrollArea className="flex-1">
-              <div className="p-4 md:p-6 pt-2">
+              <div className="p-4 md:p-6 pt-2 pb-24 md:pb-32">
                 {selectedItem === "Profil" && (
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
                     {/* LEFT COLUMN: EDIT FORM */}
@@ -325,7 +332,7 @@ export function UserSettingsDialog({
                               accept="image/*"
                             />
                           </div>
-                          
+
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="relative h-8 w-8 rounded-md overflow-hidden border cursor-pointer">
                               <input
@@ -416,7 +423,7 @@ export function UserSettingsDialog({
                             id="bio"
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus:ring-1 focus:ring-primary"
+                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus:ring-1 focus:ring-primary resize-none"
                             placeholder="Ceritakan tentang diri Anda..."
                             maxLength={250}
                           />
@@ -424,24 +431,7 @@ export function UserSettingsDialog({
                         </div>
                       </section>
 
-                      <div className="pt-2 flex items-center gap-2">
-                        <Button
-                          onClick={handleUpdateProfile}
-                          disabled={isUpdating || !isDirty}
-                          className="h-9 px-6 font-bold"
-                        >
-                          {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Perubahan"}
-                        </Button>
-                        {isDirty && (
-                          <Button
-                            variant="ghost"
-                            onClick={handleReset}
-                            className="h-9 px-4 text-xs"
-                          >
-                            Batal
-                          </Button>
-                        )}
-                      </div>
+
                     </div>
 
                     {/* RIGHT COLUMN: PREVIEW (HIDDEN ON MOBILE) */}
@@ -481,7 +471,7 @@ export function UserSettingsDialog({
                 )}
 
                 {selectedItem === "Keamanan" && (
-                  <div className="max-w-2xl animate-in fade-in duration-300 space-y-8">
+                  <div className="animate-in fade-in duration-300 space-y-8">
                     <div className="p-5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/30 flex gap-4">
                       <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
                         <Shield className="h-5 w-5 text-amber-600" />
@@ -527,12 +517,12 @@ export function UserSettingsDialog({
                       </div>
                     </div>
 
-                    <div className="pt-4 flex justify-end">
+                    <div className="pt-4 flex justify-end w-full sm:w-auto">
                       <Button
                         variant="default"
                         onClick={handleChangePassword}
                         disabled={isUpdating || !newPassword}
-                        className="px-10 font-bold h-11 shadow-lg shadow-primary/20"
+                        className="w-full sm:w-auto sm:px-10 font-bold h-11 shadow-lg shadow-primary/20"
                       >
                         {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Perbarui Kata Sandi</>}
                       </Button>
@@ -576,6 +566,39 @@ export function UserSettingsDialog({
                 )}
               </div>
             </ScrollArea>
+
+            {selectedItem === "Profil" && isDirty && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] md:w-[calc(100%-4rem)] max-w-2xl bg-zinc-900/95 backdrop-blur-md text-white px-3 sm:px-4 py-3 rounded-xl flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 duration-300 z-50 border border-white/10">
+                <div className="flex items-center gap-2 sm:gap-3 mr-2">
+                  <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="text-[12px] sm:text-sm font-medium leading-tight">
+                    <span className="hidden xs:inline">Hati-hati — ada </span>perubahan belum disimpan!
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReset}
+                    className="text-white hover:bg-white/10 h-8 sm:h-9 px-2 sm:px-4 text-xs sm:text-sm font-bold transition-colors"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleUpdateProfile}
+                    disabled={isUpdating}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 h-8 sm:h-9 px-3 sm:px-6 text-xs sm:text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
+                  >
+                    {isUpdating ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1.5 sm:mr-2" /> : null}
+                    <span className="hidden sm:inline">Simpan Perubahan</span>
+                    <span className="sm:hidden">Simpan</span>
+                  </Button>
+                </div>
+              </div>
+            )}
           </main>
         </SidebarProvider>
       </DialogContent>
