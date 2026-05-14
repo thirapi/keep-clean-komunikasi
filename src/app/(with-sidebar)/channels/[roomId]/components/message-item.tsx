@@ -400,10 +400,10 @@ const renderContent = (content: string) => {
         onClick={(e) => e.stopPropagation()}
       />
     ),
-    p: ({ children }: any) => <p className="mb-1.5 last:mb-0 leading-relaxed text-[13.5px]">{children}</p>,
-    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-2 space-y-1 mt-1">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-2 space-y-1 mt-1">{children}</ol>,
-    li: ({ children }: any) => <li className="pl-1 leading-relaxed">{children}</li>,
+    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
+    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
+    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{children}</li>,
     blockquote: ({ children }: any) => (
       <blockquote className="border-l-4 border-primary/40 px-4 italic text-muted-foreground/90 my-2 bg-muted/20 rounded-r-lg">
         {children}
@@ -559,7 +559,7 @@ const renderContent = (content: string) => {
               <div className="flex items-baseline gap-1.5 flex-wrap">
                 <div
                   className={cn(
-                    "leading-relaxed text-foreground/90 mt-0.5 whitespace-pre-wrap break-words pr-10",
+                    "leading-relaxed text-foreground/90 mt-0.5 break-words pr-10",
                     isOnlyEmoji(message.content) ? "text-5xl leading-none" : "text-[13.5px]"
                   )}
                 >
