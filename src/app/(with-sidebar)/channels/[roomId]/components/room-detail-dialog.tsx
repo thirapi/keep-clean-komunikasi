@@ -16,6 +16,11 @@ import {
   Calendar,
   Camera,
   X,
+  LogOut,
+  UserMinus,
+  Sparkles,
+  MoreVertical,
+  Crown,
 } from "lucide-react";
 import {
   Dialog,
@@ -43,7 +48,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { updateChannel, deleteChannel } from "../room.action";
+import { updateChannel, deleteChannel, removeParticipant } from "../room.action";
 import { uploadFileAction } from "../messages.action";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -109,8 +114,18 @@ export function RoomDetailDialog({
       setIsLoading(true);
       setAvatarPreview(null);
       setAvatarFile(null);
+      setIsLeaving(false);
     }
   }, [open]);
+
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  const isDirty =
+    name !== roomData.name ||
+    description !== (roomData.description || "") ||
+    isPublic !== roomData.isPublic ||
+    banner !== (roomData.banner || "") ||
+    avatarFile !== null;
 
   // Sync state when roomData changes
   useEffect(() => {
@@ -228,6 +243,37 @@ export function RoomDetailDialog({
     }
   };
 
+  const handleLeaveRoom = async () => {
+    setIsLeaving(true);
+    try {
+      const response = await removeParticipant(roomData.id, currentUserId, currentUserId);
+      if (response.status === "success") {
+        toast.success("Berhasil keluar dari channel");
+        onOpenChange(false);
+        router.push("/channels");
+        router.refresh();
+      } else {
+        toast.error(response.error?.message || "Gagal keluar channel");
+      }
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
+  const handleKickMember = async (userId: string, username: string) => {
+    try {
+      const response = await removeParticipant(roomData.id, userId, currentUserId);
+      if (response.status === "success") {
+        toast.success(`${username} berhasil dikeluarkan`);
+        router.refresh();
+      } else {
+        toast.error(response.error?.message || "Gagal mengeluarkan member");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan");
+    }
+  };
+
   const isBannerUrl = banner && (banner.startsWith("http") || banner.startsWith("/"));
 
   const handleDelete = async () => {
@@ -250,8 +296,8 @@ export function RoomDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden gap-0">
-        <div 
+      <DialogContent className="overflow-hidden p-0 h-[85dvh] w-[calc(100%-2rem)] sm:w-full sm:max-w-[550px] md:h-[750px] md:max-h-[85vh] gap-0 border-0 shadow-2xl flex flex-col [&>button:last-child]:hidden">
+        <div
           className="relative h-32 border-b bg-muted/20 shadow-inner group/banner transition-all"
           style={{
             background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner || "linear-gradient(to right, #6366f110, #94a3b805)",
@@ -259,9 +305,9 @@ export function RoomDetailDialog({
         >
           {isOwner && !isDirect && (
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 className="h-8 text-xs font-bold"
                 onClick={() => bannerInputRef.current?.click()}
                 disabled={isBannerUploading}
@@ -270,9 +316,9 @@ export function RoomDetailDialog({
                 Ubah Banner
               </Button>
               {banner && (
-                <Button 
-                  size="sm" 
-                  variant="destructive" 
+                <Button
+                  size="sm"
+                  variant="destructive"
                   className="h-8 w-8 p-0"
                   onClick={() => setBanner("")}
                 >
@@ -325,7 +371,7 @@ export function RoomDetailDialog({
           </div>
         </div>
 
-        <div className="pt-12 px-6 pb-6">
+        <div className="pt-12 px-4 sm:px-6 pb-4 flex-1 flex flex-col min-h-0">
           {/* Banner Presets */}
           {isOwner && !isDirect && (
             <div className="mb-4 flex flex-wrap gap-1.5 justify-end">
@@ -357,7 +403,7 @@ export function RoomDetailDialog({
                     {!isDirect && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] uppercase font-bold tracking-wider py-0 px-1.5"
+                        className="text-[10px] font-bold py-0 px-1.5"
                       >
                         {isPublic ? "Public" : "Private"}
                       </Badge>
@@ -379,253 +425,381 @@ export function RoomDetailDialog({
             </div>
           </div>
 
-          <Tabs defaultValue="overview" className="mt-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="overview" className="gap-2">
-                <Info className="w-4 h-4" /> Overview
+          <Tabs defaultValue="overview" className="mt-6 flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview" className="gap-2 text-xs sm:text-sm">
+                <Info className="w-3.5 h-3.5" /> Overview
+              </TabsTrigger>
+              <TabsTrigger value="members" className="gap-2 text-xs sm:text-sm">
+                <Users className="w-3.5 h-3.5" /> Members
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
-                className="gap-2"
+                className="gap-2 text-xs sm:text-sm"
                 disabled={!isOwner && !isDirect}
               >
-                <Settings className="w-4 h-4" />{" "}
-                {isDirect ? "Profile" : "Settings"}
+                <Settings className="w-3.5 h-3.5" /> Settings
               </TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="h-[350px] mt-4">
-              <TabsContent value="overview" className="mt-0 space-y-6">
-                <section className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Deskripsi
-                  </h3>
-                  <div className="bg-muted/30 rounded-lg p-3 text-sm min-h-[60px]">
-                    {isLoading ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      roomData.description || (
-                        <span className="text-muted-foreground italic">
-                          Tidak ada deskripsi.
-                        </span>
-                      )
-                    )}
-                  </div>
-                </section>
-
-                {!isDirect && (
+            <ScrollArea className="flex-1 mt-4 -mx-1 px-1">
+              <div className="pb-32">
+                <TabsContent value="overview" className="mt-0 space-y-6">
                   <section className="space-y-2">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Pemilik Channel
+                    <h3 className="text-xs font-bold text-muted-foreground px-1">
+                      Deskripsi
                     </h3>
-                    <div className="flex items-center gap-3 bg-muted/30 rounded-lg p-3">
+                    <div className="bg-muted/30 rounded-lg p-3 text-sm min-h-[60px]">
                       {isLoading ? (
-                        <>
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <Skeleton className="h-4 w-24" />
-                        </>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                        </div>
                       ) : (
-                        <>
-                          <UserAvatar
-                            src={
-                              roomData.participants.find(
-                                (p) => p.user.id === roomData.ownerId,
-                              )?.user.avatar || ""
-                            }
-                            className="h-8 w-8 rounded-md"
-                          />
-                          <span className="text-sm font-medium">
-                            {roomData.participants.find(
-                              (p) => p.user.id === roomData.ownerId,
-                            )?.user.username || "Unknown"}
+                        roomData.description || (
+                          <span className="text-muted-foreground italic">
+                            Tidak ada deskripsi.
                           </span>
-                          <Shield className="w-3.5 h-3.5 text-primary ml-auto" />
-                        </>
+                        )
                       )}
                     </div>
                   </section>
-                )}
 
-                <section className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Informasi
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                        Dibuat
-                      </span>
-                      <span className="text-sm flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5" />
+                  {!isDirect && (
+                    <section className="space-y-2">
+                      <h3 className="text-xs font-bold text-muted-foreground px-1">
+                        Pemilik Channel
+                      </h3>
+                      <div className="flex items-center gap-3 bg-muted/30 rounded-lg p-3">
                         {isLoading ? (
-                          <Skeleton className="h-4 w-20" />
+                          <>
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <Skeleton className="h-4 w-24" />
+                          </>
                         ) : (
-                          new Date(isDirect ? (otherUser?.createdAt || roomData.createdAt) : roomData.createdAt).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })
+                          <>
+                            <UserAvatar
+                              src={
+                                roomData.participants.find(
+                                  (p) => p.user.id === roomData.ownerId,
+                                )?.user.avatar || ""
+                              }
+                              className="h-8 w-8 rounded-md"
+                            />
+                            <span className="text-sm font-medium">
+                              {roomData.participants.find(
+                                (p) => p.user.id === roomData.ownerId,
+                              )?.user.username || "Unknown"}
+                            </span>
+                            <Shield className="w-3.5 h-3.5 text-primary ml-auto" />
+                          </>
                         )}
-                      </span>
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-bold text-muted-foreground px-1">
+                      Informasi
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+                        <span className="text-[10px] text-muted-foreground font-bold">
+                          Dibuat
+                        </span>
+                        <span className="text-sm flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {isLoading ? (
+                            <Skeleton className="h-4 w-20" />
+                          ) : (
+                            new Date(isDirect ? (otherUser?.createdAt || roomData.createdAt) : roomData.createdAt).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          )}
+                        </span>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+                        <span className="text-[10px] text-muted-foreground font-bold">
+                          ID
+                        </span>
+                        <span className="text-sm truncate">
+                          {roomData.id.split("-")[0]}...
+                        </span>
+                      </div>
                     </div>
-                    <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                        ID
-                      </span>
-                      <span className="text-sm truncate">
-                        {roomData.id.split("-")[0]}...
-                      </span>
+                  </section>
+
+                  {!isOwner && !isDirect && !isGeneral && (
+                    <section className="pt-4 border-t">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive gap-2 border-destructive/20 font-bold">
+                            <LogOut className="w-4 h-4" /> Keluar dari Channel
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Keluar dari #{roomData.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Anda akan kehilangan akses ke channel ini dan harus diundang kembali atau bergabung secara manual jika channel ini publik.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleLeaveRoom}
+                              disabled={isLeaving}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              {isLeaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                              Ya, Keluar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </section>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="members" className="mt-0 space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-xs font-bold text-muted-foreground">
+                        Anggota — {roomData.participants.length}
+                      </h3>
+                    </div>
+
+                    <div className="grid gap-2">
+                      {roomData.participants.sort((a, b) => {
+                        if (a.user.id === roomData.ownerId) return -1;
+                        if (b.user.id === roomData.ownerId) return 1;
+                        return 0;
+                      }).map((participant) => {
+                        const isCurrentUser = participant.user.id === currentUserId;
+                        const isParticipantOwner = participant.user.id === roomData.ownerId;
+
+                        return (
+                          <div key={participant.user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <UserAvatar src={participant.user.avatar} className="h-10 w-10 rounded-lg shadow-sm" />
+                                {/* {isParticipantOwner && (
+                                  <div className="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 border-2 border-background shadow-xs">
+                                    <Shield className="w-2 h-2" />
+                                  </div>
+                                )} */}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold flex items-center gap-1.5 leading-none">
+                                  {participant.user.username}
+                                  {isCurrentUser && <span className="text-[10px] text-muted-foreground font-medium">(Anda)</span>}
+                                  {isParticipantOwner && (
+                                    <Crown className="w-3 h-3 text-amber-500" />
+                                  )}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground mt-1">
+                                  {isParticipantOwner ? 'Pemilik Channel' : 'Member'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isOwner && !isParticipantOwner && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <UserMinus className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Keluarkan {participant.user.username}?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      User ini akan dikeluarkan dari channel #{roomData.name}.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleKickMember(participant.user.id, participant.user.username)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Ya, Keluarkan
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                </section>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="settings" className="mt-0 space-y-5">
-                {isOwner && !isDirect ? (
-                  <>
-                    <div className="grid gap-2">
-                      <Label htmlFor="channel-name">Nama Channel</Label>
-                      <div className="relative">
-                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="channel-name"
-                          value={name}
-                          onChange={(e) =>
-                            setName(
-                              e.target.value.toLowerCase().replace(/\s+/g, "-"),
-                            )
-                          }
-                          className="pl-9"
+                <TabsContent value="settings" className="mt-0 space-y-5">
+                  {isOwner && !isDirect ? (
+                    <>
+                      <div className="grid gap-2">
+                        <Label htmlFor="channel-name">Nama Channel</Label>
+                        <div className="relative">
+                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="channel-name"
+                            value={name}
+                            onChange={(e) =>
+                              setName(
+                                e.target.value.toLowerCase().replace(/\s+/g, "-"),
+                              )
+                            }
+                            className="pl-9"
+                            disabled={isSaving}
+                            placeholder="nama-channel"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="channel-desc">Deskripsi</Label>
+                        <Textarea
+                          id="channel-desc"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
                           disabled={isSaving}
-                          placeholder="nama-channel"
+                          placeholder="Deskripsikan channel ini..."
+                          className="resize-none"
+                          rows={3}
                         />
                       </div>
-                    </div>
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="channel-desc">Deskripsi</Label>
-                      <Textarea
-                        id="channel-desc"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        disabled={isSaving}
-                        placeholder="Deskripsikan channel ini..."
-                        className="resize-none"
-                        rows={3}
-                      />
-                    </div>
-
-                    <div
-                      className={`flex items-center justify-between rounded-lg border p-4 bg-muted/30 transition
+                      <div
+                        className={`flex items-center justify-between rounded-lg border p-4 bg-muted/30 transition
     ${isGeneral ? "opacity-50 pointer-events-none" : ""}
   `}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isPublic ? (
-                          <Globe className="w-4 h-4 text-emerald-500" />
-                        ) : (
-                          <Lock className="w-4 h-4 text-amber-500" />
-                        )}
-                        <div>
-                          <p className="text-sm font-medium">
-                            {isPublic ? "Channel Publik" : "Channel Privat"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {isPublic ? "Dapat dicari" : "Hanya via undangan"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Switch
-                        checked={isPublic}
-                        onCheckedChange={setIsPublic}
-                        disabled={isSaving || isGeneral}
-                      />
-                    </div>
-
-                    {!isGeneral && (
-                      <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-destructive">
-                          <AlertTriangle className="w-4 h-4" />
-                          <p className="text-sm font-semibold">
-                            Zona Berbahaya
-                          </p>
-                        </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="w-full gap-2"
-                              disabled={isDeleting}
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                              Hapus Channel
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Hapus Channel #{roomData.name}?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tindakan ini tidak dapat dibatalkan. Semua data
-                                akan hilang selamanya.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={handleDelete}
-                                className="bg-destructive hover:bg-destructive/90"
-                              >
-                                Ya, Hapus
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                        disabled={isSaving}
                       >
-                        Batal
-                      </Button>
-                      <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          "Simpan"
-                        )}
-                      </Button>
+                        <div className="flex items-center gap-3">
+                          {isPublic ? (
+                            <Globe className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <Lock className="w-4 h-4 text-amber-500" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">
+                              {isPublic ? "Channel Publik" : "Channel Privat"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {isPublic ? "Dapat dicari" : "Hanya via undangan"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <Switch
+                          checked={isPublic}
+                          onCheckedChange={setIsPublic}
+                          disabled={isSaving || isGeneral}
+                        />
+                      </div>
+
+                      {!isGeneral && (
+                        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+                          <div className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="w-4 h-4" />
+                            <p className="text-sm font-semibold">
+                              Zona Berbahaya
+                            </p>
+                          </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="w-full gap-2"
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                                Hapus Channel
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Hapus Channel #{roomData.name}?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tindakan ini tidak dapat dibatalkan. Semua data
+                                  akan hilang selamanya.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleDelete}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Ya, Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </>
+                  ) : isDirect ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Profil pengguna dan pengaturan DM akan segera hadir di sini.
+                      </p>
                     </div>
-                  </>
-                ) : isDirect ? (
-                  <div className="space-y-4">
+                  ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      Profil pengguna dan pengaturan DM akan segera hadir di
-                      sini.
+                      Anda tidak memiliki izin untuk mengubah pengaturan channel ini.
                     </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    Anda tidak memiliki izin untuk mengubah pengaturan channel
-                    ini.
-                  </p>
-                )}
-              </TabsContent>
+                  )}
+                </TabsContent>
+              </div>
             </ScrollArea>
+
+            {isOwner && !isDirect && isDirty && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-zinc-900/95 backdrop-blur-md text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom-8 duration-300 z-50 border border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="hidden xs:flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="text-[12px] sm:text-sm font-medium">Ada perubahan!</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setName(roomData.name);
+                      setDescription(roomData.description || "");
+                      setIsPublic(roomData.isPublic);
+                      setBanner(roomData.banner || "");
+                      setAvatarFile(null);
+                      setAvatarPreview(null);
+                    }}
+                    className="text-white hover:bg-white/10 h-8 font-bold transition-colors text-xs"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 h-8 font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95 text-xs"
+                  >
+                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : null}
+                    Simpan
+                  </Button>
+                </div>
+              </div>
+            )}
           </Tabs>
         </div>
       </DialogContent>
