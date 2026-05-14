@@ -1,4 +1,5 @@
 import { AttachmentRecord } from "./attachment.model";
+import { MessageReactionWithUserDTO } from "./reaction.model";
 
 export interface MessageRecord {
   id: string;
@@ -18,6 +19,9 @@ export interface MessageWithUserDTO extends MessageRecord {
   user: {
     username: string;
     avatar?: string | null;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
   };
   replyToMessage?: {
     id: string;
@@ -26,4 +30,5 @@ export interface MessageWithUserDTO extends MessageRecord {
       username: string;
     };
   } | null;
+  reactions?: MessageReactionWithUserDTO[];
 }

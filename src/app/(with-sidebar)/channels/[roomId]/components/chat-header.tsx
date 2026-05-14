@@ -102,8 +102,8 @@ export function ChatHeader({
                       : "bg-muted-foreground/50",
                   )}
                 />
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  {isOtherUserOnline ? "Online" : "Offline"}
+                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[150px]">
+                  {otherUser?.customStatus ? `"${otherUser.customStatus}"` : (isOtherUserOnline ? "Online" : "Offline")}
                 </span>
               </div>
             </div>

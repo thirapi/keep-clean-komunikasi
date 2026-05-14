@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 interface MobileMemberListProps {
   roomData: RoomWithParticipantsDTO;
@@ -86,7 +87,7 @@ export function MobileMemberList({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-[300px] sm:w-[400px] flex flex-col p-0">
+        <SheetContent side="right" className="w-[300px] sm:w-[400px] flex flex-col p-0 [&>button]:hidden">
           <SheetHeader className="p-4 border-b">
             <SheetTitle className="flex items-center justify-between">
               <span className="text-sm font-bold">Anggota ({roomData.participants.length})</span>
@@ -110,69 +111,44 @@ export function MobileMemberList({
               const isSelf = participant.user.id === currentUserId;
 
               return (
-                <div key={participant.user.id} className="p-3 bg-card shadow-sm rounded-xl border border-border/40 space-y-3 relative overflow-hidden">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <UserAvatar
-                        src={participant.user.avatar}
-                        alt={participant.user.username}
-                        className="h-10 w-10 rounded-xl shadow-sm border-2 border-background"
-                      />
-                      {isParticipantOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold truncate">
-                          {participant.user.username} {isSelf && "(Anda)"}
-                        </span>
-                        {isParticipantOwner && <Crown className="size-3.5 text-amber-500 fill-amber-500" />}
+                <div key={participant.user.id} className="p-3 bg-card shadow-sm rounded-xl border border-border/40 relative overflow-hidden">
+                  <ProfileHoverCard
+                    user={{
+                      id: participant.user.id,
+                      username: participant.user.username,
+                      avatar: participant.user.avatar,
+                      banner: participant.user.banner,
+                      bio: participant.user.bio,
+                      customStatus: participant.user.customStatus,
+                    }}
+                    isOnline={isParticipantOnline}
+                    currentUserId={currentUserId}
+                    onStartDM={handleStartDM}
+                  >
+                    <div className="flex items-center gap-3 cursor-pointer">
+                      <div className="relative">
+                        <UserAvatar
+                          src={participant.user.avatar}
+                          alt={participant.user.username}
+                          className="h-10 w-10 rounded-xl shadow-sm border-2 border-background"
+                        />
+                        {isParticipantOnline && (
+                          <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+                        )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                        {isParticipantOnline ? "Sedang Aktif" : "Offline"}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold truncate">
+                            {participant.user.username} {isSelf && "(Anda)"}
+                          </span>
+                          {isParticipantOwner && <Crown className="size-3.5 text-amber-500 fill-amber-500" />}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                          {isParticipantOnline ? "Sedang Aktif" : "Offline"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Actions mobile friendly buttons row */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-border/20">
-                    {!isSelf && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1 h-9 gap-1.5 text-[11px] font-bold rounded-xl bg-background hover:bg-accent"
-                        onClick={() => handleStartDM(participant.user.id)}
-                      >
-                        <MessageSquare className="size-3.5 text-primary" />
-                        Pesan
-                      </Button>
-                    )}
-
-                    {isOwner && !isSelf && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-9 gap-1.5 text-[11px] font-bold text-destructive hover:bg-destructive/10 rounded-xl"
-                        onClick={() => handleKick(participant.user.id)}
-                      >
-                        <UserMinus className="size-3.5" />
-                        Kick
-                      </Button>
-                    )}
-
-                    {isSelf && roomData.id !== "general-channel" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-9 gap-1.5 text-[11px] font-bold text-destructive hover:bg-destructive/10 rounded-xl"
-                        onClick={() => handleKick(participant.user.id)}
-                      >
-                        <LogOut className="size-3.5" />
-                        Keluar
-                      </Button>
-                    )}
-                  </div>
+                  </ProfileHoverCard>
                 </div>
               );
             })}

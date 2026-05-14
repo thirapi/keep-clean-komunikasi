@@ -3,6 +3,9 @@ export interface UserRecord {
   username: string;
   password: string;
   avatar: string;
+  bio?: string | null;
+  banner?: string | null;
+  customStatus?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

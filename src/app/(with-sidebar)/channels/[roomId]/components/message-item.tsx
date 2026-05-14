@@ -12,7 +12,8 @@ const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|yout
 const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
 // Extracts all URL tokens from message text, stripping trailing punctuation
 const URL_TOKEN_REGEX = /https?:\/\/[^\s]+/g;
-import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy, Pencil, Check, X } from "lucide-react";
+import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy, Pencil, Check, X, Smile, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   HoverCard,
@@ -28,7 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { createRoom } from "../room.action";
-import { deleteMessageAction } from "../messages.action";
+import { deleteMessageAction, toggleReactionAction } from "../messages.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { EmojiPickerComponent } from "./emoji-picker";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 function truncate(str: string, max = 100) {
   return str.length > max ? str.slice(0, max) + "..." : str;
@@ -57,6 +60,7 @@ export function MessageItem({
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
+  onToggleReaction,
   isEditing,
   currentUserId,
   isContinuation,
@@ -70,6 +74,7 @@ export function MessageItem({
   onStartEdit: (message: MessageWithUserDTO) => void;
   onSaveEdit: (messageId: string, content: string) => void;
   onCancelEdit: () => void;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
   isEditing: boolean;
   currentUserId: string;
   isContinuation?: boolean;
@@ -188,6 +193,34 @@ export function MessageItem({
     }
   };
 
+  const handleToggleReaction = async (emoji: string) => {
+    if (!currentUserId || !message.id) return;
+    onToggleReaction?.(message.id, emoji);
+  };
+
+  const groupedReactions = useMemo(() => {
+    const groups: Record<string, { emoji: string; count: number; users: string[]; hasReacted: boolean }> = {};
+
+    (message.reactions || []).forEach((r) => {
+      if (!groups[r.emoji]) {
+        groups[r.emoji] = { emoji: r.emoji, count: 0, users: [], hasReacted: false };
+      }
+      groups[r.emoji].count++;
+      const displayName = r.userId === currentUserId ? "Anda" : (r.user?.username || "Seseorang");
+      groups[r.emoji].users.push(displayName);
+      if (r.userId === currentUserId) {
+        groups[r.emoji].hasReacted = true;
+      }
+    });
+
+    // Sort so "Anda" is first
+    Object.values(groups).forEach(g => {
+      g.users.sort((a, b) => (a === "Anda" ? -1 : b === "Anda" ? 1 : 0));
+    });
+
+    return Object.values(groups);
+  }, [message.reactions, currentUserId]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content || "");
     toast.success("Teks disalin");
@@ -304,27 +337,27 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
-const renderContent = (content: string) => {
-  if (!content) return null;
+  const renderContent = (content: string) => {
+    if (!content) return null;
 
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        ...markdownComponents,
-        pre: ({ children }: any) => {
-          const codeElement = React.Children.only(children);
-          const codeContent = String(codeElement.props.children).replace(/\n$/, "");
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          ...markdownComponents,
+          pre: ({ children }: any) => {
+            const codeElement = React.Children.only(children);
+            const codeContent = String(codeElement.props.children).replace(/\n$/, "");
 
-          return (
-            <div className="group/code relative my-3 w-full max-w-[calc(100vw-3rem)] md:max-w-full overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
-              {/* Code */}
-              <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20">
-                {/* Copy Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="
+            return (
+              <div className="group/code relative my-3 w-full max-w-[calc(100vw-3rem)] md:max-w-full overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
+                {/* Code */}
+                <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                  {/* Copy Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="
                     absolute right-3 top-3
                     h-7 w-7 rounded-md
                     border border-border/40
@@ -335,60 +368,60 @@ const renderContent = (content: string) => {
                     hover:bg-black/5 hover:text-foreground
                     dark:hover:bg-white/5
                   "
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(codeContent);
-                    toast.success("Kode disalin!");
-                  }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(codeContent);
+                      toast.success("Kode disalin!");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+
+                  {children}
+                </pre>
+              </div>
+            );
+          },
+          code: ({ node, className, children, ...props }: any) => {
+            const isBlock = !!className;
+
+            // Block code
+            if (isBlock) {
+              return (
+                <code
+                  className={cn(
+                    "block whitespace-pre font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
+                    className
+                  )}
+                  {...props}
                 >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
+                  {children}
+                </code>
+              );
+            }
 
-                {children}
-              </pre>
-            </div>
-          );
-        },
-        code: ({ node, className, children, ...props }: any) => {
-          const isBlock = !!className;
-
-          // Block code
-          if (isBlock) {
+            // Inline code
             return (
               <code
-                className={cn(
-                  "block whitespace-pre font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
-                  className
-                )}
-                {...props}
-              >
-                {children}
-              </code>
-            );
-          }
-
-          // Inline code
-          return (
-            <code
-              className="
+                className="
                 mx-0.5 break-words rounded-xs
                 bg-[#F8F8F8] dark:bg-[#2D2D2D]
                 px-[5px] py-[1.5px]
                 font-mono text-[12px] font-medium
                 text-[#E01E5A] dark:text-[#FF7B72]
               "
-              {...props}
-            >
-              {children}
-            </code>
-          );
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
-};
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
+  };
 
   const markdownComponents = {
     a: ({ node, ...props }: any) => (
@@ -447,11 +480,25 @@ const renderContent = (content: string) => {
       <div className="relative pt-0.5 w-9 shrink-0 flex justify-center">
         {!isContinuation ? (
           <>
-            <UserAvatar
-              src={message.user?.avatar || "/avatars/avatar1.png"}
-              alt={message.user?.username}
-              className="w-9 h-9 rounded-md ring-1 ring-border/50"
-            />
+            <ProfileHoverCard
+              user={{
+                id: message.userId,
+                username: message.user?.username || "Unknown",
+                avatar: message.user?.avatar || "/avatars/avatar1.png",
+                banner: message.user?.banner,
+                bio: message.user?.bio,
+                customStatus: message.user?.customStatus,
+              }}
+              isOnline={isOnline}
+              currentUserId={currentUserId}
+              onStartDM={handleStartDM}
+            >
+              <UserAvatar
+                src={message.user?.avatar || "/avatars/avatar1.png"}
+                alt={message.user?.username}
+                className="w-9 h-9 rounded-md ring-1 ring-border/50 cursor-pointer"
+              />
+            </ProfileHoverCard>
             <div
               className={`h-2.5 w-2.5 ring-2 ring-background rounded-full absolute -bottom-0.5 -right-0.5 ${isOnline
                 ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
@@ -472,43 +519,23 @@ const renderContent = (content: string) => {
       <div className="flex-1 min-w-0">
         {!isContinuation && (
           <div className="flex items-baseline gap-2">
-            <HoverCard openDelay={200}>
-              <HoverCardTrigger asChild>
-                <span className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2">
-                  {message.user?.username ?? "Unknown User"}
-                </span>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-64 glass shadow-xl border-border/50">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <UserAvatar
-                      src={message.user?.avatar || "/avatars/avatar1.png"}
-                      alt={message.user?.username}
-                      className="w-12 h-12 rounded-lg ring-2 ring-primary/20"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground">
-                        {message.user?.username ?? "Unknown User"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
-                        {isOnline ? "Online" : "Offline"}
-                      </p>
-                    </div>
-                  </div>
-                  {message.userId !== currentUserId && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="w-full gap-2 h-9 text-xs font-semibold shadow-lg shadow-primary/20"
-                      onClick={() => handleStartDM(message.userId)}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Kirim Pesan
-                    </Button>
-                  )}
-                </div>
-              </HoverCardContent>
-            </HoverCard>
+            <ProfileHoverCard
+              user={{
+                id: message.userId,
+                username: message.user?.username || "Unknown",
+                avatar: message.user?.avatar || "/avatars/avatar1.png",
+                banner: message.user?.banner,
+                bio: message.user?.bio,
+                customStatus: message.user?.customStatus,
+              }}
+              isOnline={isOnline}
+              currentUserId={currentUserId}
+              onStartDM={handleStartDM}
+            >
+              <span className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2">
+                {message.user?.username ?? "Unknown User"}
+              </span>
+            </ProfileHoverCard>
 
             <span className="text-[10px] font-medium text-muted-foreground/60">
               {formatTimestamp(new Date(message.createdAt))}
@@ -580,6 +607,61 @@ const renderContent = (content: string) => {
               </div>
             )}
           </>
+        )}
+
+        {/* Reactions Section */}
+        {groupedReactions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mt-2 mb-1 animate-in fade-in zoom-in-95 duration-200">
+            {groupedReactions.map((group) => (
+              <TooltipProvider key={group.emoji}>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleToggleReaction(group.emoji); }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all border select-none active:scale-90",
+                        group.hasReacted
+                          ? "bg-primary/10 border-primary/30 text-primary shadow-sm ring-1 ring-primary/20"
+                          : "bg-muted/30 border-transparent hover:bg-muted/60 text-muted-foreground"
+                      )}
+                    >
+                      <span className="text-sm">{group.emoji}</span>
+                      <span className={cn("font-bold tabular-nums", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
+                        {group.count}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="max-w-[220px] rounded-lg border-0 bg-zinc-900 dark:bg-zinc-100 shadow-2xl px-3 py-2"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-base leading-none">{group.emoji}</span>
+                      <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900">
+                        <span className="font-bold">{group.users.join(", ")}</span>
+                        {" "}bereaksi
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+
+            {/* Add Reaction button — visible only on hover, Discord/Slack style */}
+            <div
+              className={cn(
+                "transition-all duration-200",
+                isHovered ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <EmojiPickerComponent
+                onEmojiSelect={handleToggleReaction}
+                triggerClassName="h-6 w-6 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground/60 hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-all"
+                triggerSize="sm"
+              />
+            </div>
+          </div>
         )}
 
         {socialEmbeds.length > 0 && (
@@ -707,6 +789,8 @@ const renderContent = (content: string) => {
                     <p>Reply</p>
                   </TooltipContent>
                 </Tooltip>
+
+                <EmojiPickerComponent onEmojiSelect={handleToggleReaction} />
 
                 {message.userId === currentUserId && (
                   <>

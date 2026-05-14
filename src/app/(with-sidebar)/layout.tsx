@@ -43,6 +43,9 @@ export default async function layout({
     role: session.role,
     email: session.email,
     avatar: session.avatar,
+    bio: session.bio,
+    banner: session.banner,
+    customStatus: session.customStatus,
   };
 
   return (

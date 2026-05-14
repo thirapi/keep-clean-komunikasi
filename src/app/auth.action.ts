@@ -170,6 +170,9 @@ export const sidaBarUserInfo = async () => {
       role: getRolesAsString(userData.roles),
       email: "komunikasi.qzz.io",
       avatar: userData.avatar || "/avatars/avatar1.png",
+      bio: userData.bio,
+      banner: userData.banner,
+      customStatus: userData.customStatus,
     };
   } else {
     return {

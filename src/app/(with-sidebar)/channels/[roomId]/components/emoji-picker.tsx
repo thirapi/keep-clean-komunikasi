@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 
 interface EmojiPickerProps {
     onEmojiSelect: (emoji: string) => void;
+    triggerClassName?: string;
+    triggerSize?: "default" | "sm" | "lg" | "icon";
 }
 
-export function EmojiPickerComponent({ onEmojiSelect }: EmojiPickerProps) {
+export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerSize }: EmojiPickerProps) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -21,10 +23,10 @@ export function EmojiPickerComponent({ onEmojiSelect }: EmojiPickerProps) {
             <PopoverTrigger asChild>
                 <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all shrink-0 hover:scale-105 active:scale-95"
+                    size={triggerSize ?? "icon"}
+                    className={triggerClassName ?? "h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all shrink-0 hover:scale-105 active:scale-95"}
                 >
-                    <Smile className="h-5 w-5" />
+                    <Smile className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent

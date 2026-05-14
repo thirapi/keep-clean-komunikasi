@@ -15,6 +15,7 @@ import {
   Shield,
   Calendar,
   Camera,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +53,7 @@ import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface RoomDetailDialogProps {
   open: boolean;
@@ -60,6 +62,15 @@ interface RoomDetailDialogProps {
   currentUserId: string;
   onUpdateRoom?: (data: Partial<RoomWithParticipantsDTO>) => void;
 }
+
+const bannerPresets = [
+  "linear-gradient(to right, #4f46e5, #7c3aed)",
+  "linear-gradient(to right, #06b6d4, #3b82f6)",
+  "linear-gradient(to right, #10b981, #3b82f6)",
+  "linear-gradient(to right, #f59e0b, #ef4444)",
+  "#1e293b",
+  "#475569",
+];
 
 export function RoomDetailDialog({
   open,
@@ -71,13 +82,16 @@ export function RoomDetailDialog({
   const [name, setName] = useState(roomData.name);
   const [description, setDescription] = useState(roomData.description ?? "");
   const [isPublic, setIsPublic] = useState(roomData.isPublic);
+  const [banner, setBanner] = useState(roomData.banner || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBannerUploading, setIsBannerUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const isOwner = currentUserId === roomData.ownerId;
@@ -103,6 +117,7 @@ export function RoomDetailDialog({
     setName(roomData.name);
     setDescription(roomData.description ?? "");
     setIsPublic(roomData.isPublic);
+    setBanner(roomData.banner || "");
   }, [roomData]);
 
   const otherUser = isDirect
@@ -131,6 +146,32 @@ export function RoomDetailDialog({
         setAvatarPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran banner maksimal 5MB");
+      return;
+    }
+
+    setIsBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await uploadFileAction(formData, "room-banners");
+
+      if (response.status === "success" && response.data) {
+        setBanner(response.data.fileurl);
+        toast.success("Banner berhasil diunggah!");
+      } else {
+        toast.error(response.error?.message || "Gagal mengunggah banner");
+      }
+    } finally {
+      setIsBannerUploading(false);
     }
   };
 
@@ -163,6 +204,7 @@ export function RoomDetailDialog({
           description: description.trim(),
           isPublic,
           avatar: avatarUrl,
+          banner: banner || null,
         });
       }
 
@@ -171,6 +213,7 @@ export function RoomDetailDialog({
         description: description.trim() || undefined,
         isPublic,
         avatar: avatarUrl,
+        banner: banner || undefined,
       });
 
       if (response.status === "success") {
@@ -184,6 +227,8 @@ export function RoomDetailDialog({
       setIsSaving(false);
     }
   };
+
+  const isBannerUrl = banner && (banner.startsWith("http") || banner.startsWith("/"));
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -206,7 +251,44 @@ export function RoomDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden gap-0">
-        <div className="relative h-32 bg-gradient-to-r from-indigo-500/10 via-slate-400/5 to-transparent border-b">
+        <div 
+          className="relative h-32 border-b bg-muted/20 shadow-inner group/banner transition-all"
+          style={{
+            background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner || "linear-gradient(to right, #6366f110, #94a3b805)",
+          }}
+        >
+          {isOwner && !isDirect && (
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="h-8 text-xs font-bold"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={isBannerUploading}
+              >
+                {isBannerUploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                Ubah Banner
+              </Button>
+              {banner && (
+                <Button 
+                  size="sm" 
+                  variant="destructive" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setBanner("")}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+          )}
+          <input
+            type="file"
+            ref={bannerInputRef}
+            onChange={handleBannerUpload}
+            className="hidden"
+            accept="image/*"
+          />
+
           <div className="absolute -bottom-10 left-6 group">
             {isLoading ? (
               <Skeleton className="h-20 w-20 rounded-2xl ring-4 ring-background shadow-xl" />
@@ -244,6 +326,23 @@ export function RoomDetailDialog({
         </div>
 
         <div className="pt-12 px-6 pb-6">
+          {/* Banner Presets */}
+          {isOwner && !isDirect && (
+            <div className="mb-4 flex flex-wrap gap-1.5 justify-end">
+              {bannerPresets.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setBanner(p)}
+                  className={cn(
+                    "h-4 w-7 rounded-sm border transition-all hover:scale-110",
+                    banner === p ? "ring-2 ring-primary ring-offset-1" : "border-transparent"
+                  )}
+                  style={{ background: p }}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               {isLoading ? (

@@ -5,6 +5,7 @@ import { UserRecord } from "@/lib/entities/models/user.model";
 import { updateUserController } from "@/lib/interface-adapters/controllers/users/update.controller";
 import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
 import { changePasswordController } from "@/lib/interface-adapters/controllers/users/change-password.controller";
+import { getProfileController } from "@/lib/interface-adapters/controllers/users/get-profile.controller";
 
 export const updateUserAction = async (
   userId: string,
@@ -54,7 +55,7 @@ export const changePasswordAction = async (
   }
 };
 
-export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string}[]>> => {
+export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string }[]>> => {
   try {
     const users = await searchUserController(query);
     return {
@@ -69,6 +70,26 @@ export const searchUsersAction = async (query: string): Promise<ServerResponse<{
       error: {
         type: "UNKNOWN_ERROR",
         message: err.message,
+      },
+    };
+  }
+};
+
+export const getPublicProfileAction = async (username: string): Promise<ServerResponse<any>> => {
+  try {
+    const user = await getProfileController(username);
+    return {
+      status: "success",
+      data: user,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: null,
+      error: {
+        type: "UNKNOWN_ERROR",
+        message: err.message || "User not found",
       },
     };
   }

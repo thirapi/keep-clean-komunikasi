@@ -6,6 +6,7 @@ export interface RoomRecord {
   isDirect: boolean;
   description: string | null;
   avatar: string;
+  banner?: string | null;
   isPublic: boolean;
   ownerId: string | null;
   createdAt: Date;
@@ -34,6 +35,9 @@ export interface RoomWithParticipantsDTO extends RoomRecord {
       id: string;
       username: string;
       avatar: string;
+      bio?: string | null;
+      banner?: string | null;
+      customStatus?: string | null;
       createdAt: Date;
       userRoles: {
         role: {

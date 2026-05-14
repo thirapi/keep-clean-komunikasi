@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { debounce } from "lodash";
 import { pusher } from "@/lib/pusher/pusher.client";
-import { getMessage, updateLastReadAt, editMessageAction } from "../messages.action";
+import { getMessage, updateLastReadAt, editMessageAction, toggleReactionAction } from "../messages.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { createId } from "@paralleldrive/cuid2";
 
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
@@ -397,6 +398,40 @@ export function ChatRoom({
     chatChannel.bind("message-updated", (updatedMsg: MessageWithUserDTO) => {
       setMessages((prev) => prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)));
     });
+    chatChannel.bind("message-reaction", ({ messageId, action, reaction }: any) => {
+      setMessages((prev) => prev.map((m) => {
+        if (m.id !== messageId) return m;
+
+        const currentReactions = m.reactions || [];
+        let nextReactions;
+
+        if (action === "added") {
+          // 1. Purge any optimistic entry for the same userId+emoji to prevent duplicates
+          const withoutOptimistic = currentReactions.filter(
+            (r) => !(
+              r.id.startsWith('optimistic-') &&
+              r.userId === reaction.userId &&
+              r.emoji === reaction.emoji
+            )
+          );
+          // 2. Only append the real entry if it isn't already present
+          const alreadyExists = withoutOptimistic.some((r) => r.id === reaction.id);
+          nextReactions = alreadyExists ? withoutOptimistic : [...withoutOptimistic, reaction];
+        } else {
+          // Remove by real ID and also purge any lingering optimistic entry for same userId+emoji
+          nextReactions = currentReactions.filter(
+            (r) => r.id !== reaction.id &&
+              !(
+                r.id.startsWith('optimistic-') &&
+                r.userId === reaction.userId &&
+                r.emoji === reaction.emoji
+              )
+          );
+        }
+
+        return { ...m, reactions: nextReactions };
+      }));
+    });
     chatChannel.bind("message-deleted", ({ messageId }: { messageId: string }) => {
       setMessages((prev) => {
         const deletedIndex = prev.findIndex((m) => m.id === messageId);
@@ -473,6 +508,58 @@ export function ChatRoom({
     }
   }, [messages, userId]);
 
+  const handleToggleReaction = useCallback(async (messageId: string, emoji: string) => {
+    // 1. Find message and current reaction status
+    const message = messagesRef.current.find(m => m.id === messageId);
+    if (!message) return;
+
+    const existingReaction = (message.reactions || []).find(
+      r => r.userId === userId && r.emoji === emoji
+    );
+
+    // 2. Prepare Optimistic Update
+    const action = existingReaction ? "removed" : "added";
+
+    setMessages((prev) => prev.map((m) => {
+      if (m.id !== messageId) return m;
+
+      const currentReactions = m.reactions || [];
+      let nextReactions;
+
+      if (action === "added") {
+        nextReactions = [
+          ...currentReactions,
+          {
+            id: `optimistic-${createId()}`,
+            messageId,
+            userId,
+            emoji,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            user: { username: user.username }
+          }
+        ];
+      } else {
+        nextReactions = currentReactions.filter((r) => !(r.userId === userId && r.emoji === emoji));
+      }
+
+      return { ...m, reactions: nextReactions };
+    }));
+
+    // 3. Call Server Action
+    const response = await toggleReactionAction(userId, messageId, emoji);
+
+    if (response.status === "error") {
+      toast.error(response.error?.message || "Gagal memberikan reaksi");
+
+      // Rollback on error
+      setMessages((prev) => prev.map((m) => {
+        if (m.id !== messageId) return m;
+        return { ...m, reactions: message.reactions };
+      }));
+    }
+  }, [userId, user.username]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <ChatHeader
@@ -499,6 +586,7 @@ export function ChatRoom({
               onStartEdit={(message) => setEditingMessageId(message.id)}
               onSaveEdit={handleSaveEdit}
               onCancelEdit={() => setEditingMessageId(null)}
+              onToggleReaction={handleToggleReaction}
               editingMessageId={editingMessageId}
               lastReadMessageId={lastReadIdState}
               lastReadAt={lastReadAtState}

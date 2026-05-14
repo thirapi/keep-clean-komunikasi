@@ -48,6 +48,9 @@ export class MessageRepository implements IMessageRepository {
             columns: {
               username: true,
               avatar: true,
+              bio: true,
+              banner: true,
+              customStatus: true,
             },
           },
           replyToMessage: {
@@ -60,6 +63,15 @@ export class MessageRepository implements IMessageRepository {
             },
           },
           attachments: true,
+          reactions: {
+            with: {
+              user: {
+                columns: {
+                  username: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -97,6 +109,15 @@ export class MessageRepository implements IMessageRepository {
           },
         },
         attachments: true,
+        reactions: {
+          with: {
+            user: {
+              columns: {
+                username: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -130,6 +151,15 @@ export class MessageRepository implements IMessageRepository {
           },
         },
         attachments: true,
+        reactions: {
+          with: {
+            user: {
+              columns: {
+                username: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -189,6 +219,15 @@ export class MessageRepository implements IMessageRepository {
           },
         },
         attachments: true,
+        reactions: {
+          with: {
+            user: {
+              columns: {
+                username: true,
+              },
+            },
+          },
+        },
       },
     });
 

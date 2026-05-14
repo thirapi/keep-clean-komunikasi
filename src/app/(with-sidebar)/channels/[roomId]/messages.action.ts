@@ -15,6 +15,32 @@ import { revalidatePath } from "next/cache";
 import { deleteMessageController } from "@/lib/interface-adapters/controllers/messages/delete-message.controller";
 import { editMessageController } from "@/lib/interface-adapters/controllers/messages/edit-message.controller";
 import { searchMessagesController } from "@/lib/interface-adapters/controllers/messages/search-messages.controller";
+import { toggleReactionController } from "@/lib/interface-adapters/controllers/messages/toggle-reaction.controller";
+
+export const toggleReactionAction = async (
+  userId: string,
+  messageId: string,
+  emoji: string
+): Promise<ServerResponse<{ action: "added" | "removed" } | null>> => {
+  try {
+    const result = await toggleReactionController(userId, messageId, emoji);
+    return {
+      status: "success",
+      data: { action: result.action },
+      error: null,
+    };
+  } catch (err: any) {
+    console.error("Action Error:", err);
+    return {
+      status: "error",
+      data: null,
+      error: {
+        message: err.message || "Terjadi kesalahan internal",
+        type: err.name,
+      },
+    };
+  }
+};
 
 export const setTypingStatusAction = async (
   userId: string,

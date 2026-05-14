@@ -22,8 +22,9 @@ Komponen `chat-room.tsx` mendengarkan event *real-time* dari Pusher (`chat-{room
 
 ## Arsitektur Data Lokal (`ClientChatCache`)
 Data model lokal dibentuk memakai **Dexie** di atas IndexedDB dengan namespace `KomunikasiClientDB`:
-- `messages` (Table): Menyimpan array `MessageWithUserDTO`. Dimanajemen menggunakan policy limit **50 pesan** per roomId agar konsumsi stroge peramban *(browser)* tidak membengkak tanpa merusak pengalaman awal pengguna.
-- `roomMetadata` (Table): Melacak indikator pembacaan seperti `lastReadId` dan `lastReadAt` tanpa blokade I/O sseperti LocalStorage murni.
+- `messages` (Table): Menyimpan array `MessageWithUserDTO`. Dimanajemen menggunakan policy limit **50 pesan** per roomId agar konsumsi stroge peramban *(browser)* tidak membengkak.
+  - **Catatan**: Karena menyimpan objek `MessageWithUserDTO` secara utuh, field nested seperti `user.banner`, `user.bio`, dan `user.customStatus` ter-persist secara otomatis saat pesan masuk ke cache.
+- `roomMetadata` (Table): Melacak indikator pembacaan seperti `lastReadId` dan `lastReadAt` tanpa blokade I/O seperti LocalStorage murni.
 - **In-Memory RAM Map**: Menambahkan map sinkronus (`memMessages`, `memRooms`) bekerja paralel dengan IndexedDB untuk meredam *1-tick delay skeleton blink* saat pengguna berpindah tab/ruangan maju-mundur di sesi yang sama.
 
 ## Mekanisme Auto-Scroll Cerdas (Zero-Latency Adapter)

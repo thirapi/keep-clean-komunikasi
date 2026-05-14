@@ -12,6 +12,9 @@ export class UserRepository implements IUserRepository {
     id: string;
     username: string;
     avatar: string;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
     roles: { id: string; name: string }[];
   } | null> {
     const user = await this.client.query.users.findFirst({
@@ -31,6 +34,9 @@ export class UserRepository implements IUserRepository {
       id: user.id,
       username: user.username,
       avatar: user.avatar,
+      bio: user.bio,
+      banner: user.banner,
+      customStatus: user.customStatus,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -43,6 +49,9 @@ export class UserRepository implements IUserRepository {
     username: string;
     password: string;
     avatar: string;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
     roles: { id: string; name: string }[];
   } | null> {
     const user = await this.client.query.users.findFirst({
@@ -63,6 +72,9 @@ export class UserRepository implements IUserRepository {
       username: user.username,
       password: user.password,
       avatar: user.avatar,
+      bio: user.bio,
+      banner: user.banner,
+      customStatus: user.customStatus,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,

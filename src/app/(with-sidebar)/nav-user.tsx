@@ -43,6 +43,9 @@ export function NavUser({
     role: string;
     email: string;
     avatar: string;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
   };
   checkRole: {
     id: string;

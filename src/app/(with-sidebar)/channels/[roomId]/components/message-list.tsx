@@ -24,6 +24,7 @@ export function MessageList({
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
+  onToggleReaction,
   editingMessageId,
   lastReadMessageId,
   lastReadAt,
@@ -44,6 +45,7 @@ export function MessageList({
   onStartEdit: (message: MessageWithUserDTO) => void;
   onSaveEdit: (messageId: string, content: string) => void;
   onCancelEdit: () => void;
+  onToggleReaction: (messageId: string, emoji: string) => void;
   editingMessageId: string | null;
   lastReadMessageId: string | null;
   lastReadAt: Date | null;
@@ -200,6 +202,7 @@ export function MessageList({
           onStartEdit={onStartEdit}
           onSaveEdit={onSaveEdit}
           onCancelEdit={onCancelEdit}
+          onToggleReaction={onToggleReaction}
           isEditing={editingMessageId === msg.id}
           currentUserId={userId}
           isContinuation={isContinuation}

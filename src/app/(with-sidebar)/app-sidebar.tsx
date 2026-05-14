@@ -50,6 +50,9 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     role: string;
     email: string;
     avatar: string;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
   };
   checkRole: {
     id: string;

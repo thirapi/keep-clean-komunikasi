@@ -50,6 +50,9 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          bio: p.user.bio,
+          banner: p.user.banner,
+          customStatus: p.user.customStatus,
           createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
@@ -133,6 +136,9 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          bio: p.user.bio,
+          banner: p.user.banner,
+          customStatus: p.user.customStatus,
           createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
@@ -276,6 +282,9 @@ export class RoomRepository implements IRoomRepository {
             id: p.user.id,
             username: p.user.username,
             avatar: p.user.avatar,
+            bio: p.user.bio,
+            banner: p.user.banner,
+            customStatus: p.user.customStatus,
             createdAt: p.user.createdAt,
             userRoles: p.user.userRoles.map((ur) => ({
               role: { name: ur.role.name },
@@ -333,6 +342,9 @@ export class RoomRepository implements IRoomRepository {
           id: p.user.id,
           username: p.user.username,
           avatar: p.user.avatar,
+          bio: p.user.bio,
+          banner: p.user.banner,
+          customStatus: p.user.customStatus,
           createdAt: p.user.createdAt,
           userRoles: p.user.userRoles.map((ur) => ({
             role: { name: ur.role.name },
@@ -362,7 +374,7 @@ export class RoomRepository implements IRoomRepository {
       );
   }
 
-  async updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean; avatar?: string }): Promise<void> {
+  async updateRoom(roomId: string, data: { name?: string; description?: string; isPublic?: boolean; avatar?: string; banner?: string }): Promise<void> {
     await this.client
       .update(rooms)
       .set(data)

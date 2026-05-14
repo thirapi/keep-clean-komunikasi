@@ -23,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
+
 
 interface MemberListProps {
   roomData: RoomWithParticipantsDTO;
@@ -109,91 +111,56 @@ export function MemberList({
 
               return (
                 <li key={participant.user.id} className="group flex items-center gap-3 w-full p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-colors">
-                  <div className="relative">
-                    <UserAvatar
-                      src={participant.user.avatar}
-                      alt={participant.user.username}
-                      className="h-8 w-8 rounded-lg shadow-sm"
-                    />
-                    {isParticipantOnline && (
-                      <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
-                    )}
-                  </div>
+                  <ProfileHoverCard
+                    user={{
+                      id: participant.user.id,
+                      username: participant.user.username,
+                      avatar: participant.user.avatar,
+                      banner: participant.user.banner,
+                      bio: participant.user.bio,
+                      customStatus: participant.user.customStatus,
+                    }}
+                    isOnline={isParticipantOnline}
+                    currentUserId={currentUserId}
+                    onStartDM={handleStartDM}
+                  >
+                    <div className="relative cursor-pointer">
+                      <UserAvatar
+                        src={participant.user.avatar}
+                        alt={participant.user.username}
+                        className="h-8 w-8 rounded-lg shadow-sm"
+                      />
+                      {isParticipantOnline && (
+                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
+                      )}
+                    </div>
+                  </ProfileHoverCard>
 
-                  <HoverCard openDelay={200}>
-                    <HoverCardTrigger asChild>
-                      <div className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                        <span className={cn(
-                          "text-sm font-medium truncate",
-                          isParticipantOnline ? "text-foreground" : "text-muted-foreground"
-                        )}>
-                          {participant.user.username}
-                        </span>
-                        {isParticipantOwner && (
-                          <Crown className="size-3 text-amber-500 fill-amber-500 shrink-0" />
-                        )}
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 p-3 shadow-xl border-border/50">
-                      <div className="flex items-center gap-3 mb-4">
-                        <UserAvatar
-                          src={participant.user.avatar}
-                          alt={participant.user.username}
-                          className="h-12 w-12 rounded-xl"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-bold text-base leading-tight">
-                              {participant.user.username}
-                            </p>
-                            {isParticipantOwner && <Crown className="size-3 text-amber-500" />}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                            {isParticipantOwner ? "Pemilik Channel" : "Anggota"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {participant.user.id !== currentUserId && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="w-full justify-start gap-2 h-9 text-xs font-semibold"
-                            onClick={() => handleStartDM(participant.user.id)}
-                          >
-                            <MessageSquare className="size-3.5 text-primary" />
-                            Kirim Pesan Langsung
-                          </Button>
-                        )}
-
-                        {/* Kick/Leave Actions */}
-                        {isOwner && participant.user.id !== currentUserId && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start gap-2 h-9 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleKick(participant.user.id)}
-                          >
-                            <UserMinus className="size-3.5" />
-                            Keluarkan dari Channel
-                          </Button>
-                        )}
-
-                        {participant.user.id === currentUserId && roomData.id !== "general-channel" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start gap-2 h-9 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleKick(participant.user.id)}
-                          >
-                            <LogOut className="size-3.5" />
-                            Keluar dari Channel
-                          </Button>
-                        )}
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <ProfileHoverCard
+                    user={{
+                      id: participant.user.id,
+                      username: participant.user.username,
+                      avatar: participant.user.avatar,
+                      banner: participant.user.banner,
+                      bio: participant.user.bio,
+                      customStatus: participant.user.customStatus,
+                    }}
+                    isOnline={isParticipantOnline}
+                    currentUserId={currentUserId}
+                    onStartDM={handleStartDM}
+                  >
+                    <div className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                      <span className={cn(
+                        "text-sm font-medium truncate",
+                        isParticipantOnline ? "text-foreground" : "text-muted-foreground"
+                      )}>
+                        {participant.user.username}
+                      </span>
+                      {isParticipantOwner && (
+                        <Crown className="size-3 text-amber-500 fill-amber-500 shrink-0" />
+                      )}
+                    </div>
+                  </ProfileHoverCard>
                 </li>
               );
             })}

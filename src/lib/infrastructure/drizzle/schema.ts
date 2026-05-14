@@ -6,6 +6,9 @@ export const users = pgTable("User", {
     username: text("username").unique().notNull(),
     password: text("password").notNull(),
     avatar: text("avatar").default("/avatars/avatar1.png").notNull(),
+    bio: text("bio"),
+    banner: text("banner"),
+    customStatus: text("customStatus"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -15,6 +18,7 @@ export const usersRelations = relations(users, ({ many }) => ({
     messages: many(messages),
     roomParticipants: many(roomParticipants),
     sessions: many(sessions),
+    reactions: many(messageReactions),
 }));
 
 export const messages = pgTable("Message", {
@@ -38,6 +42,7 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     }),
     replies: many(messages, { relationName: "replies" }),
     attachments: many(attachments),
+    reactions: many(messageReactions),
 }));
 
 export const rooms = pgTable("Room", {
@@ -46,6 +51,7 @@ export const rooms = pgTable("Room", {
     isDirect: boolean("isDirect").default(false).notNull(),
     description: text("description"),
     avatar: text("avatar").default("/avatars/avatar6.png").notNull(),
+    banner: text("banner"),
     isPublic: boolean("isPublic").default(false).notNull(),
     ownerId: text("ownerId").references(() => users.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -154,4 +160,20 @@ export const attachments = pgTable("Attachment", {
 
 export const attachmentsRelations = relations(attachments, ({ one }) => ({
     message: one(messages, { fields: [attachments.messageId], references: [messages.id] }),
+}));
+
+export const messageReactions = pgTable("MessageReaction", {
+    id: text("id").primaryKey(),
+    messageId: text("messageId").notNull().references(() => messages.id),
+    userId: text("userId").notNull().references(() => users.id),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => ({
+    unq: unique().on(t.messageId, t.userId, t.emoji),
+}));
+
+export const messageReactionsRelations = relations(messageReactions, ({ one }) => ({
+    message: one(messages, { fields: [messageReactions.messageId], references: [messages.id] }),
+    user: one(users, { fields: [messageReactions.userId], references: [users.id] }),
 }));

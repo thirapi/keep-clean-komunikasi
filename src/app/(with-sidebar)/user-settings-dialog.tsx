@@ -16,6 +16,8 @@ import {
   Loader2,
   Camera,
   Key,
+  Sparkles,
+  ChevronLeft,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,15 +25,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -81,13 +80,13 @@ function Paintbrush(props: any) {
   )
 }
 
-const presetAvatars = [
-  "/avatars/avatar1.png",
-  "/avatars/avatar2.png",
-  "/avatars/avatar3.png",
-  "/avatars/avatar4.png",
-  "/avatars/avatar5.png",
-  "/avatars/avatar6.png",
+const presetBanners = [
+  "linear-gradient(to right, #4f46e5, #7c3aed)",
+  "linear-gradient(to right, #06b6d4, #3b82f6)",
+  "linear-gradient(to right, #10b981, #3b82f6)",
+  "linear-gradient(to right, #f59e0b, #ef4444)",
+  "#1e293b",
+  "#475569",
 ];
 
 export function UserSettingsDialog({
@@ -100,14 +99,21 @@ export function UserSettingsDialog({
     role: string;
     email: string;
     avatar: string;
+    bio?: string | null;
+    banner?: string | null;
+    customStatus?: string | null;
   };
 }) {
   const [open, setOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState("Profil");
+  const [selectedItem, setSelectedItem] = React.useState<string | null>("Profil");
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [username, setUsername] = React.useState(user.name);
   const [avatar, setAvatar] = React.useState(user.avatar);
+  const [bio, setBio] = React.useState(user.bio || "");
+  const [banner, setBanner] = React.useState(user.banner || "");
+  const [customStatus, setCustomStatus] = React.useState(user.customStatus || "");
   const [isUploading, setIsUploading] = React.useState(false);
+  const [isBannerUploading, setIsBannerUploading] = React.useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
 
   // Password fields
@@ -116,6 +122,7 @@ export function UserSettingsDialog({
   const [confirmPassword, setConfirmPassword] = React.useState("");
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const bannerInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleUpdateProfile = async () => {
     if (!username.trim()) return toast.error("Username tidak boleh kosong");
@@ -124,6 +131,9 @@ export function UserSettingsDialog({
       const response = await updateUserAction(user.id, {
         username: username.trim(),
         avatar: avatar,
+        bio: bio.trim() || null,
+        banner: banner || null,
+        customStatus: customStatus.trim() || null,
       });
 
       if (response.status === "success") {
@@ -186,6 +196,48 @@ export function UserSettingsDialog({
     }
   };
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran banner maksimal 5MB");
+      return;
+    }
+
+    setIsBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await uploadFileAction(formData, "banners");
+
+      if (response.status === "success" && response.data) {
+        setBanner(response.data.fileurl);
+        toast.success("Banner berhasil diunggah!");
+      } else {
+        toast.error(response.error?.message || "Gagal mengunggah banner");
+      }
+    } finally {
+      setIsBannerUploading(false);
+    }
+  };
+
+  const isBannerUrl = banner && (banner.startsWith("http") || banner.startsWith("/"));
+  const isDirty =
+    username !== user.name ||
+    avatar !== user.avatar ||
+    bio !== (user.bio || "") ||
+    banner !== (user.banner || "") ||
+    customStatus !== (user.customStatus || "");
+
+  const handleReset = () => {
+    setUsername(user.name);
+    setAvatar(user.avatar);
+    setBio(user.bio || "");
+    setBanner(user.banner || "");
+    setCustomStatus(user.customStatus || "");
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -194,13 +246,13 @@ export function UserSettingsDialog({
           Edit Profile
         </button>
       </DialogTrigger>
-      <DialogContent className="overflow-hidden p-0 md:max-h-[600px] md:max-w-[750px] lg:max-w-[850px] gap-0">
-        <SidebarProvider className="items-start min-h-0">
-          <Sidebar collapsible="none" className="hidden md:flex w-52 border-r bg-muted/20">
+      <DialogContent className="overflow-hidden p-0 h-full w-full md:max-h-[800px] md:max-w-[900px] lg:max-w-[1050px] gap-0 border-0 shadow-2xl">
+        <SidebarProvider className="items-start min-h-0 h-full">
+          <Sidebar collapsible="none" className={cn("hidden md:flex w-52 border-r bg-muted/20", selectedItem && "hidden md:flex")}>
             <SidebarContent className="p-2">
               <div className="px-3 py-4">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                  User Settings
+                <h2 className="text-sm font-bold text-muted-foreground/70">
+                  Pengaturan
                 </h2>
               </div>
               <SidebarMenu>
@@ -210,14 +262,14 @@ export function UserSettingsDialog({
                       isActive={selectedItem === item.name}
                       onClick={() => setSelectedItem(item.name)}
                       className={cn(
-                        "w-full justify-start gap-3 px-3 py-2 rounded-lg transition-all",
+                        "w-full justify-start gap-3 px-3 py-2.5 rounded-lg transition-all",
                         selectedItem === item.name
-                          ? "bg-primary/10 text-primary font-semibold"
+                          ? "bg-primary/10 text-primary font-bold shadow-sm"
                           : "text-muted-foreground hover:bg-muted/50"
                       )}
                     >
                       <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
+                      <span className="text-sm">{item.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -225,144 +277,252 @@ export function UserSettingsDialog({
             </SidebarContent>
           </Sidebar>
 
-          <main className="flex flex-1 flex-col min-h-0">
-            <DialogHeader className="p-6 pb-0 sm:text-left">
-              <DialogTitle className="text-xl font-bold tracking-tight">{selectedItem}</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                Kelola informasi akun dan preferensi Anda.
-              </DialogDescription>
-            </DialogHeader>
+          <main className={cn("flex flex-1 flex-col min-h-0 bg-background h-full", !selectedItem && "hidden md:flex")}>
+            <div className="flex items-center justify-between p-4 md:p-6 pb-2 border-b md:border-0">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => setSelectedItem(null)} className="md:hidden h-8 w-8">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">{selectedItem}</DialogTitle>
+                </div>
+              </div>
+            </div>
 
-            <ScrollArea className="flex-1 px-6 py-6">
-              <div className="space-y-8 max-w-2xl">
+            <ScrollArea className="flex-1">
+              <div className="p-4 md:p-6 pt-2">
                 {selectedItem === "Profil" && (
-                  <div className="space-y-8 animate-in fade-in duration-300">
-                    <section className="space-y-4">
-                      <div className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl border bg-muted/10">
-                        <div className="relative">
-                          <div
-                            className="cursor-pointer ring-4 ring-background rounded-2xl overflow-hidden shadow-xl"
-                            onClick={() => setIsLightboxOpen(true)}
-                          >
-                            <UserAvatar
-                              src={avatar}
-                              className="h-24 w-24 rounded-2xl hover:scale-105 transition-transform duration-300"
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
+                    {/* LEFT COLUMN: EDIT FORM */}
+                    <div className="lg:col-span-7 space-y-6">
+                      <section className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label className="text-sm font-bold">Banner Profil</Label>
+                          <div className="relative group/banner h-32 rounded-lg overflow-hidden border bg-muted/20">
+                            <div
+                              className="w-full h-full"
+                              style={{
+                                background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner,
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 text-xs font-bold"
+                                onClick={() => bannerInputRef.current?.click()}
+                                disabled={isBannerUploading}
+                              >
+                                {isBannerUploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                                Unggah Banner
+                              </Button>
+                            </div>
+                            <input
+                              type="file"
+                              ref={bannerInputRef}
+                              onChange={handleBannerUpload}
+                              className="hidden"
+                              accept="image/*"
                             />
                           </div>
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                            className="absolute -bottom-2 -right-2 z-10 flex items-center justify-center bg-primary text-primary-foreground p-2 rounded-full shadow-lg hover:bg-primary/90 transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                            title="Ubah Foto Profil"
-                          >
-                            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                          </button>
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            accept="image/*"
-                          />
-                        </div>
-                        <div className="flex-1 text-center sm:text-left space-y-2">
-                          <h3 className="font-bold text-lg">Foto Profil</h3>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Unggah foto kustom atau pilih dari avatar yang tersedia. Maksimal 2MB (JPG, PNG).
-                          </p>
-                          <div className="flex flex-wrap justify-center sm:justify-start gap-2 pt-1">
-                            {presetAvatars.map((src) => (
+                          
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative h-8 w-8 rounded-md overflow-hidden border cursor-pointer">
+                              <input
+                                type="color"
+                                className="absolute -top-1 -left-1 h-12 w-12 cursor-pointer"
+                                onChange={(e) => setBanner(e.target.value)}
+                                value={!isBannerUrl && !presetBanners.includes(banner) ? banner : "#ffffff"}
+                              />
+                            </div>
+                            {presetBanners.map((p) => (
                               <button
-                                key={src}
-                                onClick={() => setAvatar(src)}
+                                key={p}
+                                onClick={() => setBanner(p)}
                                 className={cn(
-                                  "h-8 w-8 rounded-md border-2 transition-all hover:scale-110",
-                                  avatar === src ? "border-primary scale-110" : "border-transparent"
+                                  "h-8 w-12 rounded-md border transition-all",
+                                  banner === p ? "ring-2 ring-primary ring-offset-1" : "border-transparent"
                                 )}
-                              >
-                                <img src={src} className="h-full w-full rounded-md" />
-                              </button>
+                                style={{ background: p }}
+                              />
                             ))}
                           </div>
                         </div>
-                      </div>
-                    </section>
 
-                    <section className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="username" className="text-sm font-bold">Username</Label>
-                        <Input
-                          id="username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="bg-muted/30"
-                          placeholder="Masukkan username Anda"
-                        />
-                      </div>
-                      <div className="grid gap-2 opacity-60">
-                        <Label className="text-sm font-bold">Email Address</Label>
-                        <div className="px-3 py-2 rounded-md bg-muted border text-sm font-medium">
-                          {user.email}
+                        <div className="flex items-center gap-6">
+                          <div className="relative shrink-0">
+                            <div
+                              className="cursor-pointer rounded-xl overflow-hidden border shadow-sm"
+                              onClick={() => setIsLightboxOpen(true)}
+                            >
+                              <UserAvatar
+                                src={avatar}
+                                className="h-20 w-20 rounded-xl"
+                              />
+                            </div>
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploading}
+                              className="absolute -bottom-2 -right-2 z-10 flex items-center justify-center bg-primary text-primary-foreground p-1.5 rounded-full border-2 border-background"
+                              title="Ubah Foto Profil"
+                            >
+                              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                            </button>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleFileUpload}
+                              className="hidden"
+                              accept="image/*"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <Label className="text-sm font-bold">Foto Profil</Label>
+                            <p className="text-xs text-muted-foreground">Minimal 512x512px.</p>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 italic">
-                          <Lock className="h-3 w-3" /> Email tidak dapat diubah secara manual.
-                        </p>
-                      </div>
-                    </section>
 
-                    <div className="pt-4 flex justify-end">
-                      <Button
-                        onClick={handleUpdateProfile}
-                        disabled={isUpdating || (username === user.name && avatar === user.avatar)}
-                        className="px-8 font-bold shadow-lg shadow-primary/20"
-                      >
-                        {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Perubahan"}
-                      </Button>
+                      </section>
+
+                      <section className="space-y-4 pt-2">
+                        <div className="grid gap-2">
+                          <Label htmlFor="username" className="text-sm font-bold">Nama Pengguna</Label>
+                          <Input
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="h-9"
+                            placeholder="Masukkan nama pengguna"
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="status" className="text-sm font-bold flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Status Kustom
+                          </Label>
+                          <Input
+                            id="status"
+                            value={customStatus}
+                            onChange={(e) => setCustomStatus(e.target.value)}
+                            className="h-9"
+                            placeholder="Apa yang sedang terjadi?"
+                            maxLength={100}
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="bio" className="text-sm font-bold">Bio</Label>
+                          <textarea
+                            id="bio"
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
+                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="Ceritakan tentang diri Anda..."
+                            maxLength={250}
+                          />
+                          <p className="text-right text-[10px] text-muted-foreground">{bio.length}/250</p>
+                        </div>
+                      </section>
+
+                      <div className="pt-2 flex items-center gap-2">
+                        <Button
+                          onClick={handleUpdateProfile}
+                          disabled={isUpdating || !isDirty}
+                          className="h-9 px-6 font-bold"
+                        >
+                          {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Perubahan"}
+                        </Button>
+                        {isDirty && (
+                          <Button
+                            variant="ghost"
+                            onClick={handleReset}
+                            className="h-9 px-4 text-xs"
+                          >
+                            Batal
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: PREVIEW (HIDDEN ON MOBILE) */}
+                    <div className="hidden lg:col-span-5 lg:flex flex-col pt-1">
+                      <Label className="text-sm font-bold mb-3 px-1">Pratinjau</Label>
+                      <div className="w-full max-w-[340px] mx-auto rounded-xl overflow-hidden border bg-zinc-950 shadow-md">
+                        <div
+                          className="h-24 w-full bg-muted relative"
+                          style={{
+                            background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner,
+                          }}
+                        />
+                        <div className="relative px-4 pb-6 pt-12">
+                          <div className="absolute -top-12 left-4">
+                            <div className="p-1 bg-zinc-950 rounded-xl">
+                              <UserAvatar src={avatar} className="h-20 w-20 rounded-lg" />
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-lg font-bold text-white tracking-tight">{username || user.name}</h3>
+                              {customStatus && (
+                                <p className="text-xs text-zinc-400 mt-1">{customStatus}</p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs font-bold text-zinc-500">Tentang saya</p>
+                              <p className="text-sm text-zinc-300 line-clamp-3">
+                                {bio || "Belum ada bio..."}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {selectedItem === "Keamanan" && (
-                  <div className="space-y-8 animate-in fade-in duration-300">
-                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/30 flex gap-3">
-                      <Shield className="h-5 w-5 text-amber-600 shrink-0" />
+                  <div className="max-w-2xl animate-in fade-in duration-300 space-y-8">
+                    <div className="p-5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/30 flex gap-4">
+                      <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                        <Shield className="h-5 w-5 text-amber-600" />
+                      </div>
                       <div>
                         <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Keamanan Akun</p>
-                        <p className="text-xs text-amber-700/80 dark:text-amber-300/60 leading-relaxed mt-0.5">
-                          Gunakan password yang kuat dan unik untuk melindungi akun Anda dari akses yang tidak sah.
+                        <p className="text-xs text-amber-700/80 dark:text-amber-300/60 leading-relaxed mt-1">
+                          Gunakan kata sandi yang kuat dan unik untuk melindungi akun Anda dari akses yang tidak sah. Minimal 8 karakter dengan kombinasi angka dan simbol.
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                       <div className="grid gap-2">
-                        <Label className="text-sm font-bold">Password Saat Ini</Label>
+                        <Label className="text-sm font-bold">Kata Sandi Saat Ini</Label>
                         <Input
                           type="password"
                           value={oldPassword}
                           onChange={(e) => setOldPassword(e.target.value)}
-                          className="bg-muted/30"
+                          className="bg-muted/30 h-10 border-muted"
                           placeholder="••••••••"
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label className="text-sm font-bold">Password Baru</Label>
+                        <Label className="text-sm font-bold">Kata Sandi Baru</Label>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="bg-muted/30"
+                          className="bg-muted/30 h-10 border-muted"
                           placeholder="Minimal 8 karakter"
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label className="text-sm font-bold">Konfirmasi Password</Label>
+                        <Label className="text-sm font-bold">Konfirmasi Kata Sandi Baru</Label>
                         <Input
                           type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="bg-muted/30"
-                          placeholder="Ulangi password baru"
+                          className="bg-muted/30 h-10 border-muted"
+                          placeholder="Ulangi kata sandi baru"
                         />
                       </div>
                     </div>
@@ -372,23 +532,46 @@ export function UserSettingsDialog({
                         variant="default"
                         onClick={handleChangePassword}
                         disabled={isUpdating || !newPassword}
-                        className="px-8 font-bold"
+                        className="px-10 font-bold h-11 shadow-lg shadow-primary/20"
                       >
-                        {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Ganti Password</>}
+                        {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Perbarui Kata Sandi</>}
                       </Button>
                     </div>
                   </div>
                 )}
 
                 {selectedItem === "Tampilan" && (
-                  <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center animate-in fade-in duration-300">
-                    <Paintbrush className="h-12 w-12 text-muted-foreground/30" />
-                    <div className="space-y-1">
-                      <h3 className="font-bold">Tema & Kustomisasi</h3>
-                      <p className="text-sm text-muted-foreground max-w-xs">
-                        Fitur untuk mengubah tema gelap/terang dan warna aksen akan segera hadir.
+                  <div className="flex flex-col items-center justify-center py-20 space-y-6 text-center animate-in fade-in duration-300">
+                    <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-2">
+                      <Paintbrush className="h-10 w-10 text-primary/40" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold tracking-tight">Tema & Kustomisasi</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                        Kami sedang menyiapkan fitur untuk mengubah tema kustom dan warna aksen agar aplikasi terasa lebih personal.
                       </p>
                     </div>
+                    <Button variant="secondary" className="px-8 font-bold" disabled>
+                      Coming Soon
+                    </Button>
+                  </div>
+                )}
+
+                {/* Mobile Navigation List (Visible when selectedItem is null) */}
+                {!selectedItem && (
+                  <div className="md:hidden animate-in slide-in-from-left-4 duration-300">
+                    {data.nav.map((item) => (
+                      <button
+                        key={item.name}
+                        onClick={() => setSelectedItem(item.name)}
+                        className="w-full flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-bold">{item.name}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>

@@ -10,7 +10,7 @@ const deleteRoomUseCase = new DeleteRoomUseCase(roomRepository);
 export const updateRoomController = async (
   roomId: string,
   requesterId: string,
-  data: { name?: string; description?: string; isPublic?: boolean; avatar?: string }
+  data: { name?: string; description?: string; isPublic?: boolean; avatar?: string; banner?: string }
 ) => {
   return await updateRoomUseCase.execute(roomId, requesterId, data);
 };
