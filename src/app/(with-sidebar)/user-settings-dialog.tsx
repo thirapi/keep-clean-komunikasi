@@ -443,9 +443,9 @@ export function UserSettingsDialog({
                       <div className="w-full max-w-[300px] mx-auto rounded-xl overflow-hidden bg-zinc-950 ring-1 ring-white/10 shadow-2xl animate-in zoom-in-95 duration-500">
                         {/* Mini Banner */}
                         <div
-                          className="h-20 w-full bg-muted relative"
+                          className="h-20 w-full bg-zinc-900 relative"
                           style={{
-                            background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner,
+                            background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner || "#18181b",
                           }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

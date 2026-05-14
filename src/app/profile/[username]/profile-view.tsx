@@ -188,7 +188,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                     <div
                         className="h-32 sm:h-44 w-full bg-muted relative flex-shrink-0"
                         style={{
-                            background: isBannerUrl ? `url(${user.banner}) center/cover no-repeat` : (user.banner || "linear-gradient(to right, #4f46e5, #7c3aed)"),
+                            background: isBannerUrl ? `url(${user.banner}) center/cover no-repeat` : (user.banner || "#18181b"),
                         }}
                     >
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

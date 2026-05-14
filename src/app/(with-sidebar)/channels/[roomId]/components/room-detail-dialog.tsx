@@ -298,9 +298,15 @@ export function RoomDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="overflow-hidden p-0 h-[85dvh] w-[calc(100%-2rem)] sm:w-full sm:max-w-[550px] md:h-[750px] md:max-h-[85vh] gap-0 border-0 shadow-2xl flex flex-col [&>button:last-child]:hidden">
         <div
-          className="relative h-32 border-b bg-muted/20 shadow-inner group/banner transition-all"
+          className="relative h-32 border-b bg-zinc-900 shadow-inner group/banner transition-all"
           style={{
-            background: isBannerUrl ? `url(${banner}) center/cover no-repeat` : banner || "linear-gradient(to right, #6366f110, #94a3b805)",
+            background: (() => {
+              const displayBanner = isDirect ? otherUser?.banner : banner;
+              const isUrl = displayBanner && (displayBanner.startsWith("http") || displayBanner.startsWith("/"));
+              return isUrl
+                ? `url(${displayBanner}) center/cover no-repeat`
+                : (displayBanner || "#18181b");
+            })()
           }}
         >
           {isOwner && !isDirect && (

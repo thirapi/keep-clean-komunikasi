@@ -56,15 +56,22 @@ export function ProfileHoverCard({
     <div className="flex flex-col w-full md:w-72">
       {/* Mini Banner */}
       <div
-        className="h-20 w-full bg-muted relative"
+        className="h-20 w-full bg-zinc-900 relative flex-shrink-0"
         style={{
           background:
             profile.banner && (profile.banner.startsWith("http") || profile.banner.startsWith("/"))
               ? `url(${profile.banner}) center/cover no-repeat`
-              : (profile.banner || "linear-gradient(to right, #4f46e5, #7c3aed)"),
+              : (profile.banner || "#18181b"),
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+        {/* Subtle Loading Indicator in Banner */}
+        {isLoading && (
+          <div className="absolute top-2 right-2 p-1 bg-black/40 backdrop-blur-sm rounded-full">
+            <Loader2 className="w-3 h-3 animate-spin text-white/70" />
+          </div>
+        )}
       </div>
 
       <div className="relative px-4 pb-4 pt-10">
@@ -97,12 +104,6 @@ export function ProfileHoverCard({
 
           {profile.bio && (
             <p className="text-[11px] text-zinc-400 leading-relaxed italic">{profile.bio}</p>
-          )}
-
-          {isLoading && (
-            <div className="flex justify-center py-2">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
           )}
 
           <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
