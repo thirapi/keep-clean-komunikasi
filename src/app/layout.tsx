@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Doto } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -17,7 +18,7 @@ const doto = Doto({
 export const metadata: Metadata = {
   title: "Komunikasi",
   description:
-    "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, dan keluarga.",
+    "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman. Cocok untuk tim, komunitas, and keluarga.",
   keywords: [
     "komunikasi",
     "web chat app",
@@ -47,10 +48,20 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Komunikasi",
     description:
-      "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, dan aman.",
+      "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, and aman.",
     images: ["/og-image.png"],
   },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Komunikasi",
+  },
   metadataBase: new URL("https://komunikasi.qzz.io/"),
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -77,6 +88,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <ServiceWorkerRegister />
         </ThemeProvider>
         <Analytics />
       </body>

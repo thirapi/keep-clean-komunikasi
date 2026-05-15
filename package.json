@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio",
     "db:reset": "tsx --env-file=.env src/lib/infrastructure/drizzle/reset.ts",
     "db:seed": "tsx --env-file=.env src/lib/infrastructure/drizzle/seed.ts",
+    "test": "vitest",
     "dev:clean": "npm run db:reset && npm run db:push && npm run db:seed && npm run dev"
   },
   "dependencies": {
