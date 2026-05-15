@@ -6,6 +6,7 @@ import { GeistMono } from "geist/font/mono";
 import { Doto } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -86,6 +87,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <NextTopLoader 
+            color="#A855F7" 
+            showSpinner={false} 
+            shadow={false}
+            height={5}
+            crawl={true}
+            showAtBottom={false}
+            zIndex={999999}
+          />
           {children}
           <Toaster />
           <ServiceWorkerRegister />
