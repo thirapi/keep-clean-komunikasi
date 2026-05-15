@@ -10,6 +10,7 @@ import {
   UserPen,
 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ import { ModeToggleItem } from "@/components/landingpage/mode-toggle-nav-user";
 export function NavUser({
   user,
   checkRole,
+  isMobileHeader,
 }: {
   user: {
     id: string;
@@ -55,6 +57,7 @@ export function NavUser({
       name: string;
     }[];
   } | null;
+  isMobileHeader?: boolean;
 }) {
   const { isMobile } = useSidebar();
   const isAdmin = checkRole?.roles.some(
@@ -71,28 +74,35 @@ export function NavUser({
   };
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className={cn(isMobileHeader && "w-auto m-0")}>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              size={isMobileHeader ? "sm" : "lg"}
+              className={cn(
+                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                isMobileHeader && "w-10 h-10 p-0 rounded-full flex items-center justify-center m-0 bg-transparent hover:bg-transparent"
+              )}
             >
-              <UserAvatar 
-                src={user.avatar} 
+              <UserAvatar
+                src={user.avatar}
                 alt={user.name}
-                className="h-8 w-8 rounded-lg"
+                className={cn("h-8 w-8 rounded-lg", isMobileHeader && "h-10 w-10 min-w-10 rounded-full shadow-sm ring-1 ring-border/20 object-cover")}
               />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold text-prime">
-                  {user.name}
-                </span>
-                <span className="truncate text-xs dark:text-slate-500">
-                  {user.role}
-                </span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              {!isMobileHeader && (
+                <>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold text-prime">
+                      {user.name}
+                    </span>
+                    <span className="truncate text-xs dark:text-slate-500">
+                      {user.role}
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -103,8 +113,8 @@ export function NavUser({
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <UserAvatar 
-                  src={user.avatar} 
+                <UserAvatar
+                  src={user.avatar}
                   alt={user.name}
                   className="h-8 w-8 rounded-lg"
                 />

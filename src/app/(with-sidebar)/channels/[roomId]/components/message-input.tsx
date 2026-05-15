@@ -462,7 +462,7 @@ export function MessageInput({
           <div
             ref={highlightRef}
             aria-hidden="true"
-            className="absolute inset-0 px-3 py-2 text-[14px] leading-relaxed whitespace-pre-wrap break-words pointer-events-none overflow-hidden text-foreground/90 select-none font-sans"
+            className="absolute inset-0 px-3 py-2 text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none overflow-hidden text-foreground/90 select-none font-sans"
             dangerouslySetInnerHTML={{
               __html: content
                 .replace(/&/g, "&amp;")
@@ -501,7 +501,7 @@ export function MessageInput({
             onKeyDown={handleKeyDown}
             spellCheck="false"
             placeholder={`Tulis pesan di #${roomData.name}`}
-            className="relative w-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-[14px] leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
+            className="relative w-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-base leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
             rows={1}
           />
         </div>
@@ -511,18 +511,18 @@ export function MessageInput({
           disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
           className="h-8 w-8 p-0 rounded-lg bg-primary hover:brightness-110 transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-30 disabled:grayscale"
         >          {isSending ? (
-            <div className="flex items-center justify-center gap-1">
-              {[0, 0.2, 0.4].map((delay, i) => (
-                <div
-                  key={i}
-                  className="h-1 w-1 bg-white rounded-full animate-bounce"
-                  style={{ animationDelay: `${delay}s` }}
-                />
-              ))}
-            </div>
-          ) : (
-            <CornerLeftUp className="h-4 w-4 rotate-90" />
-          )}
+          <div className="flex items-center justify-center gap-1">
+            {[0, 0.2, 0.4].map((delay, i) => (
+              <div
+                key={i}
+                className="h-1 w-1 bg-white rounded-full animate-bounce"
+                style={{ animationDelay: `${delay}s` }}
+              />
+            ))}
+          </div>
+        ) : (
+          <CornerLeftUp className="h-4 w-4 rotate-90" />
+        )}
         </Button>
       </div>
 

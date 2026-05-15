@@ -67,6 +67,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#000000",
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -91,9 +93,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextTopLoader 
-            color="#A855F7" 
-            showSpinner={false} 
+          <NextTopLoader
+            color="#A855F7"
+            showSpinner={false}
             shadow={false}
             height={5}
             crawl={true}

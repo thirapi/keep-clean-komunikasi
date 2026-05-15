@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Users, Info, Search } from "lucide-react";
+import { Users, Info, Search, ChevronLeft } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { RoomDetailDialog } from "./room-detail-dialog";
+import Link from "next/link";
 
 interface ChatHeaderProps {
   roomData: RoomWithParticipantsDTO;
@@ -70,14 +70,24 @@ export function ChatHeader({
         {/* Sidebar Trigger - Mobile only */}
         {isMounted && (
           <div className="md:hidden">
-            <SidebarTrigger />
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground transition-colors duration-200 flex-shrink-0"
+              aria-label="Back to channels"
+            >
+              <Link href="/channels/default">
+                <ChevronLeft className="h-7 w-7" />
+              </Link>
+            </Button>
           </div>
         )}
 
         {roomData.isDirect ? (
           <>
-            <div 
-              className="cursor-pointer transition-transform active:scale-95" 
+            <div
+              className="cursor-pointer transition-transform active:scale-95"
               onClick={() => setShowDetails(true)}
             >
               <UserAvatar
@@ -86,7 +96,7 @@ export function ChatHeader({
                 className="h-8 w-8 rounded-md shrink-0 ring-1 ring-border shadow-sm"
               />
             </div>
-            <div 
+            <div
               className="flex flex-col min-w-0 cursor-pointer group"
               onClick={() => setShowDetails(true)}
             >
@@ -110,8 +120,8 @@ export function ChatHeader({
           </>
         ) : (
           <>
-            <div 
-              className="cursor-pointer transition-transform active:scale-95" 
+            <div
+              className="cursor-pointer transition-transform active:scale-95"
               onClick={() => setShowDetails(true)}
             >
               <UserAvatar
@@ -122,7 +132,7 @@ export function ChatHeader({
             </div>
             <div className="flex flex-col min-w-0 ml-1">
               <div className="flex items-center gap-3">
-                <h2 
+                <h2
                   className="text-base sm:text-lg font-semibold truncate leading-tight cursor-pointer hover:text-primary transition-colors"
                   onClick={() => setShowDetails(true)}
                 >

@@ -390,7 +390,7 @@ export function MessageItem({
               return (
                 <code
                   className={cn(
-                    "block whitespace-pre font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
+                    "block whitespace-pre-wrap break-all md:whitespace-pre md:break-normal font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
                     className
                   )}
                   {...props}

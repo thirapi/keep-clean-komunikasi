@@ -60,7 +60,7 @@ export function NavMainDirectMessage({
   const [openDMDialog, setOpenDMDialog] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
 
@@ -145,13 +145,17 @@ export function NavMainDirectMessage({
                     )}
                     tooltip={item.name}
                   >
-                    <Link href={item.url} className="flex items-center w-full">
+                    <Link
+                      href={item.url}
+                      onClick={() => isMobile && setOpenMobile(false)}
+                      className="flex items-center w-full"
+                    >
                       {isActive && !isCollapsed && (
                         <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
                       )}
                       <div className="relative shrink-0">
-                        <UserAvatar 
-                          src={item.avatar} 
+                        <UserAvatar
+                          src={item.avatar}
                           alt={item.name}
                           className="h-10 w-10 rounded-md border shadow-sm shrink-0"
                         />
@@ -204,6 +208,7 @@ export function NavMainDirectMessage({
           await onCreateDirectMessage(userId);
           router.refresh();
           setOpenDMDialog(false);
+          if (isMobile) setOpenMobile(false);
         }}
         user={user}
       />

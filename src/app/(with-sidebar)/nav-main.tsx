@@ -45,7 +45,7 @@ export function NavMain({
   onExplore?: () => void;
 }) {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   const formatTime = (date?: Date) => {
@@ -131,6 +131,7 @@ export function NavMain({
               >
                 <Link
                   href={item.url}
+                  onClick={() => isMobile && setOpenMobile(false)}
                   className={cn(
                     "flex items-center",
                     isCollapsed ? "justify-center p-0" : "gap-3",

@@ -19,6 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import {
   Tooltip,
@@ -34,13 +35,13 @@ type Brand = {
 
 export function NavBrand({ brand }: { brand: Brand }) {
   const { state } = useSidebar();
+  const isMobile = useIsMobile();
   const isCollapsed = state === "collapsed";
   return (
     <SidebarMenu>
       <SidebarMenuItem
-        className={`flex items-center ${
-          isCollapsed ? "justify-center" : "justify-between gap-2"
-        }`}
+        className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between gap-2"
+          }`}
       >
         {isCollapsed ? (
           <div className="relative">
@@ -50,16 +51,18 @@ export function NavBrand({ brand }: { brand: Brand }) {
               </div>
             </div>
 
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarTrigger className="flex items-center justify-center size-10 rounded-lg" />
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Buka sidebar</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            {!isMobile && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarTrigger className="flex items-center justify-center size-10 rounded-lg" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Buka sidebar</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -82,14 +85,16 @@ export function NavBrand({ brand }: { brand: Brand }) {
               </SidebarMenuButton>
             </Link>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <SidebarTrigger className="shrink-0" />
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Tutup sidebar</p>
-              </TooltipContent>
-            </Tooltip>
+            {!isMobile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarTrigger className="shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Tutup sidebar</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </>
         )}
       </SidebarMenuItem>
