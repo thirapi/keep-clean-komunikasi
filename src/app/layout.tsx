@@ -52,7 +52,11 @@ export const metadata: Metadata = {
       "Komunikasi adalah aplikasi web chat untuk obrolan ringan, cepat, and aman.",
     images: ["/og-image.png"],
   },
-  manifest: "/site.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-32x32.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

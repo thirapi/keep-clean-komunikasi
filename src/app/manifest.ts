@@ -1,0 +1,36 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: "komunikasi-app",
+    name: "Komunikasi",
+    short_name: "Komunikasi",
+    description: "Platform pesan instan modern untuk kolaborasi tim.",
+    icons: [
+      {
+        src: "/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+    theme_color: "#000000",
+    background_color: "#ffffff",
+    display: "standalone",
+    start_url: "/",
+    scope: "/",
+    orientation: "portrait",
+  };
+}

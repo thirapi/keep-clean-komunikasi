@@ -2,9 +2,11 @@ const CACHE_NAME = "komunikasi-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/favicon.ico",
-  "/manifest.json",
-  "/icons/k.svg", // assuming this exists or similar
+  "/manifest.webmanifest",
+  "/k.svg",
   "/og-image.png",
+  "/android-chrome-192x192.png",
+  "/android-chrome-512x512.png",
 ];
 
 self.addEventListener("install", (event) => {
