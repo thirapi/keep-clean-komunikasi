@@ -19,6 +19,21 @@ export const usersRelations = relations(users, ({ many }) => ({
     roomParticipants: many(roomParticipants),
     sessions: many(sessions),
     reactions: many(messageReactions),
+    pushSubscriptions: many(pushSubscriptions),
+}));
+
+export const pushSubscriptions = pgTable("PushSubscription", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull().references(() => users.id),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+    user: one(users, { fields: [pushSubscriptions.userId], references: [users.id] }),
 }));
 
 export const messages = pgTable("Message", {

@@ -37,6 +37,16 @@ describe("SendMessageUseCase", () => {
     sendMessage: vi.fn(),
   } as unknown as INotifierService
 
+  const mockPushRepo = {
+    saveSubscription: vi.fn(),
+    getSubscriptionsByUserId: vi.fn().mockResolvedValue([]),
+    deleteSubscription: vi.fn(),
+  } as unknown as any
+
+  const mockWebPushService = {
+    sendNotification: vi.fn(),
+  } as unknown as any
+
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(mockRoomRepo.getRoomById).mockResolvedValue({
@@ -56,7 +66,7 @@ describe("SendMessageUseCase", () => {
     vi.mocked(mockPusher.trigger).mockResolvedValue(undefined as any)
   })
 
-  const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier)
+  const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier, mockPushRepo, mockWebPushService)
 
   it("should create a message and trigger pusher", async () => {
     const mockMessage = { ...baseMessage, user: { username: "user1" } }

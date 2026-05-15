@@ -32,37 +32,61 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Only handle GET requests
   if (event.request.method !== "GET") return;
-
-  // Skip chrome-extension and other protocols
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
+  const url = new URL(event.request.url);
+  const isStatic = url.pathname.startsWith('/_next/static/') ||
+    url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webmanifest)$/);
 
-      return fetch(event.request).then((networkResponse) => {
-        // Don't cache API calls or external resources here
-        // IndexedDB handles the data
-        if (
-          !networkResponse ||
-          networkResponse.status !== 200 ||
-          networkResponse.type !== "basic" ||
-          event.request.url.includes("/api/")
-        ) {
-          return networkResponse;
+  if (isStatic) {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        if (response) {
+          return response;
         }
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
+            return networkResponse;
+          }
 
-        return networkResponse;
-      });
-    })
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+          return networkResponse;
+        });
+      })
+    );
+  } else {
+    // Bebaskan navigasi dan request API lainnya dari caching Service Worker
+    return;
+  }
+});
+
+// Web Push Notification Listeners
+self.addEventListener("push", (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || "Pesan Baru";
+  const options = {
+    body: data.body || "Anda memiliki pesan baru",
+    icon: "/android-chrome-192x192.png",
+    badge: "/android-chrome-192x192.png",
+    data: {
+      url: data.url || "/",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data.url;
+
+  event.waitUntil(
+    self.clients.openWindow(url)
   );
 });

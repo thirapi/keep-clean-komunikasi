@@ -36,6 +36,13 @@
       "when": 1778723696312,
       "tag": "0004_remarkable_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778842705677,
+      "tag": "0005_foamy_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

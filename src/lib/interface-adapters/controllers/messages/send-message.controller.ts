@@ -8,13 +8,24 @@ import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { db } from "@/lib/db";
 import { RoomRepository } from "@/lib/infrastructure/repositories/room.repository";
 import { DiscordNotifierService } from "@/lib/infrastructure/services/discord-notifier.service";
+import { PushSubscriptionRepository } from "@/lib/infrastructure/repositories/push-subscription.repository";
+import { WebPushService } from "@/lib/infrastructure/services/web-push.service";
 
 const messageRepository = new MessageRepository(db);
 const roomRepository = new RoomRepository(db)
 const pusherService = new PusherService();
 const discordNotifierService = new DiscordNotifierService(process.env.DISCORD_WEBHOOK_URL || "");
+const pushSubscriptionRepository = new PushSubscriptionRepository();
+const webPushService = new WebPushService();
 
-const sendMessageUseCase = new SendMessageUseCase(messageRepository, roomRepository, pusherService, discordNotifierService);
+const sendMessageUseCase = new SendMessageUseCase(
+    messageRepository,
+    roomRepository,
+    pusherService,
+    discordNotifierService,
+    pushSubscriptionRepository,
+    webPushService
+);
 
 const formSchema = z.object({
     content: z.string(),

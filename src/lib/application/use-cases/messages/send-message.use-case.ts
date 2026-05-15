@@ -3,13 +3,17 @@ import { IMessageRepository } from "../../repositories/message.repository.interf
 import { IRoomRepository } from "../../repositories/room.repository.interface";
 import { INotifierService } from "../../services/discord-notifier.service.interface";
 import { IPusherService } from "../../services/pusher.service.interface";
+import { IPushSubscriptionRepository } from "../../repositories/push-subscription.repository.interface";
+import { IWebPushService } from "../../services/web-push.service.interface";
 
 export class SendMessageUseCase {
   constructor(
     private messageRepository: IMessageRepository,
     private roomRepository: IRoomRepository,
     private pusherService: IPusherService,
-    private discordNotifierService: INotifierService
+    private discordNotifierService: INotifierService,
+    private pushSubscriptionRepository: IPushSubscriptionRepository,
+    private webPushService: IWebPushService
   ) { }
 
   async execute(
@@ -32,8 +36,7 @@ export class SendMessageUseCase {
 
     await this.pusherService.trigger(`chat-${roomId}`, "new-message", messageWithOptimisticId);
 
-    // ... existing logic for notifications ...
-    const roomName = await this.roomRepository.getRoomById(roomId);
+    const roomData = await this.roomRepository.getRoomById(roomId);
     const userName = message.user.username;
 
     const participants = await this.roomRepository.getOtherParticipants(
@@ -51,12 +54,36 @@ export class SendMessageUseCase {
       }
     );
 
+    // Trigger Web Push Notifications for offline/background users asynchronously
+    const pushPromises: Promise<void>[] = [];
+
+    for (const receiverId of receiverIds) {
+      const subscriptions = await this.pushSubscriptionRepository.getSubscriptionsByUserId(receiverId);
+      for (const sub of subscriptions) {
+        pushPromises.push(
+          this.webPushService.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            JSON.stringify({
+              title: userName,
+              body: content,
+              url: `/channels/${roomId}`,
+            })
+          )
+        );
+      }
+    }
+
+    Promise.allSettled(pushPromises).catch(console.error);
+
     await this.discordNotifierService.sendMessage(
       [
         `@everyone`,
         `**Pesan Baru**`,
         `Pengirim: **${userName ?? userId}**`,
-        `Ruangan: **${roomName?.name ?? roomId}**`,
+        `Ruangan: **${roomData?.name ?? roomId}**`,
         `Konten:\n> ${content}`,
       ].join("\n")
     );
