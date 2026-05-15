@@ -8,19 +8,19 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Platform pesan instan modern untuk kolaborasi tim.",
     icons: [
       {
-        src: "/android-chrome-192x192.png",
+        src: "/api/icon/192",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/android-chrome-512x512.png",
+        src: "/api/icon/512",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/android-chrome-512x512.png",
+        src: "/api/icon/maskable",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
