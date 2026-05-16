@@ -127,6 +127,7 @@
       opacity: 0;
       transform: translateY(8px) scale(0.98);
     }
+
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
@@ -165,6 +166,7 @@
   * {
     border-color: var(--border);
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -175,9 +177,11 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -193,11 +197,13 @@
   color: #5c6370;
   font-style: italic;
 }
+
 .hljs-doctag,
 .hljs-keyword,
 .hljs-formula {
   color: #c678dd;
 }
+
 .hljs-section,
 .hljs-name,
 .hljs-selector-tag,
@@ -205,9 +211,11 @@
 .hljs-subst {
   color: #e06c75;
 }
+
 .hljs-literal {
   color: #56b6c2;
 }
+
 .hljs-string,
 .hljs-regexp,
 .hljs-addition,
@@ -215,6 +223,7 @@
 .hljs-meta .hljs-string {
   color: #98c379;
 }
+
 .hljs-attr,
 .hljs-variable,
 .hljs-template-variable,
@@ -225,6 +234,7 @@
 .hljs-symbol {
   color: #d19a66;
 }
+
 .hljs-bullet,
 .hljs-link,
 .hljs-meta,
@@ -232,17 +242,21 @@
 .hljs-title {
   color: #61afef;
 }
+
 .hljs-built_in,
 .hljs-title .hljs-built_in,
 .hljs-class .hljs-title {
   color: #e6c07b;
 }
+
 .hljs-emphasis {
   font-style: italic;
 }
+
 .hljs-strong {
   font-weight: bold;
 }
+
 .hljs-link {
   text-decoration: underline;
 }

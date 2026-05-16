@@ -96,14 +96,22 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
     return (
         <div className="flex flex-col h-[100dvh] bg-background animate-in fade-in duration-500 overflow-hidden">
-            <div className="max-w-4xl mx-auto w-full h-full flex flex-col px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto w-full h-full flex flex-col sm:px-6 lg:px-8">
                 {/* Header Navigation - Compact */}
-                <div className="flex items-center justify-between py-4 flex-shrink-0">
+                <div className="flex items-center justify-between py-4 px-4 sm:px-0 flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => router.back()}
+                            onClick={() => {
+                                if (document.referrer.includes(window.location.host) && window.history.length > 2) {
+                                    router.back();
+                                } else if (currentUser) {
+                                    router.push("/channels/default");
+                                } else {
+                                    router.push("/");
+                                }
+                            }}
                             className="rounded-full hover:bg-muted"
                         >
                             <ArrowLeft className="h-5 w-5" />
@@ -183,7 +191,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                 </div>
 
                 {/* Main Profile Card - Balanced Sizes */}
-                <div className="bg-zinc-950 rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/10 border-0 flex flex-col flex-1 mb-6">
+                <div className="bg-zinc-950 sm:rounded-[2rem] overflow-hidden sm:shadow-2xl sm:ring-1 ring-white/10 border-0 flex flex-col flex-1 sm:mb-6">
                     {/* Banner */}
                     <div
                         className="h-32 sm:h-44 w-full bg-muted relative flex-shrink-0"

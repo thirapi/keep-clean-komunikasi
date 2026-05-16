@@ -17,7 +17,7 @@ export function MobileStackContent({ children }: { children: React.ReactNode }) 
     return (
         <div className={cn(
             "flex flex-col flex-1 min-h-0 w-full overflow-hidden",
-            isMobile && isDefaultRoom && "hidden"
+            isDefaultRoom && "max-md:hidden"
         )}>
             {children}
         </div>

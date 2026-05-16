@@ -158,7 +158,7 @@ export function AppSidebar({
       variant={isMobile ? "sidebar" : "floating"}
       className={cn(
         "border-none bg-transparent transition-none",
-        isMobile && isDefaultRoom ? "!w-full !max-w-full flex" : isMobile ? "hidden" : ""
+        isDefaultRoom ? "max-md:!w-full max-md:!max-w-full max-md:flex" : "max-md:hidden"
       )}
       {...props}
     >
@@ -209,7 +209,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         {isMobile ? (
-          <div className="flex flex-col w-full min-w-0 pb-32">
+          <div className="flex flex-col w-full min-w-0 pb-4">
             {mobileTab === "channels" ? (
               <NavMain
                 groups={groups}
@@ -269,36 +269,34 @@ export function AppSidebar({
         )}
       </SidebarContent>
       {isMobile ? (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-sm z-50">
-          <div className="flex items-center justify-between gap-1 p-1.5 rounded-[2rem] bg-background/30 dark:bg-slate-900/30 backdrop-blur-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-black/5 dark:ring-white/5">
+        <SidebarFooter className="border-t bg-background p-1.5 mt-auto shrink-0 shadow-[0_-5px_15px_-10px_rgba(0,0,0,0.1)] sticky bottom-0">
+          <div className="flex w-full items-center justify-around gap-1 px-1">
             <Button
               variant="ghost"
-              className={cn(
-                "flex-1 h-12 rounded-full flex gap-2 font-medium transition-all duration-300 ease-out",
-                mobileTab === "channels"
-                  ? "bg-background/90 dark:bg-white/10 text-foreground shadow-sm ring-1 ring-border/20"
-                  : "bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground"
-              )}
+              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "channels" ? "text-primary" : "text-muted-foreground")}
               onClick={() => setMobileTab("channels")}
             >
-              <Hash className="h-[20px] w-[20px]" />
-              <span className="text-[13px] tracking-wide">Channels</span>
+              <Hash className="h-[22px] w-[22px]" strokeWidth={mobileTab === "channels" ? 3 : 2} />
+              <span className={cn("text-[10px] tracking-wide", mobileTab === "channels" ? "font-bold" : "font-medium")}>Channels</span>
             </Button>
             <Button
               variant="ghost"
-              className={cn(
-                "flex-1 h-12 rounded-full flex gap-2 font-medium transition-all duration-300 ease-out",
-                mobileTab === "dms"
-                  ? "bg-background/90 dark:bg-white/10 text-foreground shadow-sm ring-1 ring-border/20"
-                  : "bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground"
-              )}
+              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "dms" ? "text-primary" : "text-muted-foreground")}
               onClick={() => setMobileTab("dms")}
             >
-              <MessageCircle className="h-[20px] w-[20px]" />
-              <span className="text-[13px] tracking-wide">Pesan</span>
+              <MessageCircle className="h-[22px] w-[22px]" fill={mobileTab === "dms" ? "currentColor" : "none"} strokeWidth={mobileTab === "dms" ? 0 : 2} />
+              <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
+              onClick={() => router.push(`/profile/${user.name}`)}
+            >
+              <User className="h-[22px] w-[22px]" strokeWidth={2} />
+              <span className="text-[10px] font-medium tracking-wide">Profil</span>
             </Button>
           </div>
-        </div>
+        </SidebarFooter>
       ) : (
         <SidebarFooter>
           <NavUser user={user} checkRole={checkRole} />
