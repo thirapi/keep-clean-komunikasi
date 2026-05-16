@@ -19,6 +19,7 @@ export interface SidebarRoomDTO {
   url: string;
   avatar: string;
   hasUnread: boolean;
+  hasMention: boolean;
   type: "channel" | "direct";
   userId?: string;
   lastMessage?: string;

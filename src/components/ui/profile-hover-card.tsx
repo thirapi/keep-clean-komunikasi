@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, MessageSquare, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -134,14 +134,14 @@ export function ProfileHoverCard({
 
   return (
     <>
-      {/* Desktop: HoverCard */}
+      {/* Desktop: Popover */}
       <div className="hidden md:block">
-        <HoverCard openDelay={200} onOpenChange={(open) => open && fetchFullProfile()}>
-          <HoverCardTrigger asChild>{children}</HoverCardTrigger>
-          <HoverCardContent className="w-72 p-0 overflow-hidden border-0 shadow-2xl bg-zinc-950 ring-1 ring-white/10" side="right" align="start">
+        <Popover onOpenChange={(open) => open && fetchFullProfile()}>
+          <PopoverTrigger asChild>{children}</PopoverTrigger>
+          <PopoverContent className="w-72 p-0 overflow-hidden border-0 shadow-2xl bg-zinc-950 ring-1 ring-white/10" side="right" align="start">
             {ProfileContent}
-          </HoverCardContent>
-        </HoverCard>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Mobile: Dialog */}

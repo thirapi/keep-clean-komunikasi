@@ -2,10 +2,12 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { XEmbed } from "@/components/ui/x-embed";
 import { LinkPreviewCard } from "./link-preview-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
 
 // Module-level constants — compiled once, not on every render
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -21,7 +23,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
@@ -67,6 +69,7 @@ export function MessageItem({
   isAfterSeparator,
   isHighlighted,
   onScrollToMessage,
+  roomData,
 }: {
   message: MessageWithUserDTO;
   onlineUserIds: string[];
@@ -81,6 +84,7 @@ export function MessageItem({
   isAfterSeparator?: boolean;
   isHighlighted?: boolean;
   onScrollToMessage?: (messageId: string) => void;
+  roomData?: RoomWithParticipantsDTO;
 }) {
   const router = useRouter();
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -92,47 +96,49 @@ export function MessageItem({
   // Inline edit state
   const [editContent, setEditContent] = useState(message.content || "");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const editInputRef = useRef<HTMLTextAreaElement>(null);
+  const editInputRef = useRef<HTMLDivElement>(null);
 
   // When entering edit mode, populate and focus
+  const resolveMentionsForEdit = useCallback((content: string) => {
+    if (!content) return "";
+    return content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+      if (uid === "everyone") return "@everyone";
+      const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+      return participant ? `@${participant.user.username}` : match;
+    });
+  }, [roomData]);
+
+  const prepareMentionsForSave = useCallback((content: string) => {
+    if (!content) return "";
+    return content.replace(/@([a-zA-Z0-9_-]+)/g, (match, username) => {
+      if (username.toLowerCase() === "everyone") return "<@everyone>";
+      const participant = roomData?.participants?.find((p: any) => p.user.username.toLowerCase() === username.toLowerCase());
+      return participant ? `<@${participant.user.id}>` : match;
+    });
+  }, [roomData]);
+
   useEffect(() => {
     if (isEditing) {
-      setEditContent(message.content || "");
-      // Small delay to ensure DOM is ready
-      requestAnimationFrame(() => {
-        editInputRef.current?.focus();
-        // Place cursor at end
-        const len = editInputRef.current?.value.length || 0;
-        editInputRef.current?.setSelectionRange(len, len);
-      });
+      setEditContent(resolveMentionsForEdit(message.content || ""));
+      // Lexical's autoFocus prop handles focus and cursor positioning
     }
   }, [isEditing, message.content]);
 
-  // Auto-resize edit textarea
-  useLayoutEffect(() => {
-    if (isEditing && editInputRef.current) {
-      editInputRef.current.style.height = "auto";
-      const scrollHeight = editInputRef.current.scrollHeight;
-      editInputRef.current.style.height = `${Math.min(scrollHeight, 300)}px`;
-    }
-  }, [editContent, isEditing]);
 
   const handleSaveEdit = async () => {
     const trimmed = editContent.trim();
-    if (!trimmed || trimmed === message.content || isSavingEdit) return;
+    const originalParsed = resolveMentionsForEdit(message.content || "");
+    if (!trimmed || trimmed === originalParsed || isSavingEdit) return;
     setIsSavingEdit(true);
     try {
-      await onSaveEdit(message.id, trimmed);
+      await onSaveEdit(message.id, prepareMentionsForSave(trimmed));
     } finally {
       setIsSavingEdit(false);
     }
   };
 
-  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSaveEdit();
-    } else if (e.key === "Escape") {
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
       e.preventDefault();
       onCancelEdit();
     }
@@ -337,8 +343,18 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
+  const resolveMentionsForView = (content: string) => {
+    if (!content) return "";
+    return content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+      if (uid === "everyone") return "[@everyone](#mention:everyone)";
+      const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+      return participant ? `[@${participant.user.username}](#mention:${uid})` : match;
+    });
+  };
+
   const renderContent = (content: string) => {
     if (!content) return null;
+    const viewContent = resolveMentionsForView(content);
 
     return (
       <ReactMarkdown
@@ -418,21 +434,80 @@ export function MessageItem({
           },
         }}
       >
-        {content}
+        {viewContent}
       </ReactMarkdown>
     );
   };
 
   const markdownComponents = {
-    a: ({ node, ...props }: any) => (
-      <a
-        {...props}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary hover:underline break-all transition-colors font-semibold"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
+    a: ({ node, href, children, ...props }: any) => {
+      if (href?.startsWith('#mention:')) {
+        const uid = href.replace('#mention:', '');
+
+        if (uid === "everyone") {
+          return (
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <span className="text-primary bg-primary/15 px-1 pb-0.5 pt-[1px] rounded-[4px] font-bold cursor-help">
+                    {children}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="font-semibold text-xs py-1.5 px-3">
+                  <p>Mentioning all users in this channel</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+
+        const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+
+        if (!participant) {
+          return (
+            <span
+              className="text-primary bg-primary/15 px-1 pb-0.5 pt-[1px] rounded-[4px] font-bold cursor-default"
+            >
+              {children}
+            </span>
+          );
+        }
+
+        return (
+          <ProfileHoverCard
+            user={{
+              id: participant.user.id,
+              username: participant.user.username,
+              avatar: participant.user.avatar,
+              banner: participant.user.banner,
+              bio: participant.user.bio,
+              customStatus: participant.user.customStatus,
+            }}
+            isOnline={onlineUserIds.includes(participant.user.id)}
+            currentUserId={currentUserId}
+            onStartDM={handleStartDM}
+          >
+            <span
+              className="text-primary bg-primary/15 hover:bg-primary/25 cursor-pointer px-1 pb-0.5 pt-[1px] rounded-[4px] font-bold transition-colors"
+            >
+              {children}
+            </span>
+          </ProfileHoverCard>
+        );
+      }
+      return (
+        <a
+          {...props}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline break-all transition-colors font-semibold"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </a>
+      );
+    },
     p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
     ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
     ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
@@ -563,13 +638,16 @@ export function MessageItem({
         {/* === INLINE EDIT MODE === */}
         {isEditing ? (
           <div className="mt-1 mb-1">
-            <textarea
-              ref={editInputRef}
+            <MentionTextarea
               value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
+              onChange={(val) => setEditContent(val)}
+              onSubmit={handleSaveEdit}
               onKeyDown={handleEditKeyDown}
-              className="w-full bg-background border border-primary/30 rounded-lg px-3 py-2 text-[13.5px] leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none min-h-[40px] max-h-[300px]"
-              rows={1}
+              className="w-full bg-background border border-primary/30 rounded-lg focus-within:ring-2 focus-within:ring-primary/40 min-h-[40px] max-h-[300px]"
+              maxHeight={300}
+              roomData={roomData!}
+              currentUserId={currentUserId}
+              autoFocus
             />
             <div className="flex items-center gap-2 mt-1.5">
               <span className="text-[11px] text-muted-foreground">

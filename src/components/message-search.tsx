@@ -163,7 +163,7 @@ export function MessageSearch({
                         </span>
                       </div>
                       <p className="text-[13px] text-foreground/80 line-clamp-2 break-words leading-relaxed">
-                        {highlightText(message.content || "", query)}
+                        {highlightText((message.content || "").replace(/<@([a-zA-Z0-9_-]+)>/g, "@seseorang"), query)}
                       </p>
                     </div>
                   </button>

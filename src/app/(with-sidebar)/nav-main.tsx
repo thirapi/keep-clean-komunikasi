@@ -29,6 +29,7 @@ type Groups = {
   avatar: string;
   icon: React.ElementType;
   hasUnread: boolean;
+  hasMention: boolean;
   lastMessage?: string;
   lastMessageTime?: Date;
 };
@@ -147,7 +148,12 @@ export function NavMain({
                       className="h-10 w-10 rounded-md shrink-0 border shadow-sm"
                     />
                     {item.hasUnread && (
-                      <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-sidebar pointer-events-none" />
+                      <div className={cn(
+                        "absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar pointer-events-none flex items-center justify-center",
+                        item.hasMention ? "bg-red-500 scale-125 z-10" : "bg-primary"
+                      )}>
+                        {item.hasMention && <span className="text-[7px] text-white font-bold leading-none">@</span>}
+                      </div>
                     )}
                   </div>
                   {!isCollapsed && (

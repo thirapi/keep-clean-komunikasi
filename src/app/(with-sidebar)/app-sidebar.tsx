@@ -88,6 +88,7 @@ export function AppSidebar({
       [...groupRooms, ...directRooms].map((r) => ({
         id: r.id,
         hasUnread: r.hasUnread,
+        hasMention: (r as any).hasMention,
       })),
     );
   }, [groupRooms, directRooms, initializeUnread]);
@@ -95,14 +96,16 @@ export function AppSidebar({
   const groups = groupRooms.map((room) => ({
     ...room,
     icon: Hash,
-    hasUnread: unreadRooms[room.id] ?? room.hasUnread,
+    hasUnread: unreadRooms[room.id]?.hasUnread ?? room.hasUnread,
+    hasMention: unreadRooms[room.id]?.hasMention ?? room.hasMention,
   }));
 
   const directMessages = directRooms.map((room) => ({
     ...room,
     userId: room.userId ?? "",
     icon: User,
-    hasUnread: unreadRooms[room.id] ?? room.hasUnread,
+    hasUnread: unreadRooms[room.id]?.hasUnread ?? room.hasUnread,
+    hasMention: unreadRooms[room.id]?.hasMention ?? room.hasMention,
   }));
 
   async function handleCreateRoom(participantId: string) {

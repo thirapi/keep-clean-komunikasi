@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 export function useAutoFocusInput(
-  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | null>,
 ) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -1,7 +1,7 @@
 // src/app/(with-sidebar)/channels/[roomId]/components/message-input.tsx
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useLayoutEffect, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createMessage, uploadFileAction } from "../messages.action";
 import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,14 @@ import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { CornerLeftUp, X, Paperclip, FileIcon, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiPickerComponent } from "./emoji-picker";
-import { MarkdownToolbar } from "./markdown-toolbar";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
 
 interface Props {
   userId: string;
   roomData: RoomWithParticipantsDTO;
   replyingTo: MessageWithUserDTO | null;
   onCancelReply: () => void;
-  inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputRef: React.RefObject<HTMLDivElement | null>;
   onNewMessage: (message: MessageWithUserDTO) => void;
   onStartEditLast: () => void;
   user: {
@@ -63,33 +63,6 @@ export function MessageInput({
       setTypingStatusAction(userId, roomData.id, false);
     }, 5000),
   ).current;
-
-  // Auto-focus on desktop only to prevent keyboard popup on mobile
-  useEffect(() => {
-    if (inputRef.current) {
-      const isMobile = window.matchMedia("(any-pointer: coarse)").matches || window.innerWidth <= 768;
-      if (!isMobile) {
-        // Small delay ensures it happens after render and DOM updates
-        const timeout = setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            const len = inputRef.current.value.length;
-            inputRef.current.setSelectionRange(len, len);
-          }
-        }, 50);
-        return () => clearTimeout(timeout);
-      }
-    }
-  }, [inputRef, roomData.id]);
-
-  // Auto-resize logic
-  useLayoutEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-      const scrollHeight = inputRef.current.scrollHeight;
-      inputRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
-    }
-  }, [content, inputRef]);
 
   const handleTyping = useCallback(() => {
     if (!userId) return;
@@ -195,11 +168,20 @@ export function MessageInput({
           attachments = await Promise.all(uploadPromises);
         }
 
+        const parseContentForSend = (raw: string) => {
+          return raw.replace(/@([a-zA-Z0-9_-]+)/g, (match, username) => {
+            if (username.toLowerCase() === "everyone") return "<@everyone>";
+            const participant = roomData.participants?.find(p => p.user.username.toLowerCase() === username.toLowerCase());
+            return participant ? `<@${participant.user.id}>` : match;
+          });
+        };
+        const parsedContentForSend = parseContentForSend(content);
+
         // Optimistic message
         const optimisticId = createId();
         const optimisticMessage: MessageWithUserDTO = {
           id: `optimistic-${optimisticId}`,
-          content,
+          content: parsedContentForSend,
           userId,
           roomId: roomData.id,
           attachments: attachments || selectedFiles.map((file, index) => ({
@@ -223,7 +205,7 @@ export function MessageInput({
         } as any;
 
         onNewMessage(optimisticMessage);
-        const currentContent = content;
+        const currentContent = parsedContentForSend;
         const currentReplyTo = replyingTo?.id;
 
         setContent("");
@@ -269,21 +251,9 @@ export function MessageInput({
     ],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter") {
-      if (e.shiftKey) {
-        if (!content.trim() && selectedFiles.length === 0) {
-          e.preventDefault();
-        }
-      } else {
-        e.preventDefault();
-        handleSend();
-      }
-    } else if (e.key === "Escape") {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
       if (replyingTo) onCancelReply();
-    } else if (e.key === "ArrowUp" && !content.trim() && !replyingTo) {
-      e.preventDefault();
-      onStartEditLast();
     }
   };
 
@@ -335,19 +305,6 @@ export function MessageInput({
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [selectedFiles.length]);
-
-  const highlightRef = useRef<HTMLDivElement>(null);
-
-  const syncScroll = useCallback(() => {
-    if (inputRef.current && highlightRef.current) {
-      highlightRef.current.scrollTop = inputRef.current.scrollTop;
-    }
-  }, [inputRef]);
-
-  // Sync scroll on content change or scroll event
-  useEffect(() => {
-    syncScroll();
-  }, [content, syncScroll]);
 
   return (
     <div className="flex flex-col gap-0 px-3 sm:px-6 pb-4 sm:pb-6">
@@ -464,70 +421,35 @@ export function MessageInput({
           <EmojiPickerComponent
             onEmojiSelect={(emoji) => {
               setContent((prev) => prev + emoji);
-              inputRef.current?.focus();
-            }}
-          />
-          <MarkdownToolbar
-            textareaRef={inputRef as any}
-            onApplyMarkdown={(newContent) => {
-              setContent(newContent);
-              handleTyping();
             }}
           />
         </div>
 
-        <div className="flex-1 relative flex items-center min-h-[40px] max-h-[200px]">
-          <div
-            ref={highlightRef}
-            aria-hidden="true"
-            className="absolute inset-0 px-3 py-2 text-base leading-relaxed whitespace-pre-wrap break-words pointer-events-none overflow-hidden text-foreground/90 select-none font-sans"
-            dangerouslySetInnerHTML={{
-              __html: content
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                // Bold: **text**
-                .replace(/(\*\*)(.*?)(\*\*)/g, '<span class="text-muted-foreground/30">$1</span><span class="font-bold text-foreground">$2</span><span class="text-muted-foreground/30">$3</span>')
-                // Italic: _text_
-                .replace(/(_)(.*?)(_)/g, '<span class="text-muted-foreground/30">$1</span><span class="italic text-foreground">$2</span><span class="text-muted-foreground/30">$3</span>')
-                // Strikethrough: ~~text~~
-                .replace(/(~~)(.*?)(~~)/g, '<span class="text-muted-foreground/30">$1</span><span class="line-through opacity-70">$2</span><span class="text-muted-foreground/30">$3</span>')
-                // Code Block: ```text``` (multiline)
-                .replace(/(```[\s\S]+?```)/g, '<span class="text-primary/40 opacity-60">$1</span>')
-                // Inline Code: `text`
-                .replace(/(`)([^`]+?)(`)/g, '<span class="text-muted-foreground/40">$1</span><span class="bg-[#F8F8F8] dark:bg-[#2D2D2D] px-1 rounded border border-[#E1E1E1] dark:border-[#3D3D3D] text-[#E01E5A] dark:text-[#FF7B72]">$2</span><span class="text-muted-foreground/40">$3</span>')                // Blockquote: > text
-                .replace(/^(&gt;)(.*)/gm, '<span class="text-primary/40">$1</span><span class="italic opacity-80 border-l-2 border-primary/20 pl-1 ml-0.5">$2</span>')
-                // Header: # text
-                .replace(/^(#{1,6}\s)(.*)/gm, '<span class="text-primary/40">$1</span><span class="font-bold text-primary">$2</span>')
-                // URL/Links (Basic)
-                .replace(/(https?:\/\/[^\s]+)/g, '<span class="text-sky-400 underline opacity-90">$1</span>')
-                + (content.endsWith('\n') ? '\n ' : '')
-            }}
-          />
-          <textarea
-            ref={inputRef}
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              handleTyping();
-            }}
-            onScroll={syncScroll}
-            onBlur={() => {
-              sendStopTypingEvent();
-            }}
-            onKeyDown={handleKeyDown}
-            spellCheck="false"
-            placeholder={(() => {
-              if (roomData.isDirect) {
-                const partner = roomData.participants?.find((p) => p.user.id !== userId)?.user.username;
-                return partner ? `Kirim pesan ke @${partner}` : `Kirim pesan`;
-              }
-              return `Kirim pesan ke #${roomData.name}`;
-            })()}
-            className="relative w-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-base leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
-            rows={1}
-          />
-        </div>
+        <MentionTextarea
+          value={content}
+          onChange={(newContent) => {
+            setContent(newContent);
+            handleTyping();
+          }}
+          onSubmit={() => handleSend()}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            sendStopTypingEvent();
+          }}
+          placeholder={(() => {
+            if (roomData.isDirect) {
+              const partner = roomData.participants?.find((p) => p.user.id !== userId)?.user.username;
+              return partner ? `Kirim pesan ke @${partner}` : `Kirim pesan`;
+            }
+            return `Kirim pesan ke #${roomData.name}`;
+          })()}
+          className="flex-1"
+          maxHeight={200}
+          roomData={roomData}
+          currentUserId={userId}
+          inputRef={inputRef}
+          autoFocus={false}
+        />
 
         <Button
           onClick={() => handleSend()}

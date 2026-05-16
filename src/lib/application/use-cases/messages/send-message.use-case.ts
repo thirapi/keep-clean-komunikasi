@@ -54,6 +54,18 @@ export class SendMessageUseCase {
       }
     );
 
+    const resolveContentForNotification = (raw: string) => {
+      return raw.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+        if (uid === "everyone") return "@everyone";
+        if (uid === userId) return `@${userName}`;
+        const p = participants.find(p => p.userId === uid);
+        // We assume p.user.username exists on the returned participants
+        return p && (p as any).user?.username ? `@${(p as any).user.username}` : match;
+      });
+    };
+
+    const notificationContent = resolveContentForNotification(content);
+
     // Trigger Web Push Notifications for offline/background users asynchronously
     const pushPromises: Promise<void>[] = [];
 
@@ -68,7 +80,7 @@ export class SendMessageUseCase {
             },
             JSON.stringify({
               title: userName,
-              body: content,
+              body: notificationContent,
               url: `/channels/${roomId}`,
             })
           )
@@ -84,7 +96,7 @@ export class SendMessageUseCase {
         `**Pesan Baru**`,
         `Pengirim: **${userName ?? userId}**`,
         `Ruangan: **${roomData?.name ?? roomId}**`,
-        `Konten:\n> ${content}`,
+        `Konten:\n> ${notificationContent}`,
       ].join("\n")
     );
 

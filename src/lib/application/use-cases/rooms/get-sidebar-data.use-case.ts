@@ -2,7 +2,7 @@ import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { IRoomRepository } from "../../repositories/room.repository.interface";
 
 export class GetSidebarDataUseCase {
-  constructor(private roomRepository: IRoomRepository) {}
+  constructor(private roomRepository: IRoomRepository) { }
 
   async execute(userId: string): Promise<{
     channels: SidebarRoomDTO[];
@@ -22,18 +22,32 @@ export class GetSidebarDataUseCase {
       // 1. There is at least one message.
       // 2. The latest message is NOT from the current user.
       // 3. The latest message timestamp is newer than lastReadAt.
-      const lastReadTime = currentUserParticipant?.lastReadAt 
-        ? new Date(currentUserParticipant.lastReadAt).getTime() 
+      const lastReadTime = currentUserParticipant?.lastReadAt
+        ? new Date(currentUserParticipant.lastReadAt).getTime()
         : 0;
-        
+
       const hasUnread = Boolean(
-        latestMessage && 
+        latestMessage &&
         latestMessage.userId !== userId &&
         new Date(latestMessage.createdAt).getTime() > lastReadTime
       );
 
+      // A room has mention if any unread message contains <@userId> or <@everyone>
+      const hasMention = room.messages.some(msg => {
+        if (new Date(msg.createdAt).getTime() <= lastReadTime) return false;
+        if (msg.userId === userId) return false;
+        return msg.content?.includes(`<@${userId}>`) || msg.content?.includes("<@everyone>");
+      });
+
       // Determine display text for last message
       let lastMessageDisplay = latestMessage?.content;
+      if (lastMessageDisplay) {
+        lastMessageDisplay = lastMessageDisplay.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+          if (uid === "everyone") return "@everyone";
+          const participant = room.participants.find(p => p.user.id === uid);
+          return participant ? `@${participant.user.username}` : match;
+        });
+      }
 
       if (latestMessage && !latestMessage.content && latestMessage.attachments && latestMessage.attachments.length > 0) {
         const firstAttachment = latestMessage.attachments[0];
@@ -57,6 +71,7 @@ export class GetSidebarDataUseCase {
           avatar: otherParticipant?.user.avatar || "/avatars/avatar1.png",
           url: `/channels/${room.id}`,
           hasUnread,
+          hasMention,
           type: "direct" as const,
           lastMessage: lastMessageDisplay,
           lastMessageTime: latestMessage?.createdAt,
@@ -69,6 +84,7 @@ export class GetSidebarDataUseCase {
         url: `/channels/${room.id}`,
         avatar: room.avatar,
         hasUnread,
+        hasMention,
         type: "channel" as const,
         lastMessage: lastMessageDisplay,
         lastMessageTime: latestMessage?.createdAt,

@@ -209,6 +209,7 @@ export function MessageList({
           isAfterSeparator={(showDateSeparator && index > 0) || showUnreadAndDate || (!showDateSeparator && !showUnreadAndDate && isInitialUnread)}
           isHighlighted={msg.id === highlightedMessageId}
           onScrollToMessage={onScrollToMessage}
+          roomData={roomData}
         />
       </div>
     );

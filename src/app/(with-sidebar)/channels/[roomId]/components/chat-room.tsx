@@ -76,7 +76,7 @@ export function ChatRoom({
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const unreadRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
 
   // Sync state with props when they change (e.g. after server fetch in wrapper)
   useEffect(() => {
@@ -151,6 +151,15 @@ export function ChatRoom({
         console.warn("Audio context failed", e);
       }
 
+      const resolveContentForNotification = (raw: string) => {
+        return raw.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+          if (uid === "everyone") return "@everyone";
+          if (uid === userId) return `@${user.username}`;
+          const participant = localRoomData.participants?.find((p: any) => p.user.id === uid);
+          return participant ? `@${participant.user.username}` : match;
+        });
+      };
+
       if (
         typeof window !== "undefined" &&
         "Notification" in window &&
@@ -160,7 +169,7 @@ export function ChatRoom({
         new Notification(
           `${msg.user?.username ?? "Seseorang"} di #${roomData.name}`,
           {
-            body: msg.content,
+            body: resolveContentForNotification(msg.content),
             icon: msg.user?.avatar || "/favicon.ico",
             tag: `msg-${roomData.id}`,
             silent: true,
