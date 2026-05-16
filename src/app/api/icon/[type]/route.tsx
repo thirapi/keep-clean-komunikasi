@@ -4,16 +4,16 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ type: string }> }) {
-    const { type } = await params; // '192', '512', or 'maskable'
+    let { type } = await params;
+    type = type.replace('.png', ''); // '192', '512', or 'maskable'
     const size = type === '512' || type === 'maskable' ? 512 : 192;
 
-    // Untuk maskable icon / splash screen pada Android, background harus SOLID (bukan transparan)
-    // Ini menghindari masalah "loading menampilkan kotak hitam".
     const isMaskable = type === 'maskable';
-    const bgColor = isMaskable ? '#ffffff' : 'transparent';
+    // Selalu gunakan background solid agar tidak terjadi error "pure black" pada Browser seperti Brave
+    const bgColor = '#ffffff';
 
-    // Padding dinamis 22% agar logo tidak terpotong (cramped/mepet) di app drawer HP
-    const paddingAmount = size * 0.22;
+    // Padding maskable ~22% for safespace, while standard 'any' needs minimal padding ~10% agar tidak tiny di splash screen
+    const paddingAmount = isMaskable ? size * 0.22 : size * 0.1;
 
     // Render SVG native ke dalam image buffer (seperti canvas) on-the-fly
     return new ImageResponse(

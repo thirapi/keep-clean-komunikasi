@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { debounce } from "lodash";
 import { setTypingStatusAction } from "../messages.action";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
-import { RoomRecord } from "@/lib/entities/models/room.model";
+import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { CornerLeftUp, X, Paperclip, FileIcon, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { MarkdownToolbar } from "./markdown-toolbar";
 
 interface Props {
   userId: string;
-  roomData: RoomRecord;
+  roomData: RoomWithParticipantsDTO;
   replyingTo: MessageWithUserDTO | null;
   onCancelReply: () => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -63,6 +63,24 @@ export function MessageInput({
       setTypingStatusAction(userId, roomData.id, false);
     }, 5000),
   ).current;
+
+  // Auto-focus on desktop only to prevent keyboard popup on mobile
+  useEffect(() => {
+    if (inputRef.current) {
+      const isMobile = window.matchMedia("(any-pointer: coarse)").matches || window.innerWidth <= 768;
+      if (!isMobile) {
+        // Small delay ensures it happens after render and DOM updates
+        const timeout = setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            const len = inputRef.current.value.length;
+            inputRef.current.setSelectionRange(len, len);
+          }
+        }, 50);
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [inputRef, roomData.id]);
 
   // Auto-resize logic
   useLayoutEffect(() => {
@@ -487,7 +505,6 @@ export function MessageInput({
             }}
           />
           <textarea
-            autoFocus
             ref={inputRef}
             value={content}
             onChange={(e) => {
@@ -500,7 +517,13 @@ export function MessageInput({
             }}
             onKeyDown={handleKeyDown}
             spellCheck="false"
-            placeholder={`Tulis pesan di #${roomData.name}`}
+            placeholder={(() => {
+              if (roomData.isDirect) {
+                const partner = roomData.participants?.find((p) => p.user.id !== userId)?.user.username;
+                return partner ? `Kirim pesan ke @${partner}` : `Kirim pesan`;
+              }
+              return `Kirim pesan ke #${roomData.name}`;
+            })()}
             className="relative w-full bg-transparent border-none text-transparent caret-foreground placeholder-muted-foreground/60 focus:outline-none ring-0 resize-none px-3 py-2 text-base leading-relaxed overflow-y-auto font-sans selection:bg-primary/25 selection:text-transparent"
             rows={1}
           />

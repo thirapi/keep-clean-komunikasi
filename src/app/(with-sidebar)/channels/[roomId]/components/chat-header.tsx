@@ -74,11 +74,11 @@ export function ChatHeader({
               variant="ghost"
               size="icon"
               asChild
-              className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground transition-colors duration-200 flex-shrink-0"
+              className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
               aria-label="Back to channels"
             >
               <Link href="/channels/default">
-                <ChevronLeft className="h-7 w-7" />
+                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
               </Link>
             </Button>
           </div>
