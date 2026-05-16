@@ -169,7 +169,7 @@ export function MessageInput({
         }
 
         const parseContentForSend = (raw: string) => {
-          return raw.replace(/@([a-zA-Z0-9_-]+)/g, (match, username) => {
+          return raw.replace(/(?<!<)@([a-zA-Z0-9_-]+)/g, (match, username) => {
             if (username.toLowerCase() === "everyone") return "<@everyone>";
             const participant = roomData.participants?.find(p => p.user.username.toLowerCase() === username.toLowerCase());
             return participant ? `<@${participant.user.id}>` : match;
@@ -376,7 +376,11 @@ export function MessageInput({
               Replying to {replyingTo.user.username}
             </div>
             <div className="text-sm text-muted-foreground/80 line-clamp-1 italic">
-              "{replyingTo.content}"
+              "{replyingTo.content ? replyingTo.content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+                if (uid === "everyone") return "@everyone";
+                const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+                return participant ? `@${participant.user.username}` : `@${uid}`;
+              }) : ""}"
             </div>
           </div>
           <Button

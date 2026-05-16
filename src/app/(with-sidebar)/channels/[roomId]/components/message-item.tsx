@@ -110,7 +110,7 @@ export function MessageItem({
 
   const prepareMentionsForSave = useCallback((content: string) => {
     if (!content) return "";
-    return content.replace(/@([a-zA-Z0-9_-]+)/g, (match, username) => {
+    return content.replace(/(?<!<)@([a-zA-Z0-9_-]+)/g, (match, username) => {
       if (username.toLowerCase() === "everyone") return "<@everyone>";
       const participant = roomData?.participants?.find((p: any) => p.user.username.toLowerCase() === username.toLowerCase());
       return participant ? `<@${participant.user.id}>` : match;
@@ -348,7 +348,7 @@ export function MessageItem({
     return content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
       if (uid === "everyone") return "[@everyone](#mention:everyone)";
       const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
-      return participant ? `[@${participant.user.username}](#mention:${uid})` : match;
+      return participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
     });
   };
 
@@ -366,9 +366,9 @@ export function MessageItem({
             const codeContent = String(codeElement.props.children).replace(/\n$/, "");
 
             return (
-              <div className="group/code relative my-3 w-full max-w-[calc(100vw-3rem)] md:max-w-full overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
+              <div className="group/code relative my-3 w-full max-w-full min-w-0 overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
                 {/* Code */}
-                <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 min-w-0">
                   {/* Copy Button */}
                   <Button
                     variant="ghost"
@@ -435,7 +435,7 @@ export function MessageItem({
         }}
       >
         {viewContent}
-      </ReactMarkdown>
+      </ReactMarkdown >
     );
   };
 
@@ -629,7 +629,14 @@ export function MessageItem({
                 @{message.replyToMessage.user?.username ?? "user"}
               </span>
               <span className="ml-1 opacity-80 italic">
-                {truncate(message.replyToMessage.content, 60)}
+                {truncate(
+                  message.replyToMessage.content?.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+                    if (uid === "everyone") return "@everyone";
+                    const p = roomData?.participants?.find((p: any) => p.user.id === uid);
+                    return p ? `@${p.user.username}` : `@${uid}`;
+                  }) || "",
+                  60
+                )}
               </span>
             </div>
           </div>
@@ -661,11 +668,12 @@ export function MessageItem({
           /* === NORMAL VIEW MODE === */
           <>
             {message.content && (
-              <div className="flex items-baseline gap-1.5 flex-wrap">
+              <div className="flex items-baseline gap-1.5 flex-wrap w-full min-w-0">
                 <div
                   className={cn(
-                    "leading-relaxed text-foreground/90 mt-0.5 break-words pr-10",
-                    isOnlyEmoji(message.content) ? "text-5xl leading-none" : "text-[13.5px]"
+                    "leading-relaxed text-foreground/90 mt-0.5 break-words min-w-0 w-full max-w-full",
+                    isOnlyEmoji(message.content) ? "text-5xl leading-none" : "text-[13.5px]",
+                    "pr-10"
                   )}
                 >
                   {renderContent(message.content)}
