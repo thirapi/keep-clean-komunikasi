@@ -57,28 +57,30 @@ Saved to database as raw string
 
 **Rule**: Markdown symbols (`**`, `_`, `~~`, `` ` ``, ` ``` `) are **NEVER removed** from the text. They are stored as-is in the database.
 
-### Storage → Display (Chat View)
+### Input → Visual Decoration (Lexer-based)
 
-```
-DB: "**hello** <@userId>"
-         ↓
-resolveMentionsForView()  →  "**hello** [@john](#mention:uid)"
-         ↓
-ReactMarkdown + remarkGfm  →  <strong>hello</strong> <span>@john</span>
-```
-
-Rendering happens in `message-item.tsx` via `ReactMarkdown`. No changes are needed to the rendering pipeline because it already parses standard markdown.
-
-### Input → Visual Decoration
-
-The `MarkdownDecoratorPlugin` applies **visual-only** decoration without modifying text content:
+The `MarkdownDecoratorPlugin` applies **visual-only** decoration using a global lexer-based architecture. This ensures high-fidelity preview that matches Discord's behavior, including support for multiline blocks and nested styles (e.g., ***bold-italic***).
 
 | What User Types | What They See | What Gets Stored |
 |---|---|---|
 | `**bold**` | **\*\*** **bold** **\*\*** (symbols dim) | `**bold**` |
 | `_italic_` | *\_* *italic* *\_* (symbols dim) | `_italic_` |
+| `***bold italic***` | ***\*\*\**** ***bold italic*** ***\*\*\**** (additive styles) | `***bold italic***` |
 | `~~strike~~` | ~~\~\~~~ ~~strike~~ ~~\~\~~~ (symbols dim) | `~~strike~~` |
 | `` `code` `` | *\`* `code` *\`* (symbols dim) | `` `code` `` |
+| ` ```code block``` ` | Fenced lines dim, content monospace | ` ```code block``` ` |
+
+---
+
+### Storage → Display (Chat View Renderer)
+
+Rendering happens in `message-item.tsx` via a pre-processing pipeline in `resolveMentionsForView`:
+1. **Code Protection**: Extracts ` ``` ` blocks to prevent accidental formatting inside code.
+2. **Newline Injection**: Replaces `\n` with a placeholder (`\uE001`) to prevent CommonMark from merging lines.
+3. **Flanking Restoration**: Injects ZWSP (`\u200B`) inside multiline style blocks to force CommonMark to recognize delimiters on separate lines.
+4. **Tail Trimming**: Trims trailing newlines sitting right before closing markdown symbols (Discord spec).
+5. **Code Normalization**: Ensures closing ` ``` ` are on new lines so `remark` renders them as blocks.
+6. **Restoration**: Replaces the placeholder (`\uE001`) with `<br />` during the final render.
 
 ## Mentions
 
@@ -103,27 +105,29 @@ The `MarkdownDecoratorPlugin` applies **visual-only** decoration without modifyi
 - Inline Code on multi-line: wraps each line individually
 - Code Block: wraps with ``` fences on separate lines
 
-## MarkdownDecoratorPlugin
+## MarkdownDecoratorPlugin (The Lexer)
 
-### Inline Decoration (TextNode transform)
-- Detects patterns within a single TextNode (e.g., `**bold**`)
-- Splits into segments: symbol nodes (dim opacity + format) and content nodes (format only)
-- Symbol nodes use `mode: "token"` to prevent typing into them
+The editor uses a **Global Lexer and Virtual Mapping** strategy for markdown decoration. Instead of isolated node transforms, it treats the entire document as a single string to resolve complex multiline and nested patterns.
 
-### Cross-Paragraph Decoration (Update listener)
-- Detects patterns spanning multiple paragraphs (e.g., `**line1\nline2**`)
-- Scans all paragraphs, finds opening symbol at start + closing at end
-- Applies format to all text nodes between them
+### 1. Global State Extraction (`traverseBuild`)
+- Traverses the entire Lexical AST to build a `globalText` string (representing all paragraphs joined by `\n`).
+- Maintains a mapping of `globalText` byte offsets back to their original `TextNode` instances.
 
-### Code Block Decoration (Update listener)
-- Detects ``` fences across paragraphs
-- Fence lines: very dim (opacity 0.25) + monospace
-- Content lines: monospace styling matching chat view
+### 2. Syntax Highlighting Pass
+- Runs a sequential lexer pass using optimized RegEx patterns (ordered by symbol length: `***` → `**` → `*`).
+- **Additive Formatting**: Uses bitmasks (`FORMAT_BOLD`, `FORMAT_ITALIC`, etc.) to allow styles to overlap.
+- **Overlap Protection**: Prevents a shorter symbol (like `*`) from claiming characters already owned by a longer symbol (like `**`).
+- **Code Block Isolation**: Automatically skips all markdown patterns found inside ` ``` ` blocks.
 
-### Guard Conditions
-- `isProcessingRef` prevents re-entry loops between inline transform and update listener
-- `setTimeout(0)` defers cross-paragraph processing until after inline transforms complete
-- Processed nodes are detected by checking `getFormat()` and `getStyle()`
+### 3. Bit-Mapped Node Decoration
+- Maps the calculated `format` and `style` bits back to the `TextNode` instances.
+- **Surgical Splitting**: Only splits a `TextNode` when a style boundary changes (e.g., at the exact moment a `**` starts).
+- **Symbol Dimming**: Symbols are wrapped in `setStyle("opacity: 0.35")` and set to `mode: "token"` to prevent direct editing, though they remain part of the text.
+
+### 4. Stability Guards
+- `isProcessingRef` prevents infinite update loops during decoration.
+- `discrete: true` ensures that formatting changes are committed atomically.
+- `setTimeout(0)` schedules the lexer pass to run after Lexical's internal reconciler, ensuring a smooth typing experience.
 
 ## Integration Points
 
