@@ -263,7 +263,7 @@ function decorateCrossParagraphFormatting(paragraphs: ReturnType<typeof $getRoot
                 const text = lastChild.getTextContent();
 
                 if (
-                    text.endsWith(sym) &&
+                    text.trim().endsWith(sym) &&
                     lastChild.getFormat() === 0 &&
                     !lastChild.getStyle().includes("opacity")
                 ) {
@@ -336,17 +336,37 @@ function decorateCrossParagraphFormatting(paragraphs: ReturnType<typeof $getRoot
 
                     // 3. Closing paragraph: split content from symbol
                     const closeText = lastChild.getTextContent();
-                    if (closeText.length > sym.length) {
-                        const splitAt = closeText.length - sym.length;
-                        const parts = lastChild.splitText(splitAt);
-                        parts[0].setFormat(format);
-                        parts[1].setStyle(DIM_STYLE);
-                        parts[1].setFormat(format);
-                        parts[1].setMode("token");
-                    } else {
-                        lastChild.setStyle(DIM_STYLE);
-                        lastChild.setFormat(format);
-                        lastChild.setMode("token");
+                    const symIndexClose = closeText.lastIndexOf(sym);
+                    if (symIndexClose > -1) {
+                        if (closeText.length > sym.length) {
+                            if (symIndexClose === 0) {
+                                // Starts with symbol
+                                const parts = lastChild.splitText(sym.length);
+                                parts[0].setStyle(DIM_STYLE);
+                                parts[0].setFormat(format);
+                                parts[0].setMode("token");
+                                parts[1].setFormat(format);
+                            } else if (symIndexClose + sym.length === closeText.length) {
+                                // Ends with symbol
+                                const parts = lastChild.splitText(symIndexClose);
+                                parts[0].setFormat(format);
+                                parts[1].setStyle(DIM_STYLE);
+                                parts[1].setFormat(format);
+                                parts[1].setMode("token");
+                            } else {
+                                // Sym is in the middle (e.g., "text** ")
+                                const parts = lastChild.splitText(symIndexClose, symIndexClose + sym.length);
+                                parts[0].setFormat(format);
+                                parts[1].setStyle(DIM_STYLE);
+                                parts[1].setFormat(format);
+                                parts[1].setMode("token");
+                                if (parts[2]) parts[2].setFormat(format);
+                            }
+                        } else {
+                            lastChild.setStyle(DIM_STYLE);
+                            lastChild.setFormat(format);
+                            lastChild.setMode("token");
+                        }
                     }
 
                     // Also format any preceding children in the closing paragraph

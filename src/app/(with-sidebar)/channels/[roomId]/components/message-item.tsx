@@ -343,9 +343,33 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
+  const NEWLINE_SYMBOL = "\uE001";
+
+  const processNewlines = (children: any): any => {
+    return React.Children.map(children, (child) => {
+      if (typeof child === "string") {
+        if (!child.includes(NEWLINE_SYMBOL)) return child;
+        return child.split(NEWLINE_SYMBOL).map((segment, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <br />}
+            {segment}
+          </React.Fragment>
+        ));
+      }
+      if (React.isValidElement(child) && (child.props as any).children) {
+        return React.cloneElement(child, {
+          children: processNewlines((child.props as any).children),
+        } as any);
+      }
+      return child;
+    });
+  };
+
   const resolveMentionsForView = (content: string) => {
     if (!content) return "";
-    let processed = content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+    // Discord behavior: Preserve leading newlines, but trim trailing ones.
+    const trimmedContent = content.replace(/\n+$/, "");
+    let processed = trimmedContent.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
       if (uid === "everyone") return "[@everyone](#mention:everyone)";
       const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
       return participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
@@ -359,28 +383,37 @@ export function MessageItem({
       return `__BLOCK_CODE_${blockCodes.length - 1}__`;
     });
 
-    // 1. Preserve leading spaces for non-list elements (prevents remark from stripping indentation)
-    processed = processed.replace(/^( +)(?![-*>] |\d+\. )/gm, (match) =>
-      '\u00A0'.repeat(match.length)
-    );
-
-    // 2. Allow single backticks (inline code) to span multiple lines safely
+    // 1. Allow single backticks (inline code) to span multiple lines safely
     processed = processed.replace(/(?<!`)`([^`]+)`(?!`)/g, (match, inner) => {
       // \uE000 is a Private Use Area character that remark will ignore for newlines
       return '`' + inner.replace(/\n/g, '\uE000').replace(/ /g, '\u00A0') + '`';
     });
 
-    // 3. Fix multiline wrapping for Bold/Italic/Strike that breaks CommonMark flanking rules
-    // CommonMark disables styling if `**`, `_`, or `~~` are adjacent to spaces/newlines.
-    // We inject `\u200B` (Zero-Width Space) inside boundaries because it bypasses this flanking restriction.
+    // 2. Universal Newline Preservation (Discord-like hard breaks)
+    // We use a placeholder character \uE001 to bypass the parser's line merging.
+    processed = processed.replace(/\n/g, NEWLINE_SYMBOL);
+
+    // 3. Preserve leading spaces for non-list elements
+    processed = processed.replace(/^( +)(?![-*>] |\d+\. )/gm, (match) =>
+      '\u00A0'.repeat(match.length)
+    );
+
+    // 4. Fix multiline wrapping for Bold/Italic/Strike that breaks CommonMark flanking rules
     processed = processed.replace(/(\*\*|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
-      if (inner.includes('\n')) {
+      if (inner.includes(NEWLINE_SYMBOL)) {
         return `${sep}\u200B${inner}\u200B${sep}`;
       }
       return match;
     });
 
-    // 4. Restore Code Blocks
+    // 4.5 Surgical Tail Trimming (Discord Logic)
+    // If a stylistic block ends at the very end of the message, Discord trims the trailing newline inside it.
+    // But if there is text after the block, that newline is preserved.
+    // We include \u200B (ZWSP) in the match because our styles are flanked by it.
+    const tailTrimRegex = new RegExp(`(${NEWLINE_SYMBOL}+)([\\s\\u200B\\*\\*|~~|_|__|\\*]+)$`);
+    processed = processed.replace(tailTrimRegex, "$2");
+
+    // 5. Restore Code Blocks
     processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
       return blockCodes[parseInt(p1, 10)];
     });
@@ -554,27 +587,30 @@ export function MessageItem({
         </a>
       );
     },
-    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
-    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
-    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{children}</li>,
+    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{processNewlines(children)}</p>,
+    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{processNewlines(children)}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{processNewlines(children)}</ol>,
+    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{processNewlines(children)}</li>,
     blockquote: ({ children }: any) => (
       <blockquote className="border-l-4 border-primary/40 px-4 italic text-muted-foreground/90 my-2 bg-muted/20 rounded-r-lg">
-        {children}
+        {processNewlines(children)}
       </blockquote>
     ),
-    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{children}</h3>,
+    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{processNewlines(children)}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{processNewlines(children)}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{processNewlines(children)}</h3>,
     hr: () => <hr className="my-4 border-border/20" />,
     table: ({ children }: any) => (
       <div className="overflow-x-auto my-3 rounded-lg border border-border/50">
-        <table className="w-full text-sm border-collapse">{children}</table>
+        <table className="w-full text-sm border-collapse">{processNewlines(children)}</table>
       </div>
     ),
-    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{children}</th>,
-    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{children}</td>,
+    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{processNewlines(children)}</thead>,
+    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{processNewlines(children)}</th>,
+    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{processNewlines(children)}</td>,
+    strong: ({ children }: any) => <strong>{processNewlines(children)}</strong>,
+    em: ({ children }: any) => <em>{processNewlines(children)}</em>,
+    del: ({ children }: any) => <del>{processNewlines(children)}</del>,
   };
 
   const isOnline = onlineUserIds.includes(message.userId);
