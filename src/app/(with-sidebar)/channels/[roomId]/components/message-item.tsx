@@ -369,10 +369,17 @@ export function MessageItem({
     if (!content) return "";
     // Discord behavior: Preserve leading newlines, but trim trailing ones.
     const trimmedContent = content.replace(/\n+$/, "");
+    const mentionBlocks: string[] = [];
     let processed = trimmedContent.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
-      if (uid === "everyone") return "[@everyone](#mention:everyone)";
-      const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
-      return participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
+      let resolved = "";
+      if (uid === "everyone") {
+        resolved = "[@everyone](#mention:everyone)";
+      } else {
+        const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+        resolved = participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
+      }
+      mentionBlocks.push(resolved);
+      return `__MENTION_BLOCK_${mentionBlocks.length - 1}__`;
     });
 
     // --- DISCORD MARKDOWN FIXES ---
@@ -381,7 +388,6 @@ export function MessageItem({
     const blockCodes: string[] = [];
     processed = processed.replace(/```[\s\S]*?```/g, (match) => {
       let normalized = match;
-      // If closing ``` is not preceded by a newline, add one to help remark-gfm
       if (!normalized.match(/\n```$/)) {
         normalized = normalized.replace(/```$/, "\n```");
       }
@@ -391,42 +397,37 @@ export function MessageItem({
 
     // 1. Allow single backticks (inline code) to span multiple lines safely
     processed = processed.replace(/(?<!`)`([^`]+)`(?!`)/g, (match, inner) => {
-      // \uE000 is a Private Use Area character that remark will ignore for newlines
       return '`' + inner.replace(/\n/g, '\uE000').replace(/ /g, '\u00A0') + '`';
     });
 
     // 2. Universal Newline Preservation (Discord-like hard breaks)
-    // We use a placeholder character \uE001 to bypass the parser's line merging.
     processed = processed.replace(/\n/g, NEWLINE_SYMBOL);
 
-    // 3. Preserve leading spaces for non-list elements
+    // 3. Preserve leading spaces
     processed = processed.replace(/^( +)(?![-*>] |\d+\. )/gm, (match) =>
       '\u00A0'.repeat(match.length)
     );
 
-    // 4. Fix multiline wrapping for Bold/Italic/Strike that breaks CommonMark flanking rules
-    // We use a single regex pass with a backreference to avoid destructive loops
+    // 4. Fix multiline wrapping for Bold/Italic/Strike
     processed = processed.replace(/(\*\*\*|\*\*|\*|___|__|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
       if (inner.includes(NEWLINE_SYMBOL)) {
-        // We add \u200B (ZWSP) to force flanking rules.
-        // It must be at the very start and very end of the inner content.
         return `${sep}\u200B${inner}\u200B${sep}`;
       }
       return match;
     });
 
-    // 4.5 Surgical Tail Trimming (Discord Logic)
-    // Trim trailing newlines sitting right before the closing symbols at the end of the message.
-    // We remove any combination of newlines/spaces appearing immediately before the closing markers.
+    // 4.5 Surgical Tail Trimming
     const tailTrimRegex = new RegExp(`(${NEWLINE_SYMBOL}+)([\\s\\u200B]*)([*_~]+)\\s*$`);
     processed = processed.replace(tailTrimRegex, "$3");
 
     // 5. Restore Code Blocks
-    // We replace the placeholder __BLOCK_CODE__ with the original triple-backtick block.
-    // Crucially, we must ensure it is preceded and followed by a REAL newline (\n)
-    // so that the Markdown parser (remark) recognizes it as a Fenced Code Block.
     processed = processed.replace(new RegExp(`${NEWLINE_SYMBOL}*__BLOCK_CODE_(\\d+)__${NEWLINE_SYMBOL}*`, 'g'), (match, p1) => {
       return `\n\n${blockCodes[parseInt(p1, 10)]}\n\n`;
+    });
+
+    // 6. Restore Mentions (Last step so markdown doesn't mess with (_) or other chars in links)
+    processed = processed.replace(/__MENTION_BLOCK_(\d+)__/g, (match, p1) => {
+      return mentionBlocks[parseInt(p1, 10)];
     });
 
     return processed;

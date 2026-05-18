@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, stripMarkdown } from "@/lib/utils";
 
 type Groups = {
   id: string;
@@ -194,7 +194,7 @@ export function NavMainDirectMessage({
                               "text-xs truncate",
                               item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground"
                             )}>
-                              {item.lastMessage}
+                              {stripMarkdown(item.lastMessage)}
                             </span>
                           )}
                         </div>

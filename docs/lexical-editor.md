@@ -75,12 +75,13 @@ The `MarkdownDecoratorPlugin` applies **visual-only** decoration using a global 
 ### Storage → Display (Chat View Renderer)
 
 Rendering happens in `message-item.tsx` via a pre-processing pipeline in `resolveMentionsForView`:
-1. **Code Protection**: Extracts ` ``` ` blocks to prevent accidental formatting inside code.
-2. **Newline Injection**: Replaces `\n` with a placeholder (`\uE001`) to prevent CommonMark from merging lines.
-3. **Flanking Restoration**: Injects ZWSP (`\u200B`) inside multiline style blocks to force CommonMark to recognize delimiters on separate lines.
-4. **Tail Trimming**: Trims trailing newlines sitting right before closing markdown symbols (Discord spec).
-5. **Code Normalization**: Ensures closing ` ``` ` are on new lines so `remark` renders them as blocks.
-6. **Restoration**: Replaces the placeholder (`\uE001`) with `<br />` during the final render.
+1. **Mention Protection**: Extracts `<@uid>` tokens into placeholders (`__MENTION_BLOCK__`) to prevent stylistic regex (like `_`) from mangling mention links.
+2. **Code Protection**: Extracts ` ``` ` blocks to protect them during formatting.
+3. **Newline Injection**: Replaces `\n` with a placeholder (`\uE001`) to bypass CommonMark line merging.
+4. **Flanking Restoration**: Inyects ZWSP (`\u200B`) inside multiline style blocks to force CommonMark to recognize delimiters.
+5. **Tail Trimming**: Trims trailing newlines sitting right before closing markdown symbols (Discord spec).
+6. **Code Normalization**: Ensures closing ` ``` ` are on new lines so `remark` renders them as blocks.
+7. **Restoration**: Restores mentions and replaces the placeholder (`\uE001`) with `<br />` during the final render.
 
 ## Mentions
 

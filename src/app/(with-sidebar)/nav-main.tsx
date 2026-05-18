@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn, stripMarkdown } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -184,7 +184,7 @@ export function NavMain({
                               : "text-muted-foreground",
                           )}
                         >
-                          {item.lastMessage}
+                          {stripMarkdown(item.lastMessage)}
                         </span>
                       )}
                     </div>
