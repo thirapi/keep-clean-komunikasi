@@ -6,51 +6,44 @@ import {
     TextNode,
     $getRoot,
     $isParagraphNode,
+    LexicalNode,
+    $isElementNode,
+    LexicalEditor
 } from "lexical";
-
-/**
- * MarkdownDecoratorPlugin
- *
- * Preserves markdown symbols and applies visual decoration:
- * - Inline (single paragraph): **bold**, _italic_, ~~strike~~, `code`
- * - Cross-paragraph: **bold\nacross\nlines** — dims symbols, formats all lines
- * - Code blocks: ``` fences → very dim, lines between → monospace
- */
 
 const DIM_STYLE = "opacity: 0.35;";
 const CODE_FENCE_STYLE =
-    "opacity: 0.25; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #6a737d;";
+    "opacity: 0.4; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #888888;";
 const CODE_BLOCK_LINE_STYLE =
-    "font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.6; color: #1D1C1D;";
+    "font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.6;";
 
 const FORMAT_BOLD = 1;
 const FORMAT_ITALIC = 2;
 const FORMAT_STRIKETHROUGH = 4;
 const FORMAT_CODE = 16;
 
+const STYLE_NONE = 0;
+const STYLE_DIM = 1;
+const STYLE_CODE_FENCE = 2;
+const STYLE_CODE_LINE = 3;
+
 interface MdPattern {
     regex: RegExp;
-    symbolLen: number;
+    symLen: number;
     format: number;
-    formatSymbol: boolean;
+    isBlockCode?: boolean;
 }
 
-const INLINE_PATTERNS: MdPattern[] = [
-    { regex: /\*\*\*(.+?)\*\*\*/g, symbolLen: 3, format: FORMAT_BOLD | FORMAT_ITALIC, formatSymbol: true },
-    { regex: /\*\*(.+?)\*\*/g, symbolLen: 2, format: FORMAT_BOLD, formatSymbol: true },
-    { regex: /~~(.+?)~~/g, symbolLen: 2, format: FORMAT_STRIKETHROUGH, formatSymbol: true },
-    { regex: /_(.+?)_/g, symbolLen: 1, format: FORMAT_ITALIC, formatSymbol: true },
-    { regex: /\*(.+?)\*/g, symbolLen: 1, format: FORMAT_ITALIC, formatSymbol: true },
-    { regex: /`([^`\n]+)`/g, symbolLen: 1, format: FORMAT_CODE, formatSymbol: false },
-];
-
-// Cross-paragraph symbols — ordered longest first
-const CROSS_SYMBOLS = [
-    { sym: "***", format: FORMAT_BOLD | FORMAT_ITALIC },
-    { sym: "**", format: FORMAT_BOLD },
-    { sym: "~~", format: FORMAT_STRIKETHROUGH },
-    { sym: "_", format: FORMAT_ITALIC },
-    { sym: "*", format: FORMAT_ITALIC },
+const PATTERNS: MdPattern[] = [
+    { regex: /```[\s\S]*?```/g, symLen: 3, format: 0, isBlockCode: true },
+    { regex: /\*\*\*(?!\s)[\s\S]+?(?<!\s)\*\*\*/g, symLen: 3, format: FORMAT_BOLD | FORMAT_ITALIC },
+    { regex: /___(?!\s)[\s\S]+?(?<!\s)___/g, symLen: 3, format: FORMAT_BOLD | FORMAT_ITALIC },
+    { regex: /\*\*(?!\s)[\s\S]+?(?<!\s)\*\*/g, symLen: 2, format: FORMAT_BOLD },
+    { regex: /__(?!\s)[\s\S]+?(?<!\s)__/g, symLen: 2, format: FORMAT_BOLD },
+    { regex: /\*(?!\s)[\s\S]+?(?<!\s)\*/g, symLen: 1, format: FORMAT_ITALIC },
+    { regex: /_(?!\s)[\s\S]+?(?<!\s)_/g, symLen: 1, format: FORMAT_ITALIC },
+    { regex: /~~(?!\s)[\s\S]+?(?<!\s)~~/g, symLen: 2, format: FORMAT_STRIKETHROUGH },
+    { regex: /(?<!`)`([^`]+)`(?!`)/g, symLen: 1, format: FORMAT_CODE },
 ];
 
 export function MarkdownDecoratorPlugin() {
@@ -58,332 +51,150 @@ export function MarkdownDecoratorPlugin() {
     const isProcessingRef = useRef(false);
 
     useEffect(() => {
-        // =============================================
-        // 1. INLINE markdown (single-line, same node)
-        // =============================================
-        const removeInlineTransform = editor.registerNodeTransform(
-            TextNode,
-            (node) => {
-                if (isProcessingRef.current) return;
-                const text = node.getTextContent();
-                if (node.getStyle().includes("opacity")) return;
-                if (node.getStyle().includes("font-family")) return;
-                if (node.getFormat() !== 0) return;
-                if (text.length < 3) return;
+        const removeListener = editor.registerUpdateListener(({ editorState, prevEditorState }) => {
+            if (editorState === prevEditorState) return;
+            if (isProcessingRef.current) return;
 
-                for (const pattern of INLINE_PATTERNS) {
-                    pattern.regex.lastIndex = 0;
-                    const match = pattern.regex.exec(text);
-
-                    if (match && match[1].length > 0) {
-                        const matchStart = match.index;
-                        const matchEnd = matchStart + match[0].length;
-                        const { symbolLen, format, formatSymbol } = pattern;
-
-                        const rawSplits = [
-                            matchStart,
-                            matchStart + symbolLen,
-                            matchEnd - symbolLen,
-                            matchEnd,
-                        ];
-                        const splits = [...new Set(rawSplits)]
-                            .filter((p) => p > 0 && p < text.length)
-                            .sort((a, b) => a - b);
-
-                        if (splits.length === 0) continue;
-
-                        const parts = node.splitText(...splits);
-                        const boundaries = [0, ...splits, text.length];
-
-                        for (let i = 0; i < parts.length; i++) {
-                            const segStart = boundaries[i];
-                            const segEnd = boundaries[i + 1];
-
-                            const isOpenSymbol =
-                                segStart === matchStart && segEnd === matchStart + symbolLen;
-                            const isCloseSymbol =
-                                segStart === matchEnd - symbolLen && segEnd === matchEnd;
-                            const isContent =
-                                segStart === matchStart + symbolLen &&
-                                segEnd === matchEnd - symbolLen;
-
-                            if (isOpenSymbol || isCloseSymbol) {
-                                parts[i].setStyle(DIM_STYLE);
-                                if (formatSymbol) parts[i].setFormat(format);
-                                parts[i].setMode("token");
-                            } else if (isContent) {
-                                parts[i].setFormat(format);
-                            }
+            setTimeout(() => {
+                editor.update(
+                    () => {
+                        if (isProcessingRef.current) return;
+                        isProcessingRef.current = true;
+                        try {
+                            applyGlobalMarkdownLexer();
+                        } finally {
+                            isProcessingRef.current = false;
                         }
-                        break;
-                    }
-                }
-            }
-        );
+                    },
+                    { discrete: true }
+                );
+            }, 0);
+        });
 
-        // =============================================
-        // 2. CROSS-PARAGRAPH markdown + code blocks
-        // =============================================
-        const removeBlockListener = editor.registerUpdateListener(
-            ({ editorState, prevEditorState }) => {
-                if (editorState === prevEditorState) return;
-                if (isProcessingRef.current) return;
-
-                // Delay to let inline transforms finish first
-                setTimeout(() => {
-                    editor.update(
-                        () => {
-                            isProcessingRef.current = true;
-                            try {
-                                const root = $getRoot();
-                                const paragraphs = root.getChildren().filter($isParagraphNode);
-
-                                decorateCodeBlocks(paragraphs);
-                                decorateCrossParagraphFormatting(paragraphs);
-                            } finally {
-                                isProcessingRef.current = false;
-                            }
-                        },
-                        { discrete: true }
-                    );
-                }, 0);
-            }
-        );
-
-        return () => {
-            removeInlineTransform();
-            removeBlockListener();
-        };
+        return () => removeListener();
     }, [editor]);
 
     return null;
 }
 
-// ===== CODE BLOCKS =====
-function decorateCodeBlocks(paragraphs: ReturnType<typeof $getRoot.prototype.getChildren>) {
-    let insideCodeBlock = false;
+function applyGlobalMarkdownLexer() {
+    const root = $getRoot();
+    let globalText = "";
+    const textNodes: { node: TextNode; start: number; end: number }[] = [];
 
-    for (const para of paragraphs) {
-        if (!$isParagraphNode(para)) continue;
-        const children = para.getChildren();
+    function traverseBuild(node: LexicalNode) {
+        if ($isElementNode(node)) {
+            const children = node.getChildren();
+            const isPara = $isParagraphNode(node);
+            const isRoot = node === root;
 
-        // Check if this paragraph is a fence line (sole text child starting with ```)
-        if (children.length === 1 && children[0] instanceof TextNode) {
-            const child = children[0] as TextNode;
-            const text = child.getTextContent().trim();
+            for (let i = 0; i < children.length; i++) {
+                if (isRoot && i > 0) globalText += "\n";
+                traverseBuild(children[i]);
+            }
+        } else if (node instanceof TextNode) {
+            const text = node.getTextContent();
+            if (text.length > 0) {
+                textNodes.push({ node, start: globalText.length, end: globalText.length + text.length });
+                globalText += text;
+            }
+        } else {
+            // MentionNode etc
+            globalText += node.getTextContent();
+        }
+    }
 
-            if (text.startsWith("```")) {
-                if (!insideCodeBlock) {
-                    insideCodeBlock = true;
-                } else {
-                    insideCodeBlock = false;
+    traverseBuild(root);
+
+    const len = globalText.length;
+    if (len === 0) return;
+
+    const formats = new Uint8Array(len);
+    const styles = new Uint8Array(len);
+    const isToken = new Uint8Array(len);
+
+    for (const pattern of PATTERNS) {
+        pattern.regex.lastIndex = 0;
+        let match;
+        while ((match = pattern.regex.exec(globalText)) !== null) {
+            const start = match.index;
+            const symLen = pattern.symLen;
+            const matchLen = match[0].length;
+            const end = start + matchLen;
+
+            // Overlap check
+            let overlap = false;
+            for (let i = start; i < start + symLen; i++) { if (isToken[i]) overlap = true; }
+            for (let i = end - symLen; i < end; i++) { if (isToken[i]) overlap = true; }
+
+            if (!pattern.isBlockCode && !overlap) {
+                for (let i = start; i < end; i++) {
+                    if (styles[i] === STYLE_CODE_LINE || styles[i] === STYLE_CODE_FENCE) {
+                        overlap = true;
+                        break;
+                    }
                 }
-                if (!child.getStyle().includes("opacity")) {
-                    child.setStyle(CODE_FENCE_STYLE);
-                    child.setMode("token");
-                }
+            }
+
+            if (overlap) {
+                pattern.regex.lastIndex = start + 1;
                 continue;
+            }
+
+            // Mark tokens and content
+            if (pattern.isBlockCode) {
+                for (let i = start; i < start + symLen; i++) { styles[i] = STYLE_CODE_FENCE; isToken[i] = 1; }
+                for (let i = end - symLen; i < end; i++) { styles[i] = STYLE_CODE_FENCE; isToken[i] = 1; }
+                for (let i = start + symLen; i < end - symLen; i++) { styles[i] = STYLE_CODE_LINE; isToken[i] = 0; }
+            } else {
+                for (let i = start; i < start + symLen; i++) { formats[i] |= pattern.format; styles[i] = STYLE_DIM; isToken[i] = 1; }
+                for (let i = end - symLen; i < end; i++) { formats[i] |= pattern.format; styles[i] = STYLE_DIM; isToken[i] = 1; }
+                for (let i = start + symLen; i < end - symLen; i++) { formats[i] |= pattern.format; isToken[i] = 0; }
+            }
+        }
+    }
+
+    // Apply to nodes
+    for (const { node, start, end } of textNodes) {
+        if (!node.isAttached()) continue;
+        const localSplits: number[] = [];
+        let currFormat = formats[start];
+        let currStyle = styles[start];
+        let currToken = isToken[start];
+
+        for (let i = 1; i < (end - start); i++) {
+            const gIdx = start + i;
+            if (formats[gIdx] !== currFormat || styles[gIdx] !== currStyle || isToken[gIdx] !== currToken) {
+                localSplits.push(i);
+                currFormat = formats[gIdx];
+                currStyle = styles[gIdx];
+                currToken = isToken[gIdx];
             }
         }
 
-        // Style content inside code block
-        if (insideCodeBlock) {
-            for (const child of children) {
-                if (child instanceof TextNode && !child.getStyle().includes("font-family")) {
-                    child.setStyle(CODE_BLOCK_LINE_STYLE);
-                }
+        if (localSplits.length > 0) {
+            const parts = node.splitText(...localSplits);
+            let pStart = start;
+            for (const part of parts) {
+                const pLen = part.getTextContent().length;
+                applyStyles(part, formats[pStart], styles[pStart], isToken[pStart]);
+                pStart += pLen;
             }
+        } else {
+            applyStyles(node, formats[start], styles[start], isToken[start]);
         }
     }
 }
 
-// ===== CROSS-PARAGRAPH BOLD/ITALIC/STRIKETHROUGH =====
-function decorateCrossParagraphFormatting(paragraphs: ReturnType<typeof $getRoot.prototype.getChildren>) {
-    // For each cross-paragraph symbol, scan for opening + closing across paragraphs
-    for (const { sym, format } of CROSS_SYMBOLS) {
-        let openParaIdx = -1;
-        let openNode: TextNode | null = null;
+function applyStyles(node: TextNode, format: number, styleInt: number, isToken: number) {
+    let css = "";
+    if (styleInt === STYLE_DIM) css = DIM_STYLE;
+    else if (styleInt === STYLE_CODE_FENCE) css = CODE_FENCE_STYLE;
+    else if (styleInt === STYLE_CODE_LINE) css = CODE_BLOCK_LINE_STYLE;
 
-        for (let i = 0; i < paragraphs.length; i++) {
-            const para = paragraphs[i];
-            if (!$isParagraphNode(para)) continue;
-            const children = para.getChildren();
-            if (children.length === 0) continue;
+    const targetMode = isToken ? "token" : "normal";
 
-            const firstChild = children[0];
-            const lastChild = children[children.length - 1];
-
-            if (openParaIdx === -1) {
-                // Look for opening symbol
-                if (!(firstChild instanceof TextNode)) continue;
-                const text = firstChild.getTextContent();
-
-                // Must start with symbol, not be already decorated, and have content after symbol
-                if (
-                    text.trim().startsWith(sym) &&
-                    firstChild.getFormat() === 0 &&
-                    !firstChild.getStyle().includes("opacity") &&
-                    text.length >= sym.length
-                ) {
-                    // Prevent shorter symbol matching when longer one applies
-                    // e.g., skip * if ** also matches
-                    const longerMatches = CROSS_SYMBOLS.some(
-                        (cs) => cs.sym.length > sym.length && text.startsWith(cs.sym)
-                    );
-                    if (longerMatches) continue;
-
-                    // Make sure the closing symbol also exists in a later paragraph
-                    // (check ahead before committing)
-                    let hasClose = false;
-                    for (let j = i + 1; j < paragraphs.length; j++) {
-                        const pj = paragraphs[j];
-                        if (!$isParagraphNode(pj)) continue;
-                        const pjChildren = pj.getChildren();
-                        if (pjChildren.length === 0) continue;
-                        const pjLast = pjChildren[pjChildren.length - 1];
-                        if (
-                            pjLast instanceof TextNode &&
-                            pjLast.getTextContent().endsWith(sym) &&
-                            pjLast.getFormat() === 0 &&
-                            !pjLast.getStyle().includes("opacity")
-                        ) {
-                            hasClose = true;
-                            break;
-                        }
-                    }
-
-                    if (!hasClose) continue;
-
-                    openParaIdx = i;
-                    openNode = firstChild as TextNode;
-                }
-            } else {
-                // Look for closing symbol
-                if (!(lastChild instanceof TextNode)) continue;
-                const text = lastChild.getTextContent();
-
-                if (
-                    text.trim().endsWith(sym) &&
-                    lastChild.getFormat() === 0 &&
-                    !lastChild.getStyle().includes("opacity")
-                ) {
-                    // Prevent shorter symbol matching when longer one applies
-                    const longerMatches = CROSS_SYMBOLS.some(
-                        (cs) => cs.sym.length > sym.length && text.endsWith(cs.sym)
-                    );
-                    if (longerMatches) continue;
-
-                    // === APPLY FORMATTING ===
-
-                    // 1. Opening paragraph: split symbol from content
-                    if (openNode) {
-                        const openText = openNode.getTextContent();
-                        const symIndex = openText.indexOf(sym);
-                        if (symIndex > -1) {
-                            if (openText.length > symIndex + sym.length) {
-                                // E.g., "  **hello"
-                                // We need to split BEFORE symbol, run symbol, and split AFTER symbol
-                                // But since the previous code only assumed startsWith, we handle starting at symIndex
-                                if (symIndex === 0) {
-                                    const parts = openNode.splitText(sym.length);
-                                    parts[0].setStyle(DIM_STYLE);
-                                    parts[0].setFormat(format);
-                                    parts[0].setMode("token");
-                                    parts[1].setFormat(format);
-                                } else {
-                                    const parts = openNode.splitText(symIndex, symIndex + sym.length);
-                                    parts[1].setStyle(DIM_STYLE);
-                                    parts[1].setFormat(format);
-                                    parts[1].setMode("token");
-                                    if (parts[2]) parts[2].setFormat(format);
-                                }
-                            } else {
-                                // If it ends with symbol or is only symbol
-                                if (symIndex === 0) {
-                                    openNode.setStyle(DIM_STYLE);
-                                    openNode.setFormat(format);
-                                    openNode.setMode("token");
-                                } else {
-                                    const parts = openNode.splitText(symIndex);
-                                    parts[1].setStyle(DIM_STYLE);
-                                    parts[1].setFormat(format);
-                                    parts[1].setMode("token");
-                                }
-                            }
-                        }
-
-                        // Also format remaining children in the opening paragraph
-                        const openPara = paragraphs[openParaIdx];
-                        if ($isParagraphNode(openPara)) {
-                            for (const child of openPara.getChildren()) {
-                                if (child instanceof TextNode && child.getFormat() === 0 && !child.getStyle().includes("opacity")) {
-                                    child.setFormat(format);
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Middle paragraphs: format all text nodes
-                    for (let m = openParaIdx + 1; m < i; m++) {
-                        const midPara = paragraphs[m];
-                        if (!$isParagraphNode(midPara)) continue;
-                        for (const child of midPara.getChildren()) {
-                            if (child instanceof TextNode && child.getFormat() === 0) {
-                                child.setFormat(format);
-                            }
-                        }
-                    }
-
-                    // 3. Closing paragraph: split content from symbol
-                    const closeText = lastChild.getTextContent();
-                    const symIndexClose = closeText.lastIndexOf(sym);
-                    if (symIndexClose > -1) {
-                        if (closeText.length > sym.length) {
-                            if (symIndexClose === 0) {
-                                // Starts with symbol
-                                const parts = lastChild.splitText(sym.length);
-                                parts[0].setStyle(DIM_STYLE);
-                                parts[0].setFormat(format);
-                                parts[0].setMode("token");
-                                parts[1].setFormat(format);
-                            } else if (symIndexClose + sym.length === closeText.length) {
-                                // Ends with symbol
-                                const parts = lastChild.splitText(symIndexClose);
-                                parts[0].setFormat(format);
-                                parts[1].setStyle(DIM_STYLE);
-                                parts[1].setFormat(format);
-                                parts[1].setMode("token");
-                            } else {
-                                // Sym is in the middle (e.g., "text** ")
-                                const parts = lastChild.splitText(symIndexClose, symIndexClose + sym.length);
-                                parts[0].setFormat(format);
-                                parts[1].setStyle(DIM_STYLE);
-                                parts[1].setFormat(format);
-                                parts[1].setMode("token");
-                                if (parts[2]) parts[2].setFormat(format);
-                            }
-                        } else {
-                            lastChild.setStyle(DIM_STYLE);
-                            lastChild.setFormat(format);
-                            lastChild.setMode("token");
-                        }
-                    }
-
-                    // Also format any preceding children in the closing paragraph
-                    const closePara = paragraphs[i];
-                    if ($isParagraphNode(closePara)) {
-                        for (const child of closePara.getChildren()) {
-                            if (child instanceof TextNode && child.getFormat() === 0 && !child.getStyle().includes("opacity")) {
-                                child.setFormat(format);
-                            }
-                        }
-                    }
-
-                    // Reset search for this symbol
-                    openParaIdx = -1;
-                    openNode = null;
-                }
-            }
-        }
-    }
+    if (node.getFormat() !== format) node.setFormat(format);
+    if (node.getStyle() !== css) node.setStyle(css);
+    if (node.getMode() !== targetMode) node.setMode(targetMode);
 }

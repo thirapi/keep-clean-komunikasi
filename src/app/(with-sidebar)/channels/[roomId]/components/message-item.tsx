@@ -377,9 +377,15 @@ export function MessageItem({
 
     // --- DISCORD MARKDOWN FIXES ---
     // 0. Extract Code Blocks (triple backticks) to protect them from regex modifications
+    // We normalize them by ensuring the closing ``` is on its own line, as required by CommonMark
     const blockCodes: string[] = [];
     processed = processed.replace(/```[\s\S]*?```/g, (match) => {
-      blockCodes.push(match);
+      let normalized = match;
+      // If closing ``` is not preceded by a newline, add one to help remark-gfm
+      if (!normalized.match(/\n```$/)) {
+        normalized = normalized.replace(/```$/, "\n```");
+      }
+      blockCodes.push(normalized);
       return `__BLOCK_CODE_${blockCodes.length - 1}__`;
     });
 
@@ -399,23 +405,28 @@ export function MessageItem({
     );
 
     // 4. Fix multiline wrapping for Bold/Italic/Strike that breaks CommonMark flanking rules
-    processed = processed.replace(/(\*\*|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
+    // We use a single regex pass with a backreference to avoid destructive loops
+    processed = processed.replace(/(\*\*\*|\*\*|\*|___|__|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
       if (inner.includes(NEWLINE_SYMBOL)) {
+        // We add \u200B (ZWSP) to force flanking rules.
+        // It must be at the very start and very end of the inner content.
         return `${sep}\u200B${inner}\u200B${sep}`;
       }
       return match;
     });
 
     // 4.5 Surgical Tail Trimming (Discord Logic)
-    // If a stylistic block ends at the very end of the message, Discord trims the trailing newline inside it.
-    // But if there is text after the block, that newline is preserved.
-    // We include \u200B (ZWSP) in the match because our styles are flanked by it.
-    const tailTrimRegex = new RegExp(`(${NEWLINE_SYMBOL}+)([\\s\\u200B\\*\\*|~~|_|__|\\*]+)$`);
-    processed = processed.replace(tailTrimRegex, "$2");
+    // Trim trailing newlines sitting right before the closing symbols at the end of the message.
+    // We remove any combination of newlines/spaces appearing immediately before the closing markers.
+    const tailTrimRegex = new RegExp(`(${NEWLINE_SYMBOL}+)([\\s\\u200B]*)([*_~]+)\\s*$`);
+    processed = processed.replace(tailTrimRegex, "$3");
 
     // 5. Restore Code Blocks
-    processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
-      return blockCodes[parseInt(p1, 10)];
+    // We replace the placeholder __BLOCK_CODE__ with the original triple-backtick block.
+    // Crucially, we must ensure it is preceded and followed by a REAL newline (\n)
+    // so that the Markdown parser (remark) recognizes it as a Fenced Code Block.
+    processed = processed.replace(new RegExp(`${NEWLINE_SYMBOL}*__BLOCK_CODE_(\\d+)__${NEWLINE_SYMBOL}*`, 'g'), (match, p1) => {
+      return `\n\n${blockCodes[parseInt(p1, 10)]}\n\n`;
     });
 
     return processed;
