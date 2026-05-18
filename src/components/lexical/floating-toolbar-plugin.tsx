@@ -77,22 +77,7 @@ export function FloatingToolbarPlugin() {
     };
 
     const wrapInlineCode = () => {
-        editor.update(() => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) return;
-            const selectedText = selection.getTextContent();
-            if (!selectedText) return;
-            selection.removeText();
-            if (selectedText.includes("\n")) {
-                const wrapped = selectedText
-                    .split("\n")
-                    .map((line) => (line.trim() ? `\`${line}\`` : line))
-                    .join("\n");
-                selection.insertRawText(wrapped);
-            } else {
-                selection.insertRawText(`\`${selectedText}\``);
-            }
-        });
+        wrapSelection("`");
     };
 
     const wrapCodeBlock = () => {

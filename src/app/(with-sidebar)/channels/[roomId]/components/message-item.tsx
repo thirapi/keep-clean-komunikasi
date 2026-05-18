@@ -345,11 +345,47 @@ export function MessageItem({
 
   const resolveMentionsForView = (content: string) => {
     if (!content) return "";
-    return content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
+    let processed = content.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
       if (uid === "everyone") return "[@everyone](#mention:everyone)";
       const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
       return participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
     });
+
+    // --- DISCORD MARKDOWN FIXES ---
+    // 0. Extract Code Blocks (triple backticks) to protect them from regex modifications
+    const blockCodes: string[] = [];
+    processed = processed.replace(/```[\s\S]*?```/g, (match) => {
+      blockCodes.push(match);
+      return `__BLOCK_CODE_${blockCodes.length - 1}__`;
+    });
+
+    // 1. Preserve leading spaces for non-list elements (prevents remark from stripping indentation)
+    processed = processed.replace(/^( +)(?![-*>] |\d+\. )/gm, (match) =>
+      '\u00A0'.repeat(match.length)
+    );
+
+    // 2. Allow single backticks (inline code) to span multiple lines safely
+    processed = processed.replace(/(?<!`)`([^`]+)`(?!`)/g, (match, inner) => {
+      // \uE000 is a Private Use Area character that remark will ignore for newlines
+      return '`' + inner.replace(/\n/g, '\uE000').replace(/ /g, '\u00A0') + '`';
+    });
+
+    // 3. Fix multiline wrapping for Bold/Italic/Strike that breaks CommonMark flanking rules
+    // CommonMark disables styling if `**`, `_`, or `~~` are adjacent to spaces/newlines.
+    // We inject `\u200B` (Zero-Width Space) inside boundaries because it bypasses this flanking restriction.
+    processed = processed.replace(/(\*\*|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
+      if (inner.includes('\n')) {
+        return `${sep}\u200B${inner}\u200B${sep}`;
+      }
+      return match;
+    });
+
+    // 4. Restore Code Blocks
+    processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
+      return blockCodes[parseInt(p1, 10)];
+    });
+
+    return processed;
   };
 
   const renderContent = (content: string) => {
@@ -417,10 +453,20 @@ export function MessageItem({
             }
 
             // Inline code
+            // Restore our multiline \n placeholder
+            let inlineContent = children;
+            if (typeof inlineContent === "string") {
+              inlineContent = inlineContent.replace(/\uE000/g, "\n");
+            } else if (Array.isArray(inlineContent)) {
+              inlineContent = inlineContent.map((child: any) =>
+                typeof child === "string" ? child.replace(/\uE000/g, "\n") : child
+              );
+            }
+
             return (
               <code
                 className="
-                mx-0.5 break-words rounded-xs
+                mx-0.5 break-words whitespace-pre-wrap rounded-xs
                 bg-[#F8F8F8] dark:bg-[#2D2D2D]
                 px-[5px] py-[1.5px]
                 font-mono text-[12px] font-medium
@@ -428,7 +474,7 @@ export function MessageItem({
               "
                 {...props}
               >
-                {children}
+                {inlineContent}
               </code>
             );
           },

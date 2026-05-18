@@ -220,10 +220,10 @@ function decorateCrossParagraphFormatting(paragraphs: ReturnType<typeof $getRoot
 
                 // Must start with symbol, not be already decorated, and have content after symbol
                 if (
-                    text.startsWith(sym) &&
+                    text.trim().startsWith(sym) &&
                     firstChild.getFormat() === 0 &&
                     !firstChild.getStyle().includes("opacity") &&
-                    text.length > sym.length
+                    text.length >= sym.length
                 ) {
                     // Prevent shorter symbol matching when longer one applies
                     // e.g., skip * if ** also matches
@@ -278,16 +278,38 @@ function decorateCrossParagraphFormatting(paragraphs: ReturnType<typeof $getRoot
                     // 1. Opening paragraph: split symbol from content
                     if (openNode) {
                         const openText = openNode.getTextContent();
-                        if (openText.length > sym.length) {
-                            const parts = openNode.splitText(sym.length);
-                            parts[0].setStyle(DIM_STYLE);
-                            parts[0].setFormat(format);
-                            parts[0].setMode("token");
-                            parts[1].setFormat(format);
-                        } else {
-                            openNode.setStyle(DIM_STYLE);
-                            openNode.setFormat(format);
-                            openNode.setMode("token");
+                        const symIndex = openText.indexOf(sym);
+                        if (symIndex > -1) {
+                            if (openText.length > symIndex + sym.length) {
+                                // E.g., "  **hello"
+                                // We need to split BEFORE symbol, run symbol, and split AFTER symbol
+                                // But since the previous code only assumed startsWith, we handle starting at symIndex
+                                if (symIndex === 0) {
+                                    const parts = openNode.splitText(sym.length);
+                                    parts[0].setStyle(DIM_STYLE);
+                                    parts[0].setFormat(format);
+                                    parts[0].setMode("token");
+                                    parts[1].setFormat(format);
+                                } else {
+                                    const parts = openNode.splitText(symIndex, symIndex + sym.length);
+                                    parts[1].setStyle(DIM_STYLE);
+                                    parts[1].setFormat(format);
+                                    parts[1].setMode("token");
+                                    if (parts[2]) parts[2].setFormat(format);
+                                }
+                            } else {
+                                // If it ends with symbol or is only symbol
+                                if (symIndex === 0) {
+                                    openNode.setStyle(DIM_STYLE);
+                                    openNode.setFormat(format);
+                                    openNode.setMode("token");
+                                } else {
+                                    const parts = openNode.splitText(symIndex);
+                                    parts[1].setStyle(DIM_STYLE);
+                                    parts[1].setFormat(format);
+                                    parts[1].setMode("token");
+                                }
+                            }
                         }
 
                         // Also format remaining children in the opening paragraph
