@@ -970,6 +970,26 @@ export function MessageItem({
                   </TooltipContent>
                 </Tooltip>
 
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Logic to open promote dialog
+                        toast.info("Membuka jembatan pengetahuan...");
+                      }}
+                      className="h-7 w-7 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px] font-bold py-1 px-2">
+                    <p>Promote to Pulse</p>
+                  </TooltipContent>
+                </Tooltip>
+
                 <EmojiPickerComponent onEmojiSelect={handleToggleReaction} />
 
                 {message.userId === currentUserId && (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,9 +10,14 @@ import {
     Share2,
     Info,
     UserPen,
+    Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "../../(with-sidebar)/channels/[roomId]/room.action";
+import { getProfileFeedAction } from "../../posts.action";
+import { PostInput } from "./components/post-input";
+import { PostItem } from "./components/post-item";
+import { pusher } from "@/lib/pusher/pusher.client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { UserSettingsDialog } from "../../(with-sidebar)/user-settings-dialog";
@@ -22,6 +27,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { FollowButton } from "./components/follow-button";
 
 interface ProfileViewProps {
     user: {
@@ -33,10 +39,15 @@ interface ProfileViewProps {
         customStatus?: string | null;
         roles: { id: string; name: string }[];
         createdAt: string | Date;
+        stats?: {
+            followers: number;
+            following: number;
+        };
+        isFollowing?: boolean;
     };
     currentUser: {
         id: string;
-        name: string;
+        name: string; // This is the username from page.tsx mapping
         initial: string;
         role: string;
         email: string;
@@ -51,7 +62,58 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
     const router = useRouter();
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [activeTab, setActiveTab] = useState("Threads");
+    const [posts, setPosts] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const isOwnProfile = currentUser?.id === user.id;
+
+    // Fetch feed & Real-time setup
+    useEffect(() => {
+        const fetchFeed = async () => {
+            setIsLoading(true);
+            try {
+                let filter: any = "threads";
+                if (activeTab === "Replies") filter = "replies";
+                if (activeTab === "Reposts") filter = "reposts";
+
+                const response = await getProfileFeedAction(user.username, filter, currentUser?.id);
+                if (response.status === "success" && response.data) {
+                    setPosts(response.data);
+                }
+            } catch (error) {
+                console.error("Gagal mengambil feed:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchFeed();
+
+        // Real-time for new posts on this profile
+        const userChannel = pusher.subscribe(`user-posts-${user.id}`);
+        userChannel.bind("new-post", (newPost: any) => {
+            setPosts((prev) => {
+                if (prev.some(p => p.id === newPost.id)) return prev;
+                return [newPost, ...prev];
+            });
+        });
+
+        // For reactions, we need to listen globally or per post?
+        // Let's listen to global for now or we could optimize by subscribing to specific posts
+        // But for many posts, global might be easier if we have a global-reactions channel
+        // Since we don't have that yet, we use individual post subscriptions inside PostItem (simpler for now)
+
+        return () => {
+            userChannel.unbind("new-post");
+            pusher.unsubscribe(`user-posts-${user.id}`);
+        };
+    }, [user.id, user.username, activeTab]);
+
+    const handlePostCreated = (newPost: any) => {
+        setPosts((prev) => {
+            if (prev.some(p => p.id === newPost.id)) return prev;
+            return [newPost, ...prev];
+        });
+    };
 
     const handleStartDM = async () => {
         if (!currentUser) {
@@ -216,16 +278,39 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
                         {/* Info with Balanced Typography */}
                         <div className="space-y-5">
-                            <div className="flex flex-col">
-                                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-                                    {user.username}
-                                </h1>
-                                {user.customStatus && (
-                                    <div className="flex items-center gap-1.5 mt-1.5 opacity-80">
-                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                        <p className="text-sm text-zinc-300 leading-none truncate">{user.customStatus}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                                <div className="flex flex-col">
+                                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
+                                        {user.username}
+                                    </h1>
+                                    {user.customStatus && (
+                                        <div className="flex items-center gap-1.5 mt-1.5 opacity-80">
+                                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                            <p className="text-sm text-zinc-300 leading-none truncate">{user.customStatus}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!isOwnProfile && currentUser && (
+                                    <div className="flex-shrink-0">
+                                        <FollowButton
+                                            targetUserId={user.id}
+                                            currentUserId={currentUser.id}
+                                            initialIsFollowing={user.isFollowing || false}
+                                        />
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="flex items-center gap-6 text-sm">
+                                <div className="flex items-center gap-1.5 hover:underline cursor-pointer transition-all">
+                                    <span className="font-bold text-white">{user.stats?.following || 0}</span>
+                                    <span className="text-zinc-500 font-medium">Following</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 hover:underline cursor-pointer transition-all">
+                                    <span className="font-bold text-white">{user.stats?.followers || 0}</span>
+                                    <span className="text-zinc-500 font-medium">Followers</span>
+                                </div>
                             </div>
 
                             <p className="text-sm sm:text-base text-zinc-400 leading-relaxed italic max-w-2xl font-medium">
@@ -256,13 +341,67 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                         </div>
 
                         {/* Scrollable Content Area */}
-                        <div className="flex-1 flex flex-col items-center justify-center p-10 opacity-30 select-none overflow-y-auto">
-                            <div className="flex flex-col items-center gap-2 text-center animate-in fade-in zoom-in-95 duration-500" key={activeTab}>
-                                <span className="text-base font-medium text-zinc-400">
-                                    No {activeTab.toLowerCase()} yet.
-                                </span>
-                                <span className="text-[10px] tracking-[0.2em] text-zinc-600 font-bold">Coming Soon</span>
-                            </div>
+                        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+                            {activeTab === "Threads" && (
+                                <div className="flex flex-col animate-in fade-in duration-500">
+                                    {isOwnProfile && currentUser && (
+                                        <PostInput
+                                            currentUser={{
+                                                id: currentUser.id,
+                                                username: currentUser.name,
+                                                avatar: currentUser.avatar,
+                                            }}
+                                            onPostCreated={handlePostCreated}
+                                        />
+                                    )}
+
+                                    {isLoading ? (
+                                        <div className="flex flex-col items-center justify-center p-20 gap-4">
+                                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                                            <p className="text-zinc-500 text-sm font-medium">Memuat kiriman...</p>
+                                        </div>
+                                    ) : posts.length > 0 ? (
+                                        <div className="flex flex-col">
+                                            {posts.map((post) => (
+                                                <PostItem
+                                                    key={post.id}
+                                                    post={post}
+                                                    currentUserId={currentUser?.id}
+                                                    currentUser={currentUser ? {
+                                                        id: currentUser.id,
+                                                        username: currentUser.name,
+                                                        avatar: currentUser.avatar
+                                                    } : undefined}
+                                                    onUpdate={handlePostCreated}
+                                                />
+                                            ))}
+                                            <div className="p-10 flex flex-col items-center gap-2 opacity-30 select-none">
+                                                <span className="text-sm font-bold text-zinc-600 uppercase tracking-widest">End of Threads</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center p-20 opacity-30 select-none">
+                                            <div className="flex flex-col items-center gap-2 text-center">
+                                                <span className="text-base font-medium text-zinc-400">
+                                                    No threads yet.
+                                                </span>
+                                                <span className="text-[10px] tracking-[0.2em] text-zinc-600 font-bold">Start a conversation</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab !== "Threads" && (
+                                <div className="flex-1 flex flex-col items-center justify-center p-20 opacity-30 select-none">
+                                    <div className="flex flex-col items-center gap-2 text-center animate-in fade-in zoom-in-95 duration-500" key={activeTab}>
+                                        <span className="text-base font-medium text-zinc-400">
+                                            No {activeTab.toLowerCase()} yet.
+                                        </span>
+                                        <span className="text-[10px] tracking-[0.2em] text-zinc-600 font-bold">Coming Soon</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,10 @@ import { updateUserController } from "@/lib/interface-adapters/controllers/users
 import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
 import { changePasswordController } from "@/lib/interface-adapters/controllers/users/change-password.controller";
 import { getProfileController } from "@/lib/interface-adapters/controllers/users/get-profile.controller";
+import { followUserController } from "@/lib/interface-adapters/controllers/users/follow-user.controller";
+import { unfollowUserController } from "@/lib/interface-adapters/controllers/users/unfollow-user.controller";
+import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
+import { db } from "@/lib/db";
 
 export const updateUserAction = async (
   userId: string,
@@ -75,9 +79,9 @@ export const searchUsersAction = async (query: string): Promise<ServerResponse<{
   }
 };
 
-export const getPublicProfileAction = async (username: string): Promise<ServerResponse<any>> => {
+export const getPublicProfileAction = async (username: string, currentUserId?: string): Promise<ServerResponse<any>> => {
   try {
-    const user = await getProfileController(username);
+    const user = await getProfileController(username, currentUserId);
     return {
       status: "success",
       data: user,
@@ -92,5 +96,33 @@ export const getPublicProfileAction = async (username: string): Promise<ServerRe
         message: err.message || "User not found",
       },
     };
+  }
+};
+
+export const followUserAction = async (followerId: string, followingId: string): Promise<ServerResponse<null>> => {
+  try {
+    await followUserController(followerId, followingId);
+    return { status: "success", data: null, error: null };
+  } catch (err: any) {
+    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const unfollowUserAction = async (followerId: string, followingId: string): Promise<ServerResponse<null>> => {
+  try {
+    await unfollowUserController(followerId, followingId);
+    return { status: "success", data: null, error: null };
+  } catch (err: any) {
+    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const checkFollowingStatusAction = async (followerId: string, followingId: string): Promise<ServerResponse<boolean>> => {
+  try {
+    const repo = new FollowerRepository(db);
+    const result = await repo.isFollowing(followerId, followingId);
+    return { status: "success", data: result, error: null };
+  } catch (err: any) {
+    return { status: "error", data: false, error: { type: "UNKNOWN_ERROR", message: err.message } };
   }
 };

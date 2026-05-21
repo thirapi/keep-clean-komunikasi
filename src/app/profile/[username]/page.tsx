@@ -21,8 +21,11 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 export default async function ProfilePage({ params }: ProfilePageProps) {
     const { username } = await params;
 
+    // Fetch the current user session
+    const fullCurrentUser = await (await import("../../auth.action")).getUserWithRolesFromSession();
+
     // Fetch the target user profile
-    const response = await getPublicProfileAction(username);
+    const response = await getPublicProfileAction(username, fullCurrentUser?.id);
 
     if (response.status === "error" || !response.data) {
         notFound();
@@ -30,11 +33,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
     const user = response.data;
 
-    // Fetch the current user session (to check if it's their own profile)
-    const currentUser = await sidaBarUserInfo();
-
-    // Let's refine the current user fetching to get the full object including ID
-    const fullCurrentUser = await (await import("../../auth.action")).getUserWithRolesFromSession();
+    // Map the current user session (to check if it's their own profile)
 
     const finalCurrentUser = fullCurrentUser ? {
         id: fullCurrentUser.id,

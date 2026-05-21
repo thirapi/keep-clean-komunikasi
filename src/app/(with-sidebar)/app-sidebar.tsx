@@ -4,6 +4,7 @@ import * as React from "react";
 import { User, Hash, Search, MessageCircle } from "lucide-react";
 
 import { NavMain } from "./nav-main";
+import { NavFeed } from "./nav-feed";
 import { NavUser } from "./nav-user";
 import { NavBrand } from "./nav-brand";
 import {
@@ -11,6 +12,9 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -55,7 +59,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     bio?: string | null;
     banner?: string | null;
     customStatus?: string | null;
-  };
+  } | null;
   checkRole: {
     id: string;
     username: string;
@@ -109,7 +113,11 @@ export function AppSidebar({
   }));
 
   async function handleCreateRoom(participantId: string) {
-    const response = await createRoom(user.id, participantId);
+    if (!user) {
+      toast.error("Silakan login untuk memulai percakapan");
+      return;
+    }
+    const response = await createRoom(user!.id, participantId);
 
     if (response.status === "success" && response.data) {
       if (response.meta?.action === "existing") {
@@ -129,7 +137,7 @@ export function AppSidebar({
   }
 
   React.useEffect(() => {
-    if (!user.id) return;
+    if (!user?.id) return;
 
     const channel = pusher.subscribe(`user-${user.id}`);
 
@@ -149,9 +157,9 @@ export function AppSidebar({
     });
 
     return () => {
-      pusher.unsubscribe(`user-${user.id}`);
+      pusher.unsubscribe(`user-${user?.id}`);
     };
-  }, [user.id, router]);
+  }, [user?.id, router]);
 
   const isDefaultRoom = pathname === "/channels/default" || pathname === "/channels";
 
@@ -169,70 +177,88 @@ export function AppSidebar({
         {isMobile ? (
           <div className="flex items-center justify-between px-2 pt-2 pb-1">
             <span className="font-bold text-xl text-primary tracking-tight ml-1">{brand.name}</span>
-            <NavUser user={user} checkRole={checkRole} isMobileHeader={true} />
+            {user ? (
+              <NavUser user={user} checkRole={checkRole} isMobileHeader={true} />
+            ) : (
+              <Button size="sm" onClick={() => router.push("/")} className="rounded-full h-8 px-4">
+                Login
+              </Button>
+            )}
           </div>
         ) : (
           <NavBrand brand={brand} />
         )}
-        <div className={cn("px-2 pb-0 mb-1", isMobile && "pb-2 mt-1")}>
-          {isMobile ? (
-            <div
-              onClick={() => setOpenGlobalSearch(true)}
-              className="relative flex items-center w-full h-10 px-3 cursor-text bg-muted/60 border rounded-full hover:bg-muted/80 transition-colors group"
-            >
-              <Search className="h-4 w-4 text-muted-foreground mr-2 group-hover:text-primary transition-colors" />
-              <span className="text-sm text-muted-foreground">Cari pesan atau pengguna...</span>
-            </div>
-          ) : state === "expanded" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
-              onClick={() => setOpenGlobalSearch(true)}
-            >
-              <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
-              <span className="truncate">Pencarian Global...</span>
-            </Button>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
-                  onClick={() => setOpenGlobalSearch(true)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Pencarian</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+        {user && (
+          <div className={cn("px-2 pb-0 mb-1", isMobile && "pb-2 mt-1")}>
+            {isMobile ? (
+              <div
+                onClick={() => setOpenGlobalSearch(true)}
+                className="relative flex items-center w-full h-10 px-3 cursor-text bg-muted/60 border rounded-full hover:bg-muted/80 transition-colors group"
+              >
+                <Search className="h-4 w-4 text-muted-foreground mr-2 group-hover:text-primary transition-colors" />
+                <span className="text-sm text-muted-foreground">Cari pesan atau pengguna...</span>
+              </div>
+            ) : state === "expanded" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
+                onClick={() => setOpenGlobalSearch(true)}
+              >
+                <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
+                <span className="truncate">Pencarian Global...</span>
+              </Button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
+                    onClick={() => setOpenGlobalSearch(true)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Pencarian</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
       </SidebarHeader>
-      <SidebarContent className="overflow-x-hidden">
+      <SidebarContent className="overflow-x-hidden pt-2">
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
-            {mobileTab === "channels" ? (
-              <NavMain
-                groups={groups}
-                type="Channels"
-                onCreate={() => setOpenCreateChannel(true)}
-                onExplore={() => setOpenExploreChannels(true)}
-              />
+            <NavFeed />
+            <div className="h-px bg-border my-2 shrink-0 mx-2" />
+            {user ? (
+              mobileTab === "channels" ? (
+                <NavMain
+                  groups={groups}
+                  type="Channels"
+                  onCreate={() => setOpenCreateChannel(true)}
+                  onExplore={() => setOpenExploreChannels(true)}
+                />
+              ) : (
+                <NavMainDirectMessage
+                  groups={directMessages}
+                  type="Direct Messages"
+                  onCreateDirectMessage={handleCreateRoom}
+                  user={user}
+                />
+              )
             ) : (
-              <NavMainDirectMessage
-                groups={directMessages}
-                type="Direct Messages"
-                onCreateDirectMessage={handleCreateRoom}
-                user={user}
-              />
+              <div className="p-6 text-center py-10 opacity-60">
+                <p className="text-xs text-muted-foreground italic leading-relaxed">
+                  Login untuk mengakses percakapan dan fitur premium lainnya.
+                </p>
+              </div>
             )}
           </div>
         ) : (
-          <Group orientation="vertical" className="w-full min-w-0">
+          <Group orientation="vertical" className="w-full min-w-0 h-full">
             <Panel
-              minSize="20%"
+              minSize="15%"
               style={{
                 overflowX: "hidden",
                 overflowY: "auto",
@@ -241,33 +267,58 @@ export function AppSidebar({
               }}
               className="min-w-0"
             >
-              <NavMain
-                groups={groups}
-                type="Channels"
-                onCreate={() => setOpenCreateChannel(true)}
-                onExplore={() => setOpenExploreChannels(true)}
-              />
+              <NavFeed />
             </Panel>
 
-            <div className="h-px bg-border my-2 shrink-0" />
+            {user ? (
+              <>
+                <div className="h-px bg-border my-2 shrink-0" />
 
-            <Panel
-              minSize="20%"
-              style={{
-                overflowX: "hidden",
-                overflowY: "auto",
-                width: "100%",
-                minWidth: "0",
-              }}
-              className="min-w-0"
-            >
-              <NavMainDirectMessage
-                groups={directMessages}
-                type="Direct Messages"
-                onCreateDirectMessage={handleCreateRoom}
-                user={user}
-              />
-            </Panel>
+                <Panel
+                  minSize="20%"
+                  style={{
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    width: "100%",
+                    minWidth: "0",
+                  }}
+                  className="min-w-0"
+                >
+                  <NavMain
+                    groups={groups}
+                    type="Channels"
+                    onCreate={() => setOpenCreateChannel(true)}
+                    onExplore={() => setOpenExploreChannels(true)}
+                  />
+                </Panel>
+
+                <div className="h-px bg-border my-2 shrink-0" />
+
+                <Panel
+                  minSize="20%"
+                  style={{
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    width: "100%",
+                    minWidth: "0",
+                  }}
+                  className="min-w-0"
+                >
+                  <NavMainDirectMessage
+                    groups={directMessages}
+                    type="Direct Messages"
+                    onCreateDirectMessage={handleCreateRoom}
+                    user={user}
+                  />
+                </Panel>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-8 opacity-40 select-none pointer-events-none">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-px bg-border w-8 mx-auto" />
+                </div>
+              </div>
+            )}
           </Group>
         )}
       </SidebarContent>
@@ -293,28 +344,49 @@ export function AppSidebar({
             <Button
               variant="ghost"
               className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
-              onClick={() => router.push(`/profile/${user.name}`)}
+              onClick={() => router.push(user ? `/profile/${user.name}` : "/")}
             >
               <User className="h-[22px] w-[22px]" strokeWidth={2} />
-              <span className="text-[10px] font-medium tracking-wide">Profil</span>
+              <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
             </Button>
           </div>
         </SidebarFooter>
       ) : (
         <SidebarFooter>
-          <NavUser user={user} checkRole={checkRole} />
+          {user ? (
+            <NavUser user={user} checkRole={checkRole} />
+          ) : (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-300 group/login"
+                  onClick={() => router.push("/")}
+                  tooltip="Masuk ke Komunikasi"
+                >
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground group-hover/login:scale-110 transition-transform duration-300">
+                    <User className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight ml-2">
+                    <span className="truncate font-semibold">Masuk Akun</span>
+                    <span className="truncate text-[11px] text-muted-foreground">Masuk untuk memulai</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
         </SidebarFooter>
       )}
       <SidebarRail />
       <CreateChannelDialog
         open={openCreateChannel}
         onOpenChange={setOpenCreateChannel}
-        userId={user.id}
+        userId={user?.id || ""}
       />
       <ExploreChannelsDialog
         open={openExploreChannels}
         onOpenChange={setOpenExploreChannels}
-        userId={user.id}
+        userId={user?.id || ""}
       />
       <MessageSearch
         isOpen={openGlobalSearch}

@@ -9,6 +9,9 @@ export const users = pgTable("User", {
     bio: text("bio"),
     banner: text("banner"),
     customStatus: text("customStatus"),
+    // Fediverse Compatibility
+    publicKey: text("publicKey"),
+    privateKey: text("privateKey"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -16,9 +19,11 @@ export const users = pgTable("User", {
 export const usersRelations = relations(users, ({ many }) => ({
     userRoles: many(userRoles),
     messages: many(messages),
+    posts: many(posts),
     roomParticipants: many(roomParticipants),
     sessions: many(sessions),
     reactions: many(messageReactions),
+    postReactions: many(postReactions),
     pushSubscriptions: many(pushSubscriptions),
 }));
 
@@ -58,6 +63,43 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     replies: many(messages, { relationName: "replies" }),
     attachments: many(attachments),
     reactions: many(messageReactions),
+}));
+
+export const posts = pgTable("Post", {
+    id: text("id").primaryKey(),
+    content: text("content").notNull(),
+    userId: text("userId").notNull().references(() => users.id),
+
+    // Fediverse Compatibility
+    uri: text("uri").unique(),        // Canonical URI
+    url: text("url"),                 // Web URL
+
+    // Interactions (Threads & Reposts)
+    replyToId: text("replyToId"),
+    repostOfId: text("repostOfId"),
+
+    visibility: text("visibility").default("public").notNull(),
+    isDeleted: boolean("isDeleted").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export const postsRelations = relations(posts, ({ one, many }) => ({
+    user: one(users, { fields: [posts.userId], references: [users.id] }),
+    attachments: many(attachments),
+    reactions: many(postReactions),
+    replyTo: one(posts, {
+        fields: [posts.replyToId],
+        references: [posts.id],
+        relationName: "postReplies",
+    }),
+    replies: many(posts, { relationName: "postReplies" }),
+    repostOf: one(posts, {
+        fields: [posts.repostOfId],
+        references: [posts.id],
+        relationName: "reposts",
+    }),
+    reposts: many(posts, { relationName: "reposts" }),
 }));
 
 export const rooms = pgTable("Room", {
@@ -169,12 +211,14 @@ export const attachments = pgTable("Attachment", {
     fileType: text("fileType").notNull(),
     size: integer("size"),
     messageId: text("messageId").references(() => messages.id),
+    postId: text("postId").references(() => posts.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const attachmentsRelations = relations(attachments, ({ one }) => ({
     message: one(messages, { fields: [attachments.messageId], references: [messages.id] }),
+    post: one(posts, { fields: [attachments.postId], references: [posts.id] }),
 }));
 
 export const messageReactions = pgTable("MessageReaction", {
@@ -192,3 +236,34 @@ export const messageReactionsRelations = relations(messageReactions, ({ one }) =
     message: one(messages, { fields: [messageReactions.messageId], references: [messages.id] }),
     user: one(users, { fields: [messageReactions.userId], references: [users.id] }),
 }));
+
+export const postReactions = pgTable("PostReaction", {
+    id: text("id").primaryKey(),
+    postId: text("postId").notNull().references(() => posts.id),
+    userId: text("userId").notNull().references(() => users.id),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => ({
+    unq: unique().on(t.postId, t.userId, t.emoji),
+}));
+
+export const postReactionsRelations = relations(postReactions, ({ one }) => ({
+    post: one(posts, { fields: [postReactions.postId], references: [posts.id] }),
+    user: one(users, { fields: [postReactions.userId], references: [users.id] }),
+}));
+
+export const followers = pgTable("Follower", {
+    id: text("id").primaryKey(),
+    followerId: text("followerId").notNull().references(() => users.id),
+    followingId: text("followingId").notNull().references(() => users.id),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+    unq: unique().on(t.followerId, t.followingId),
+}));
+
+export const followersRelations = relations(followers, ({ one }) => ({
+    follower: one(users, { fields: [followers.followerId], references: [users.id], relationName: "following" }),
+    following: one(users, { fields: [followers.followingId], references: [users.id], relationName: "followers" }),
+}));
+

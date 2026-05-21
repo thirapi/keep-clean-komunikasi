@@ -43,6 +43,20 @@
       "when": 1778842705677,
       "tag": "0005_foamy_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779301629270,
+      "tag": "0006_far_union_jack",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779359893799,
+      "tag": "0007_cheerful_clint_barton",
+      "breakpoints": true
     }
   ]
 }

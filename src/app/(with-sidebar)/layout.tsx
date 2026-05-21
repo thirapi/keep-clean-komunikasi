@@ -19,62 +19,72 @@ export default async function layout({
 }: {
   children: React.ReactNode;
 }) {
-  const userId = await getUserSession();
-  if (!userId?.user?.id) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground text-center">
-          Akses tidak diizinkan. Silakan login terlebih dahulu.
-        </p>
-      </div>
-    );
-  }
+  const sessionData = await getUserSession();
+  const userId = sessionData?.user?.id;
 
-  const sidebarData = await getSidebarData(userId.user.id);
+  const sidebarData = userId ? await getSidebarData(userId) : { data: { channels: [], directMessages: [] } };
   const directRooms = sidebarData.data?.directMessages ?? [];
   const groupRooms = sidebarData.data?.channels ?? [];
-  const session = await sidaBarUserInfo();
 
-  const role = await getUserWithRolesFromSession();
+  const userInfo = await sidaBarUserInfo();
+  const userRoles = await getUserWithRolesFromSession();
 
-  const user = {
-    id: userId.user.id,
-    name: session.name,
-    initial: getInitials(session.name),
-    role: session.role,
-    email: session.email,
-    avatar: session.avatar,
-    bio: session.bio,
-    banner: session.banner,
-    customStatus: session.customStatus,
-  };
+  const user = userId ? {
+    id: userId,
+    name: userInfo.name,
+    initial: getInitials(userInfo.name),
+    role: userInfo.role,
+    email: userInfo.email,
+    avatar: userInfo.avatar,
+    bio: userInfo.bio,
+    banner: userInfo.banner,
+    customStatus: userInfo.customStatus,
+  } : null;
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       <SidebarProvider>
-        <PresenceProvider userId={user.id}>
-          <UnreadProvider>
-            <RealtimeNotificationListener
-              user={{ id: user.id, username: user.name }}
-            />
-            <AppSidebar
-              user={user}
-              checkRole={role}
-              directRooms={directRooms}
-              groupRooms={groupRooms}
-            />
+        {user ? (
+          <PresenceProvider userId={user.id}>
+            <UnreadProvider>
+              <RealtimeNotificationListener
+                user={{ id: user.id, username: user.name }}
+              />
+              <AppSidebar
+                user={user}
+                checkRole={userRoles}
+                directRooms={directRooms}
+                groupRooms={groupRooms}
+              />
 
-            <MobileStackContent>
-              <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
-                <main className="flex-1 min-h-0 overflow-hidden w-full">
-                  <div className="h-full w-full rounded-xl overflow-hidden">
-                    <div className="h-full w-full overflow-y-auto">{children}</div>
-                  </div>
-                </main>
-              </SidebarInset>
-            </MobileStackContent>
+              <MobileStackContent>
+                <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+                  <main className="flex-1 min-h-0 overflow-hidden w-full">
+                    <div className="h-full w-full rounded-xl overflow-hidden">
+                      <div className="h-full w-full overflow-y-auto">{children}</div>
+                    </div>
+                  </main>
+                </SidebarInset>
+              </MobileStackContent>
+            </UnreadProvider>
+          </PresenceProvider>
+        ) : (
+          <UnreadProvider>
+            <AppSidebar
+              user={null}
+              checkRole={null}
+              directRooms={[]}
+              groupRooms={[]}
+            />
+            <SidebarInset className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
+              <main className="flex-1 min-h-0 overflow-hidden w-full">
+                <div className="h-full w-full rounded-xl overflow-hidden">
+                  <div className="h-full w-full overflow-y-auto">{children}</div>
+                </div>
+              </main>
+            </SidebarInset>
           </UnreadProvider>
-        </PresenceProvider>
+        )}
       </SidebarProvider>
     </div>
   );
