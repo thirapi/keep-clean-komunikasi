@@ -13,8 +13,6 @@ import {
     $createTextNode,
     EditorState,
     LexicalEditor,
-    $isTextNode,
-    TextNode,
     COMMAND_PRIORITY_LOW,
     KEY_ENTER_COMMAND,
 } from "lexical";
@@ -52,6 +50,39 @@ interface MentionTextareaProps {
     inputRef?: React.RefObject<HTMLDivElement | null>;
     maxHeight?: number;
     textClassName?: string;
+    draftKey?: string;
+}
+
+// Plugin: Draft Persistence
+function DraftPersistencePlugin({ draftKey, value }: { draftKey?: string, value: string }) {
+    const [editor] = useLexicalComposerContext();
+
+    // Initial load
+    useEffect(() => {
+        if (!draftKey) return;
+        const savedDraft = localStorage.getItem(`draft_${draftKey}`);
+        if (savedDraft && value === "") {
+            editor.update(() => {
+                const root = $getRoot();
+                root.clear();
+                const paragraph = $createParagraphNode();
+                paragraph.append($createTextNode(savedDraft));
+                root.append(paragraph);
+            });
+        }
+    }, [editor, draftKey]);
+
+    // Save on change
+    useEffect(() => {
+        if (!draftKey) return;
+        if (value === "") {
+            localStorage.removeItem(`draft_${draftKey}`);
+        } else {
+            localStorage.setItem(`draft_${draftKey}`, value);
+        }
+    }, [value, draftKey]);
+
+    return null;
 }
 
 // Convert raw content string (with <@userId> tokens) to Lexical initial state
@@ -106,9 +137,6 @@ function createInitialEditorState(
     };
 }
 
-// Extract plain content from editor state, converting MentionNodes to <@userId>
-// All markdown symbols are preserved because MarkdownDecoratorPlugin
-// only applies visual styling without removing the symbols.
 function editorStateToPlainText(editorState: EditorState): string {
     let result = "";
     editorState.read(() => {
@@ -243,6 +271,7 @@ export function MentionTextarea({
     inputRef,
     maxHeight = 200,
     textClassName = "text-base",
+    draftKey,
 }: MentionTextareaProps) {
     const editorRef = useRef<LexicalEditor | null>(null);
     const isInternalChange = useRef(false);
@@ -306,6 +335,7 @@ export function MentionTextarea({
                     <HistoryPlugin />
                     <MarkdownDecoratorPlugin />
                     <FloatingToolbarPlugin />
+                    <DraftPersistencePlugin draftKey={draftKey} value={value} />
                     <SubmitOnEnterPlugin onSubmit={onSubmit} />
                     <SyncValuePlugin value={value} roomData={roomData} />
                     <AutoHeightPlugin maxHeight={maxHeight} />

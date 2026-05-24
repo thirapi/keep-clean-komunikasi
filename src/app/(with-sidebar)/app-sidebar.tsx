@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { User, Hash, Search, MessageCircle } from "lucide-react";
+import Link from "next/link";
 
 import { NavMain } from "./nav-main";
 import { NavFeed } from "./nav-feed";
@@ -343,11 +344,13 @@ export function AppSidebar({
             </Button>
             <Button
               variant="ghost"
+              asChild
               className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
-              onClick={() => router.push(user ? `/profile/${user.name}` : "/")}
             >
-              <User className="h-[22px] w-[22px]" strokeWidth={2} />
-              <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
+              <Link href={user ? `/profile/${user.name}` : "/"}>
+                <User className="h-[22px] w-[22px]" strokeWidth={2} />
+                <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
+              </Link>
             </Button>
           </div>
         </SidebarFooter>

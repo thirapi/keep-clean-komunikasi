@@ -87,22 +87,25 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${doto.variable} antialiased h-full flex flex-col`}
       >
+        <NextTopLoader
+          color="#A855F7"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={4}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={400}
+          shadow="0 0 10px #A855F7,0 0 5px #A855F7"
+          zIndex={999999999}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <NextTopLoader
-            color="#A855F7"
-            showSpinner={false}
-            shadow={false}
-            height={5}
-            crawl={true}
-            showAtBottom={false}
-            zIndex={999999}
-          />
-          {children}
+           {children}
           <Toaster />
           <ServiceWorkerRegister />
         </ThemeProvider>

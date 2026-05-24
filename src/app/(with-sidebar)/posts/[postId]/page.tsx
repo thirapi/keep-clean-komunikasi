@@ -18,7 +18,7 @@ export default async function PostPage({ params }: PostPageProps) {
         notFound();
     }
 
-    const { post, replies } = response.data;
+    const { post, replies, parents } = response.data;
     const currentUser = await sidaBarUserInfo();
 
     const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();
@@ -35,6 +35,7 @@ export default async function PostPage({ params }: PostPageProps) {
         <PostDetailView
             initialPost={post}
             initialReplies={replies}
+            initialParents={parents}
             currentUser={finalCurrentUser}
         />
     );

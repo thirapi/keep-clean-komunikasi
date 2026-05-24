@@ -53,6 +53,7 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                     className="min-h-[80px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
                     autoFocus={false}
                     currentUserId={currentUser.id}
+                    draftKey="global-post"
                 />
                 <div className="flex justify-end pt-2">
                     <Button

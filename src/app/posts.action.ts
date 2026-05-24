@@ -11,10 +11,24 @@ import { getPostThreadController } from "@/lib/interface-adapters/controllers/po
 
 import { getGlobalFeedController } from "@/lib/interface-adapters/controllers/posts/get-global-feed.controller";
 import { getFollowingFeedController } from "@/lib/interface-adapters/controllers/posts/get-following-feed.controller";
+import { getDiscoveryFeedController } from "@/lib/interface-adapters/controllers/posts/get-discovery-feed.controller";
 
 export async function getFollowingFeedAction(userId: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
         const feed = await getFollowingFeedController(userId, 20, 0);
+        return {
+            status: "success",
+            data: feed,
+            error: null,
+        };
+    } catch (error: any) {
+        return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
+    }
+}
+
+export async function getDiscoveryFeedAction(currentUserId?: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+    try {
+        const feed = await getDiscoveryFeedController(20, 0, currentUserId);
         return {
             status: "success",
             data: feed,
@@ -96,28 +110,51 @@ export async function getGlobalFeedAction(currentUserId?: string): Promise<Serve
     }
 }
 
-export async function toggleLikeAction(postId: string, userId: string): Promise<ServerResponse<void | null>> {
+export async function toggleLikeAction(postId: string, userId: string, optimisticId?: string): Promise<ServerResponse<PostWithUserDTO | null>> {
     try {
-        await toggleLikeController(userId, postId);
-        return { status: "success", data: null, error: null };
-    } catch (error: any) {
-        return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
-    }
-}
-
-export async function repostAction(postId: string, userId: string): Promise<ServerResponse<PostWithUserDTO | null>> {
-    try {
-        const post = await repostController(userId, postId);
+        const post = await toggleLikeController(userId, postId, optimisticId);
         return { status: "success", data: post, error: null };
     } catch (error: any) {
         return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
     }
 }
 
-export async function getPostThreadAction(postId: string, currentUserId?: string): Promise<ServerResponse<{ post: PostWithUserDTO; replies: PostWithUserDTO[] } | null>> {
+export async function repostAction(postId: string, userId: string, optimisticId?: string): Promise<ServerResponse<PostWithUserDTO | null>> {
+    try {
+        const post = await repostController(userId, postId, optimisticId);
+        return { status: "success", data: post, error: null };
+    } catch (error: any) {
+        return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
+    }
+}
+
+export async function getPostThreadAction(postId: string, currentUserId?: string): Promise<ServerResponse<{ 
+    post: PostWithUserDTO; 
+    replies: PostWithUserDTO[];
+    parents: PostWithUserDTO[];
+} | null>> {
     try {
         const data = await getPostThreadController(postId, currentUserId);
         return { status: "success", data, error: null };
+    } catch (error: any) {
+        return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
+    }
+}
+
+export async function getNewPostsAction(sinceId: string, currentUserId?: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+    try {
+        // Simple implementation: fetch all global and filter in memory or add to controller
+        // For efficiency, we should ideally have a getNewPostsController
+        const feed = await getGlobalFeedController(50, 0, currentUserId);
+        const sinceIdx = feed.findIndex(p => p.id === sinceId);
+        
+        const newPosts = sinceIdx > 0 ? feed.slice(0, sinceIdx) : [];
+        
+        return {
+            status: "success",
+            data: newPosts,
+            error: null
+        };
     } catch (error: any) {
         return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
     }

@@ -9,7 +9,7 @@ export class InteractWithPostUseCase {
         private pusherService: IPusherService
     ) { }
 
-    async toggleLike(postId: string, userId: string): Promise<void> {
+    async toggleLike(postId: string, userId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
         const post = await this.postRepository.findByIdWithDetails(postId);
         if (!post) throw new Error("Post not found");
 
@@ -22,11 +22,16 @@ export class InteractWithPostUseCase {
         }
 
         // Trigger real-time update
-        const updatedPost = await this.postRepository.findByIdWithDetails(postId);
-        await this.pusherService.trigger(`post-${postId}`, "reaction-updated", updatedPost);
+        const updatedPost = await this.postRepository.findByIdWithDetails(postId, userId);
+        if (updatedPost) {
+            updatedPost.optimisticId = optimisticId;
+            await this.pusherService.trigger(`post-${postId}`, "reaction-updated", updatedPost);
+        }
+        
+        return updatedPost;
     }
 
-    async repost(userId: string, originalPostId: string): Promise<PostWithUserDTO | null> {
+    async repost(userId: string, originalPostId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
         // Check if already reposted
         const existingRepost = await this.postRepository.findRepost(userId, originalPostId);
 
@@ -34,8 +39,13 @@ export class InteractWithPostUseCase {
             // Undo Repost
             await this.postRepository.delete(existingRepost.id);
 
-            // Notify about deletion or update?
-            // For now, let's just return null or something that indicates "undone"
+            // Fetch original post to trigger update on UI
+            const originalPost = await this.postRepository.findByIdWithDetails(originalPostId, userId);
+            if (originalPost) {
+                originalPost.optimisticId = optimisticId;
+                await this.pusherService.trigger(`post-${originalPostId}`, "reaction-updated", originalPost);
+            }
+            
             return null;
         }
 
@@ -64,8 +74,15 @@ export class InteractWithPostUseCase {
 
         if (!postWithDetails) throw new Error("Failed to create repost");
 
+        postWithDetails.optimisticId = optimisticId;
         await this.pusherService.trigger("global-feed", "new-post", postWithDetails);
         await this.pusherService.trigger(`user-posts-${userId}`, "new-post", postWithDetails);
+        
+        // Also notify the original post channel about the new repost count
+        const updatedOriginal = await this.postRepository.findByIdWithDetails(originalPostId, userId);
+        if (updatedOriginal) {
+            await this.pusherService.trigger(`post-${originalPostId}`, "reaction-updated", updatedOriginal);
+        }
 
         return postWithDetails;
     }

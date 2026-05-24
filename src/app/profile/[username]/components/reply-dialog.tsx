@@ -92,6 +92,7 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                                 className="min-h-[120px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
                                 autoFocus={true}
                                 currentUserId={currentUser.id}
+                                draftKey={`reply-${parentPost.id}`}
                             />
                         </div>
                     </div>

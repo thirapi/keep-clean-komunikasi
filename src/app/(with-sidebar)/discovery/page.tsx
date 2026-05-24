@@ -1,10 +1,10 @@
-import { getGlobalFeedAction } from "@/app/posts.action";
+import { getDiscoveryFeedAction } from "@/app/posts.action";
 import { getUserWithRolesFromSession } from "@/app/auth.action";
 import TimelineView from "../timeline/timeline-view";
 
 export default async function DiscoveryPage() {
     const user = await getUserWithRolesFromSession();
-    const response = await getGlobalFeedAction(user?.id);
+    const response = await getDiscoveryFeedAction(user?.id);
     const initialPosts = response.status === "success" && response.data ? response.data : [];
 
     return (

@@ -453,6 +453,7 @@ export function MessageInput({
           currentUserId={userId}
           inputRef={inputRef}
           autoFocus={false}
+          draftKey={`chat-${roomData.id}`}
         />
 
         <Button

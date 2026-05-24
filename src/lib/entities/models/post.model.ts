@@ -30,6 +30,9 @@ export interface PostWithUserDTO extends PostRecord {
     // UI metadata
     isLikedByCurrentUser?: boolean;
     isRepostedByCurrentUser?: boolean;
+    repostCount?: number;
+    replyCount?: number;
+    optimisticId?: string;
 }
 
 export interface PostReactionRecord {

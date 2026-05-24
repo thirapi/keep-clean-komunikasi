@@ -6,6 +6,8 @@ export interface UserRecord {
   bio?: string | null;
   banner?: string | null;
   customStatus?: string | null;
+  publicKey?: string | null;
+  privateKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

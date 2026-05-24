@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { posts, postReactions, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, desc, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, and, isNotNull, isNull } from "drizzle-orm";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -45,67 +45,8 @@ export class PostRepository implements IPostRepository {
     }
 
     async findById(id: string): Promise<PostRecord | null> {
-        const [result] = await this.client.select().from(posts).where(and(eq(posts.id, id), eq(posts.isDeleted, false)));
+        const [result] = await this.client.select().from(posts).where(eq(posts.id, id));
         return (result as unknown as PostRecord) || null;
-    }
-
-    async findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null> {
-        const result = await this.client.query.posts.findFirst({
-            where: and(eq(posts.id, id), eq(posts.isDeleted, false)),
-            with: {
-                user: {
-                    columns: {
-                        username: true,
-                        avatar: true,
-                        bio: true,
-                        banner: true,
-                        customStatus: true,
-                    },
-                },
-                attachments: true,
-                reactions: {
-                    with: {
-                        user: {
-                            columns: {
-                                username: true,
-                            },
-                        },
-                    },
-                },
-                replyTo: {
-                    with: {
-                        user: {
-                            columns: {
-                                username: true,
-                            },
-                        },
-                    },
-                },
-                repostOf: {
-                    with: {
-                        user: {
-                            columns: {
-                                username: true,
-                                avatar: true,
-                            },
-                        },
-                        attachments: true,
-                    },
-                },
-            },
-        });
-
-        if (!result) return null;
-
-        const dto = result as unknown as PostWithUserDTO;
-        if (currentUserId) {
-            dto.isLikedByCurrentUser = dto.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️");
-            // Check if user has reposted THIS post
-            // We'd need another query or check the global feed. 
-            // For now, let's keep it simple or add a separate check
-        }
-
-        return dto;
     }
 
     async findRepost(userId: string, originalPostId: string): Promise<PostRecord | null> {
@@ -119,18 +60,41 @@ export class PostRepository implements IPostRepository {
         return (result as unknown as PostRecord) || null;
     }
 
+    async findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null> {
+        const result = await this.client.query.posts.findFirst({
+            where: eq(posts.id, id),
+            with: {
+                user: {
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                },
+                attachments: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
+                replyTo: {
+                    with: { user: { columns: { username: true } } },
+                },
+                repostOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        attachments: true,
+                    },
+                },
+                reposts: { columns: { id: true } },
+                replies: { columns: { id: true } }
+            },
+        });
+
+        if (!result) return null;
+        
+        const results = await this.mapPostsWithStates([result] as any, currentUserId);
+        const dto = results[0];
+        dto.isDeleted = result.isDeleted; 
+        
+        return dto;
+    }
+
     async findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts"): Promise<PostWithUserDTO[]> {
-        let whereClause: any = and(eq(posts.userId, userId), eq(posts.isDeleted, false));
-
-        if (filter === "threads") {
-            whereClause = and(whereClause, eq(posts.replyToId, null as any));
-        } else if (filter === "replies") {
-            whereClause = and(whereClause, eq(posts.replyToId, posts.replyToId)); // IS NOT NULL logic
-            // In Drizzle for Postgres/SQLite we use isNotNull(posts.replyToId)
-        } else if (filter === "reposts") {
-            whereClause = and(whereClause, eq(posts.repostOfId, posts.repostOfId)); // IS NOT NULL
-        }
-
         const results = await this.client.query.posts.findMany({
             where: (posts, { and, eq, isNotNull, isNull }) => {
                 const base = and(eq(posts.userId, userId), eq(posts.isDeleted, false));
@@ -142,30 +106,19 @@ export class PostRepository implements IPostRepository {
             orderBy: [desc(posts.createdAt)],
             with: {
                 user: {
-                    columns: {
-                        username: true,
-                        avatar: true,
-                        bio: true,
-                        banner: true,
-                        customStatus: true,
-                    },
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 attachments: true,
                 reactions: true,
                 repostOf: {
                     with: {
-                        user: {
-                            columns: {
-                                username: true,
-                                avatar: true,
-                            },
-                        },
+                        user: { columns: { username: true, avatar: true } },
                         attachments: true,
                     },
                 },
-                replyTo: {
-                    with: { user: { columns: { username: true } } }
-                }
+                reposts: { columns: { id: true } },
+                replies: { columns: { id: true } },
+                replyTo: { with: { user: { columns: { username: true } } } }
             },
         });
 
@@ -178,20 +131,36 @@ export class PostRepository implements IPostRepository {
             orderBy: [desc(posts.createdAt)],
             with: {
                 user: {
-                    columns: {
-                        username: true,
-                        avatar: true,
-                        bio: true,
-                        banner: true,
-                        customStatus: true,
-                    },
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 attachments: true,
                 reactions: true,
+                reposts: { columns: { id: true } },
+                replies: { columns: { id: true } }
             },
         });
 
         return this.mapPostsWithStates(results as any, currentUserId);
+    }
+
+    async findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
+        const chain: PostWithUserDTO[] = [];
+        let currentPostId: string | null = postId;
+
+        let depth = 0;
+        while (currentPostId && depth < 10) {
+            const post = await this.findByIdWithDetails(currentPostId, currentUserId);
+            if (!post || !post.replyToId) break;
+            
+            const parent = await this.findByIdWithDetails(post.replyToId, currentUserId);
+            if (!parent) break;
+            
+            chain.unshift(parent);
+            currentPostId = parent.id;
+            depth++;
+        }
+
+        return chain;
     }
 
     async getFollowingFeed(followingIds: string[], limit: number = 20, offset: number = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
@@ -205,27 +174,21 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: {
-                        username: true,
-                        avatar: true,
-                        bio: true,
-                        banner: true,
-                        customStatus: true,
-                    },
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 attachments: true,
                 reactions: true,
+                replyTo: {
+                    with: { user: { columns: { username: true } } },
+                },
                 repostOf: {
                     with: {
-                        user: {
-                            columns: {
-                                username: true,
-                                avatar: true,
-                            },
-                        },
+                        user: { columns: { username: true, avatar: true } },
                         attachments: true,
                     },
                 },
+                reposts: { columns: { id: true } },
+                replies: { columns: { id: true } }
             },
         });
 
@@ -240,51 +203,49 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: {
-                        username: true,
-                        avatar: true,
-                        bio: true,
-                        banner: true,
-                        customStatus: true,
-                    },
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 attachments: true,
                 reactions: true,
+                replyTo: {
+                    with: { user: { columns: { username: true } } },
+                },
                 repostOf: {
                     with: {
-                        user: {
-                            columns: {
-                                username: true,
-                                avatar: true,
-                            },
-                        },
+                        user: { columns: { username: true, avatar: true } },
                         attachments: true,
                     },
                 },
+                reposts: { columns: { id: true } },
+                replies: { columns: { id: true } }
             },
         });
 
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    private async mapPostsWithStates(results: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
-        if (!currentUserId) return results as unknown as PostWithUserDTO[];
+    async getDiscoveryFeed(limit: number = 20, offset: number = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
+        return this.getGlobalFeed(limit, offset, currentUserId);
+    }
 
-        // Fetch user's reposts
-        const userReposts = await this.client.query.posts.findMany({
-            where: and(eq(posts.userId, currentUserId), isNotNull(posts.repostOfId), eq(posts.isDeleted, false)),
-            columns: { repostOfId: true }
-        });
-        const repostedIds = new Set(userReposts.map(r => r.repostOfId));
+    private async mapPostsWithStates(results: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
+        const repostedIds = new Set<string>();
+        
+        if (currentUserId) {
+            const userReposts = await this.client.query.posts.findMany({
+                where: and(eq(posts.userId, currentUserId), isNotNull(posts.repostOfId), eq(posts.isDeleted, false)),
+                columns: { repostOfId: true }
+            });
+            userReposts.forEach(r => { if (r.repostOfId) repostedIds.add(r.repostOfId); });
+        }
 
         return results.map(p => {
             const dto = p as unknown as PostWithUserDTO;
             const targetId = dto.repostOfId || dto.id;
-
-            // If it's a repost, flags should reflect the ORIGINAL post
             dto.isLikedByCurrentUser = dto.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️");
             dto.isRepostedByCurrentUser = repostedIds.has(targetId);
-
+            dto.repostCount = (p.reposts || []).length;
+            dto.replyCount = (p.replies || []).length;
             return dto;
         });
     }
@@ -310,4 +271,3 @@ export class PostRepository implements IPostRepository {
             );
     }
 }
-

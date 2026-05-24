@@ -9,8 +9,10 @@ export interface IPostRepository {
     findRepost(userId: string, originalPostId: string): Promise<PostRecord | null>;
     findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts"): Promise<PostWithUserDTO[]>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getGlobalFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getFollowingFeed(followingIds: string[], limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    getDiscoveryFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
     addReaction(postId: string, userId: string, emoji: string): Promise<void>;
     removeReaction(postId: string, userId: string, emoji: string): Promise<void>;
 }
