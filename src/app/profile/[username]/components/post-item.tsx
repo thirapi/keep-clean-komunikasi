@@ -11,6 +11,7 @@ import {
     Repeat2,
     MoreHorizontal,
     PenLine,
+    Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,17 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toggleLikeAction, repostAction } from "../../../posts.action";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toggleLikeAction, repostAction, deletePostAction } from "../../../posts.action";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { extractUrls } from "@/lib/extract-urls";
@@ -29,6 +40,7 @@ import { QuoteDialog } from "./quote-dialog";
 import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/components/link-preview-card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ImageLightbox, ImageSource } from "@/components/ui/image-lightbox";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -62,6 +74,9 @@ export function PostItem({
     const router = useRouter();
     const [isReplyOpen, setIsReplyOpen] = useState(false);
     const [isQuoteOpen, setIsQuoteOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
 
     const currentUserId = explicitUserId || currentUser?.id;
 
@@ -120,6 +135,27 @@ export function PostItem({
         }
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: async () => {
+            return deletePostAction(post.id, currentUserId!);
+        },
+        onSuccess: (res) => {
+            if (res.status === "success") {
+                toast.success("Postingan berhasil dihapus");
+                queryClient.invalidateQueries({ queryKey: ["posts"] });
+                queryClient.invalidateQueries({ queryKey: ["feed"] });
+                if (isFocused) {
+                    router.push("/timeline");
+                }
+            } else {
+                toast.error(res.error?.message || "Gagal menghapus postingan");
+            }
+        },
+        onError: () => {
+            toast.error("Gagal menghapus postingan");
+        }
+    });
+
     const handleLike = (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
         if (!currentUserId) return;
@@ -130,6 +166,17 @@ export function PostItem({
         if (e) { e.preventDefault(); e.stopPropagation(); }
         if (!currentUserId) return;
         repostMutation.mutate();
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!currentUserId) return;
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        deleteMutation.mutate();
+        setIsDeleteDialogOpen(false);
     };
 
     const handleCopyLink = (e: React.MouseEvent) => {
@@ -147,7 +194,6 @@ export function PostItem({
         return (
             <div
                 className={cn("grid gap-1 mt-3 rounded-2xl overflow-hidden border border-white/5 bg-black/20", gridClass)}
-                onClick={(e) => e.stopPropagation()}
             >
                 {attachments.map((att, idx) => {
                     const isVideo = att.fileType?.startsWith("video/");
@@ -164,17 +210,33 @@ export function PostItem({
                             )}
                         >
                             {isVideo ? (
-                                <video
-                                    src={att.url}
-                                    controls
-                                    className="w-full h-full object-contain bg-black"
-                                />
+                                <div
+                                    className="w-full h-full cursor-pointer pointer-events-auto"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex(idx);
+                                        setIsLightboxOpen(true);
+                                    }}
+                                >
+                                    <video
+                                        src={att.url}
+                                        className="w-full h-full object-contain bg-black pointer-events-none"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                        <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                                            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <img
                                     src={att.url}
                                     alt="Post attachment"
-                                    className="w-full h-full object-cover cursor-pointer"
-                                    onClick={() => window.open(att.url, '_blank')}
+                                    className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                    onClick={() => {
+                                        setLightboxIndex(idx);
+                                        setIsLightboxOpen(true);
+                                    }}
                                 />
                             )}
                         </div>
@@ -190,7 +252,7 @@ export function PostItem({
                 e.stopPropagation();
                 router.push(`/posts/${quotedPost.id}`);
             }}
-            className="mt-3 border border-white/10 rounded-2xl p-3 flex flex-col gap-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden cursor-pointer"
+            className="mt-3 border border-white/10 rounded-2xl p-3 flex flex-col gap-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden cursor-pointer pointer-events-auto"
         >
             <div className="flex items-center gap-1.5">
                 <div onClick={(e) => { e.stopPropagation(); router.push(`/profile/${quotedPost.user.username}`); }}>
@@ -222,15 +284,27 @@ export function PostItem({
                                 <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-12 w-12" />
                             </Link>
                             <div className="flex flex-col">
-                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[16px] text-zinc-100 hover:underline leading-tight relative z-30" onClick={(e) => e.stopPropagation()}>
+                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[16px] text-zinc-100 hover:underline leading-tight relative z-30 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     {displayUserInfo.username}
                                 </Link>
                                 <span className="text-zinc-500 text-[14px]">@{displayUserInfo.username?.toLowerCase() || ""}</span>
                             </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 rounded-full hover:bg-white/5 transition-colors relative z-30" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                            <MoreHorizontal className="h-5 w-5" />
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 rounded-full hover:bg-white/5 transition-colors relative z-30" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                    <MoreHorizontal className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
+                                {post.userId === currentUserId && (
+                                    <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <span>Hapus</span>
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     {!hideReplyIndicator && post.replyToId && (
@@ -242,11 +316,11 @@ export function PostItem({
                     )}
 
                     {displayContent && (
-                        <div className="text-[20px] text-zinc-100 leading-normal mb-1">
+                        <div className="text-[20px] text-zinc-100 leading-normal mb-1 relative z-30 pointer-events-none">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                    a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
+                                    a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
                                     p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
                                     strong: ({ node, ...props }) => <strong {...props} className="font-bold text-white" />,
                                     em: ({ node, ...props }) => <em {...props} className="italic" />,
@@ -286,19 +360,22 @@ export function PostItem({
                         )}
                     </div>
 
-                    <div className="flex items-center justify-around py-1 w-full relative z-30">
+                    <div className="flex items-center justify-between py-1 max-w-[400px] w-full relative z-30 pointer-events-none">
                         <InteractionButton
                             icon={MessageSquare}
+                            label={post.replyCount || ""}
                             onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }}
+                            className="pointer-events-auto"
                             hoverColor="hover:text-sky-400"
                             hoverBg="group-hover/btn:bg-sky-500/10"
                         />
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <div onClick={(e) => e.stopPropagation()}>
+                                <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
                                     <InteractionButton
                                         icon={Repeat2}
+                                        label={post.repostCount || ""}
                                         onClick={(e) => e.preventDefault()}
                                         hoverColor="hover:text-emerald-500"
                                         hoverBg="group-hover/btn:bg-emerald-500/10"
@@ -308,7 +385,7 @@ export function PostItem({
                                     />
                                 </div>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[100]">
+                            <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
                                 <DropdownMenuItem onClick={handleRepost} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <Repeat2 className="mr-2 h-4 w-4" />
                                     <span>{post.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
@@ -320,27 +397,52 @@ export function PostItem({
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <InteractionButton icon={Heart} onClick={handleLike} hoverColor="hover:text-rose-500" hoverBg="group-hover/btn:bg-rose-500/10" active={hasLiked} activeColor="text-rose-500" activeBg="bg-transparent" fillActive />
-                        <InteractionButton icon={Share2} onClick={handleCopyLink} hoverColor="hover:text-sky-400" hoverBg="group-hover/btn:bg-sky-500/10" />
+                        <InteractionButton
+                            icon={Heart}
+                            label={likeCount || ""}
+                            onClick={handleLike}
+                            className="pointer-events-auto"
+                            hoverColor="hover:text-rose-500"
+                            hoverBg="group-hover/btn:bg-rose-500/10"
+                            active={hasLiked}
+                            activeColor="text-rose-500"
+                            activeBg="bg-transparent"
+                            fillActive
+                        />
+                        <InteractionButton
+                            icon={Share2}
+                            onClick={handleCopyLink}
+                            className="pointer-events-auto"
+                            hoverColor="hover:text-sky-400"
+                            hoverBg="group-hover/btn:bg-sky-500/10"
+                        />
                     </div>
                 </div>
                 {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={post.repostOf || post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
                 {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={post.repostOf || post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
+                {displayAttachments && displayAttachments.length > 0 && (
+                    <ImageLightbox
+                        images={displayAttachments.map(a => ({ url: a.url, filename: a.key, type: a.fileType?.startsWith('video/') ? 'video' : 'image' }))}
+                        initialIndex={lightboxIndex}
+                        open={isLightboxOpen}
+                        onOpenChange={setIsLightboxOpen}
+                    />
+                )}
             </div>
         );
     }
 
     return (
         <div className={cn("relative border-b border-white/5 transition-colors duration-200 hover:bg-white/[0.01] overflow-hidden")}>
-            <Link href={`/posts/${post.id}`} className="absolute inset-0 z-10 opacity-0" aria-label="View post" />
+            <Link href={`/posts/${post.repostOfId || post.id}`} className="absolute inset-0 z-10 opacity-0" aria-label="View post" />
 
             {showConnector && (
                 <div className={cn("absolute left-[39px] w-[2px] bg-zinc-800 z-0", isLastInChain ? "top-0 h-4" : "top-0 bottom-0")} />
             )}
 
             <div className="relative z-20 flex gap-3 pt-4 pb-3 px-4 pointer-events-none">
-                <div className="shrink-0 z-30 relative pointer-events-auto">
-                    <Link href={`/profile/${displayUserInfo.username}`} className="hover:opacity-80 block" onClick={(e) => e.stopPropagation()}>
+                <div className="shrink-0 z-30 relative">
+                    <Link href={`/profile/${displayUserInfo.username}`} className="hover:opacity-80 block pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                         <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-10 w-10" />
                     </Link>
                 </div>
@@ -348,23 +450,35 @@ export function PostItem({
                 <div className="flex-1 min-w-0">
                     <div className="block group/content outline-none">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 z-30 relative pointer-events-auto">
-                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[15px] text-zinc-100 hover:underline" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5 z-30 relative">
+                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[15px] text-zinc-100 hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     {displayUserInfo.username}
                                 </Link>
                                 <span className="text-zinc-500 text-sm">·</span>
-                                <span className="text-zinc-500 text-sm hover:underline">
+                                <span className="text-zinc-500 text-sm">
                                     {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: id })}
                                 </span>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 z-30 text-zinc-500 rounded-full hover:bg-white/5 transition-colors relative pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 z-30 text-zinc-500 rounded-full hover:bg-white/5 transition-colors relative pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
+                                    {post.userId === currentUserId && (
+                                        <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Hapus</span>
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                         {isPureRepost && (
-                            <div className="mb-1 text-zinc-500 text-[13px] font-medium z-30 relative pointer-events-auto">
+                            <div className="mb-1 text-zinc-500 text-[13px] font-medium z-30 relative">
                                 <Repeat2 className="h-4 w-4 inline mr-1" />
-                                <Link href={`/profile/${post.user.username}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                                <Link href={`/profile/${post.user.username}`} className="hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     {post.user.username === currentUser?.username ? "Anda" : post.user.username} membagikan ulang
                                 </Link>
                             </div>
@@ -377,7 +491,7 @@ export function PostItem({
                             </div>
                         )}
                         {displayContent && (
-                            <div className="text-[15px] text-zinc-100 leading-normal relative z-30">
+                            <div className="text-[15px] text-zinc-100 leading-normal relative z-30 pointer-events-none">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
@@ -402,18 +516,19 @@ export function PostItem({
 
                     {urls.length > 0 && <div className="mt-3 z-30 space-y-2 relative pointer-events-auto">{urls.map((url) => <div key={url} onClick={(e) => e.stopPropagation()}><LinkPreviewCard url={url} /></div>)}</div>}
 
-                    <div className="flex items-center justify-between mt-3 max-w-[400px] w-full z-30 relative pointer-events-auto">
+                    <div className="flex items-center justify-between mt-3 max-w-[400px] w-full z-30 relative pointer-events-none">
                         <InteractionButton
                             icon={MessageSquare}
                             label={post.replyCount || ""}
                             onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }}
+                            className="pointer-events-auto"
                             hoverColor="hover:text-sky-400"
                             hoverBg="group-hover/btn:bg-sky-500/10"
                         />
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <div onClick={(e) => e.stopPropagation()}>
+                                <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
                                     <InteractionButton
                                         icon={Repeat2}
                                         label={post.repostCount || ""}
@@ -426,7 +541,7 @@ export function PostItem({
                                     />
                                 </div>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[100]">
+                            <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
                                 <DropdownMenuItem onClick={handleRepost} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <Repeat2 className="mr-2 h-4 w-4" />
                                     <span>{post.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
@@ -438,13 +553,54 @@ export function PostItem({
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <InteractionButton icon={Heart} label={likeCount || ""} onClick={handleLike} hoverColor="hover:text-rose-500" hoverBg="group-hover/btn:bg-rose-500/10" active={hasLiked} activeColor="text-rose-500" activeBg="bg-transparent" fillActive />
-                        <InteractionButton icon={Share2} onClick={handleCopyLink} hoverColor="hover:text-sky-400" hoverBg="group-hover/btn:bg-sky-500/10" />
+                        <InteractionButton
+                            icon={Heart}
+                            label={likeCount || ""}
+                            onClick={handleLike}
+                            className="pointer-events-auto"
+                            hoverColor="hover:text-rose-500"
+                            hoverBg="group-hover/btn:bg-rose-500/10"
+                            active={hasLiked}
+                            activeColor="text-rose-500"
+                            activeBg="bg-transparent"
+                            fillActive
+                        />
+                        <InteractionButton
+                            icon={Share2}
+                            onClick={handleCopyLink}
+                            className="pointer-events-auto"
+                            hoverColor="hover:text-sky-400"
+                            hoverBg="group-hover/btn:bg-sky-500/10"
+                        />
                     </div>
                 </div>
             </div>
             {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={post.repostOf || post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
             {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={post.repostOf || post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="bg-zinc-900 border-white/10 text-zinc-100 z-[1100]">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Postingan?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-400">
+                            Tindakan ini tidak dapat dibatalkan. Postingan Anda akan dihapus secara permanen dari server kami.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-zinc-800 border-white/10 text-zinc-100 hover:bg-zinc-700 hover:text-white">Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 text-white hover:bg-red-700">Hapus</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {displayAttachments && displayAttachments.length > 0 && (
+                <ImageLightbox
+                    images={displayAttachments.map(a => ({ url: a.url, filename: a.key, type: a.fileType?.startsWith('video/') ? 'video' : 'image' }))}
+                    initialIndex={lightboxIndex}
+                    open={isLightboxOpen}
+                    onOpenChange={setIsLightboxOpen}
+                />
+            )}
         </div>
     );
 }
@@ -470,14 +626,22 @@ function InteractionButton({
     active,
     activeColor,
     activeBg,
-    fillActive
-}: InteractionButtonProps) {
+    fillActive,
+    className
+}: InteractionButtonProps & { className?: string }) {
     return (
-        <button onClick={onClick} className={cn("flex items-center gap-1.5 text-zinc-500 transition-all group/btn outline-none min-w-[60px]", active ? (activeColor || "text-white") : hoverColor)}>
+        <button
+            onClick={onClick}
+            className={cn(
+                "flex items-center gap-1.5 transition-all group/btn outline-none",
+                active ? (activeColor || "text-white") : cn("text-zinc-500", hoverColor),
+                className
+            )}
+        >
             <div className={cn("p-1.5 rounded-full transition-colors flex items-center justify-center", active ? (activeBg || "bg-white/5") : hoverBg)}>
                 <Icon className={cn("h-[18px] w-[18px]", active && fillActive && "fill-current")} />
             </div>
-            {label !== undefined && label !== "" && <span className="text-[13px] font-medium">{label}</span>}
+            {label !== undefined && label !== "" && <span className="text-[13px] font-medium pr-2">{label}</span>}
         </button>
     );
 }

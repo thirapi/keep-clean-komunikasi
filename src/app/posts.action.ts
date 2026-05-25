@@ -12,6 +12,27 @@ import { getPostThreadController } from "@/lib/interface-adapters/controllers/po
 import { getGlobalFeedController } from "@/lib/interface-adapters/controllers/posts/get-global-feed.controller";
 import { getFollowingFeedController } from "@/lib/interface-adapters/controllers/posts/get-following-feed.controller";
 import { getDiscoveryFeedController } from "@/lib/interface-adapters/controllers/posts/get-discovery-feed.controller";
+import { deletePostController } from "@/lib/interface-adapters/controllers/posts/delete-post.controller";
+
+export async function deletePostAction(postId: string, userId: string): Promise<ServerResponse<void>> {
+    try {
+        await deletePostController(postId, userId);
+        return {
+            status: "success",
+            data: undefined,
+            error: null,
+        };
+    } catch (error: any) {
+        return {
+            status: "error",
+            data: null,
+            error: {
+                message: error.message || "Failed to delete post",
+                type: error.constructor.name,
+            },
+        };
+    }
+}
 
 export async function getFollowingFeedAction(userId: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
