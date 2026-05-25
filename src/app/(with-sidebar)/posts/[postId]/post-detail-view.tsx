@@ -2,9 +2,10 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useState, useEffect, useRef } from "react";
-import { PostItem } from "@/app/profile/[username]/components/post-item";
-import { SimpleReplyInput } from "@/app/profile/[username]/components/simple-reply-input";
+import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
+import { SimpleReplyInput } from "@/app/(with-sidebar)/profile/[username]/components/simple-reply-input";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ interface PostDetailViewProps {
 }
 
 export default function PostDetailView({ initialPost, initialReplies, initialParents, currentUser }: PostDetailViewProps) {
+    const { toggleSidebar } = useSidebar();
     const queryClient = useQueryClient();
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
@@ -67,6 +69,17 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
 
                     {/* Header */}
                     <div className="px-4 py-3 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-3">
+                        <div className="md:hidden flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleSidebar()}
+                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
+                                aria-label="Toggle sidebar"
+                            >
+                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                            </Button>
+                        </div>
                         {isMounted && (
                             <Button variant="ghost" size="icon" className="h-10 w-10 text-white rounded-full hover:bg-white/10" onClick={() => router.back()}>
                                 <ChevronLeft strokeWidth="3" className="h-6 w-6" />

@@ -12,25 +12,26 @@ import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
 import { ImagePlus, X, FileIcon, Loader2 } from "lucide-react";
-import { createPostAction } from "../../../posts.action";
-import { uploadFileAction } from "../../../(with-sidebar)/channels/[roomId]/messages.action";
+import { PostMedia } from "./post-media";
+import { createPostAction } from "@/app/posts.action";
+import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 
-interface ReplyDialogProps {
+interface QuoteDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    parentPost: PostWithUserDTO;
+    targetPost: PostWithUserDTO;
     currentUser: {
         id: string;
         username: string;
         avatar: string;
     };
-    onReplyCreated: (reply: any) => void;
+    onQuoteCreated: (quote: any) => void;
 }
 
-export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyCreated }: ReplyDialogProps) {
+export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteCreated }: QuoteDialogProps) {
     const [content, setContent] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -117,20 +118,20 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                 attachments = await Promise.all(uploadPromises);
             }
 
-            const response = await createPostAction(currentUser.id, content, attachments, parentPost.id);
+            const response = await createPostAction(currentUser.id, content, attachments, undefined, targetPost.id);
             if (response.status === "success" && response.data) {
-                onReplyCreated(response.data);
+                onQuoteCreated(response.data);
                 setContent("");
                 setSelectedFiles([]);
                 setFilePreviews([]);
-                localStorage.removeItem(`draft_reply-${parentPost.id}`);
-                toast.success("Balasan terkirim");
+                localStorage.removeItem(`draft_quote-${targetPost.id}`);
+                toast.success("Quote posted");
                 onClose();
             } else {
-                toast.error(response.error?.message || "Gagal mengirim balasan");
+                toast.error(response.error?.message || "Failed to post quote");
             }
         } catch (error: any) {
-            toast.error(error.message || "Terjadi kesalahan");
+            toast.error(error.message || "An error occurred");
         } finally {
             setIsSending(false);
         }
@@ -140,30 +141,11 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] bg-zinc-950 border-white/10 p-0 overflow-hidden">
                 <DialogHeader className="p-4 border-b border-white/5">
-                    <DialogTitle className="text-white text-center">Reply</DialogTitle>
+                    <DialogTitle className="text-white text-center">Quote</DialogTitle>
                 </DialogHeader>
 
                 <div className="p-6 flex flex-col gap-4">
-                    {/* Parent Post Context */}
-                    <div className="flex gap-4 relative">
-                        <div className="absolute left-5 top-10 bottom-0 w-[2px] bg-zinc-800" />
-                        <UserAvatar src={parentPost.user.avatar || "/avatars/avatar1.png"} className="h-10 w-10 shrink-0 z-10" />
-                        <div className="flex-1 flex flex-col gap-1 min-w-0 pb-6">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-bold text-white truncate">{parentPost.user.username}</span>
-                                <span className="text-zinc-500 text-sm">·</span>
-                                <span className="text-zinc-500 text-sm whitespace-nowrap">
-                                    {formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}
-                                </span>
-                            </div>
-                            <p className="text-zinc-300 text-[15px] line-clamp-3">{parentPost.content}</p>
-                            <div className="text-zinc-500 text-sm mt-2">
-                                Replying to <span className="text-sky-500">@{parentPost.user.username}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Reply Input */}
+                    {/* User Input */}
                     <div className="flex gap-4">
                         <UserAvatar src={currentUser.avatar} className="h-10 w-10 shrink-0" />
                         <div className="flex-1 flex flex-col gap-3">
@@ -178,12 +160,12 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                             <MentionTextarea
                                 value={content}
                                 onChange={setContent}
-                                placeholder="Post your reply"
+                                placeholder="Add a comment!"
                                 onSubmit={handleSend}
-                                className="min-h-[120px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
+                                className="min-h-[100px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
                                 autoFocus={true}
                                 currentUserId={currentUser.id}
-                                draftKey={`reply-${parentPost.id}`}
+                                draftKey={`quote-${targetPost.id}`}
                             />
 
                             {/* Self Previews */}
@@ -214,6 +196,20 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                             )}
                         </div>
                     </div>
+
+                    {/* Quoted Post Box */}
+                    <div className="ml-14 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 bg-white/[0.02] overflow-hidden">
+                        <div className="flex items-center gap-2">
+                            <UserAvatar src={targetPost.user.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
+                            <span className="font-bold text-white text-[14px]">{targetPost.user.username}</span>
+                            <span className="text-zinc-500 text-sm">·</span>
+                            <span className="text-zinc-500 text-sm">
+                                {formatDistanceToNow(new Date(targetPost.createdAt), { addSuffix: true, locale: id })}
+                            </span>
+                        </div>
+                        {targetPost.content && <p className="text-zinc-300 text-[15px] line-clamp-4 leading-normal">{targetPost.content}</p>}
+                        <PostMedia attachments={targetPost.attachments || []} isQuoted />
+                    </div>
                 </div>
 
                 <div className="p-4 bg-zinc-900/30 border-t border-white/5 flex items-center justify-between">
@@ -230,7 +226,7 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                         disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
                         className="rounded-full bg-white text-black hover:bg-zinc-200 px-6 font-bold"
                     >
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reply"}
+                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
                     </Button>
                 </div>
             </DialogContent>

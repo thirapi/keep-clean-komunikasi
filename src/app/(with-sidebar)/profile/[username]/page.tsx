@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import { getPublicProfileAction } from "../../(with-sidebar)/user.action";
-import { sidaBarUserInfo } from "../../auth.action";
+import { getPublicProfileAction } from "../../user.action";
+import { sidaBarUserInfo } from "../../../auth.action";
 import ProfileView from "./profile-view";
 import { notFound } from "next/navigation";
 
@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     const { username } = await params;
 
     // Fetch the current user session
-    const fullCurrentUser = await (await import("../../auth.action")).getUserWithRolesFromSession();
+    const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();
 
     // Fetch the target user profile
     const response = await getPublicProfileAction(username, fullCurrentUser?.id);

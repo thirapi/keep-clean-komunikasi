@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { createPostAction } from "../../../posts.action";
+import { createPostAction } from "@/app/posts.action";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 

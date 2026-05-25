@@ -2,42 +2,91 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useRef, useState, useEffect } from "react";
-import { PostInput } from "@/app/profile/[username]/components/post-input";
-import { PostItem } from "@/app/profile/[username]/components/post-item";
+import { ChevronLeft } from "lucide-react";
+import { PostInput } from "@/app/(with-sidebar)/profile/[username]/components/post-input";
+import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
 import { getGlobalFeedAction } from "@/app/posts.action";
 import { useCreatePost } from "@/hooks/use-create-post";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 interface TimelineViewProps {
     initialPosts: PostWithUserDTO[];
     currentUser: any;
     title?: string;
+    queryKey?: string[];
+    feedAction?: (userId: string, limit?: number, offset?: number) => Promise<any>;
 }
 
-const QUERY_KEY = ["posts", "feed", "global"];
+export default function TimelineView({
+    initialPosts,
+    currentUser,
+    title = "Timeline",
+    queryKey: propQueryKey,
+    feedAction: propFeedAction
+}: TimelineViewProps) {
+    const QUERY_KEY = propQueryKey || ["posts", "feed", "global"];
+    const FETCH_ACTION = (propFeedAction || getGlobalFeedAction) as (userId: string, limit?: number, offset?: number) => Promise<any>;
 
-export default function TimelineView({ initialPosts, currentUser, title = "Timeline" }: TimelineViewProps) {
+    const { toggleSidebar } = useSidebar();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
+
+    const [newPostsCount, setNewPostsCount] = useState(0);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(initialPosts.length === 20);
 
     const { data: posts, refetch, isFetching } = useFeedWithOptimistic(
         QUERY_KEY,
         async () => {
-            const res = await getGlobalFeedAction(currentUser?.id);
-            return res.data || [];
+            const res = await FETCH_ACTION(currentUser?.id);
+            const data = res.data || [];
+            setHasMore(data.length === 20);
+            return data;
         },
         true
     );
 
-    // Polling for new posts indicator
-    const [newPostsCount, setNewPostsCount] = useState(0);
+    const handleLoadMore = async () => {
+        if (isFetching || isLoadingMore || !hasMore) return;
+        setIsLoadingMore(true);
+        try {
+            const res = await FETCH_ACTION(currentUser?.id, 20, posts.length);
+            if (res.status === "success" && res.data) {
+                const newPosts = res.data;
+                queryClient.setQueryData(QUERY_KEY, (old: any) => [...(old || []), ...newPosts]);
+                if (newPosts.length < 20) setHasMore(false);
+            }
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    // Intersection Observer for Infinite Scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isFetching) {
+                    handleLoadMore();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMore, isLoadingMore, isFetching, posts.length]);
     const { data: latestData } = useQuery({
-        queryKey: ["posts", "poll", "global"],
+        queryKey: ["posts", "poll", QUERY_KEY[QUERY_KEY.length - 1]],
         queryFn: async () => {
-            const res = await getGlobalFeedAction(currentUser?.id);
+            const res = await FETCH_ACTION(currentUser?.id);
             return res.data || [];
         },
         refetchInterval: 25000, // 25 seconds poll
@@ -49,19 +98,19 @@ export default function TimelineView({ initialPosts, currentUser, title = "Timel
         if (latestData && posts && posts.length > 0) {
             // Find the first post in latestData that we ALREADY have in our local posts list
             // We check both ID and content/timestamp as fallback for optimistic posts
-            const firstKnownIndex = latestData.findIndex(lp =>
-                posts.some(p => p.id === lp.id || (p as any).optimisticId === lp.id)
+            const firstKnownIndex = latestData.findIndex((lp: any) =>
+                posts.some((p: any) => p.id === lp.id || (p as any).optimisticId === lp.id)
             );
 
             if (firstKnownIndex > 0) {
                 // There are posts newer than our newest known post
                 const newPosts = latestData.slice(0, firstKnownIndex);
-                const filteredNewCount = newPosts.filter(p => p.userId !== currentUser?.id).length;
+                const filteredNewCount = newPosts.filter((p: any) => p.userId !== currentUser?.id).length;
                 setNewPostsCount(filteredNewCount);
             } else if (firstKnownIndex === -1) {
                 // We are very far behind or something went wrong, 
                 // but let's still filter out our own posts if we can
-                const filteredNewCount = latestData.filter(p => p.userId !== currentUser?.id).length;
+                const filteredNewCount = latestData.filter((p: any) => p.userId !== currentUser?.id).length;
                 setNewPostsCount(filteredNewCount > 0 ? filteredNewCount : 0);
             } else {
                 setNewPostsCount(0);
@@ -71,7 +120,7 @@ export default function TimelineView({ initialPosts, currentUser, title = "Timel
 
     const handleRefresh = async () => {
         setNewPostsCount(0);
-        await queryClient.invalidateQueries({ queryKey: ["posts", "poll", "global"] });
+        await queryClient.invalidateQueries({ queryKey: ["posts", "poll", QUERY_KEY[QUERY_KEY.length - 1]] });
         await refetch();
         if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
@@ -96,8 +145,19 @@ export default function TimelineView({ initialPosts, currentUser, title = "Timel
         <div className="flex flex-col h-full bg-background/50">
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center justify-between shrink-0">
-                        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+                    <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-4 shrink-0">
+                        <div className="md:hidden">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleSidebar()}
+                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
+                                aria-label="Toggle sidebar"
+                            >
+                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                            </Button>
+                        </div>
+                        <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>
                         {isFetching && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
                                 <div className="h-1 w-1 rounded-full bg-current" />
@@ -140,7 +200,7 @@ export default function TimelineView({ initialPosts, currentUser, title = "Timel
 
                         <div className="flex flex-col">
                             {posts.length > 0 ? (
-                                posts.map((post) => (
+                                posts.map((post: PostWithUserDTO) => (
                                     <PostItem
                                         key={post.id}
                                         post={post}
@@ -156,6 +216,28 @@ export default function TimelineView({ initialPosts, currentUser, title = "Timel
                             ) : (
                                 <div className="p-20 text-center opacity-30 select-none">
                                     <span className="text-muted-foreground font-medium italic">Timeline kosong. Mari mulai berbagi!</span>
+                                </div>
+                            )}
+
+                            {hasMore && (
+                                <div ref={loadMoreRef} className="p-8 flex justify-center">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={handleLoadMore}
+                                        disabled={isLoadingMore}
+                                        className="text-primary hover:bg-primary/5 rounded-full px-8 font-bold"
+                                    >
+                                        {isLoadingMore ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        ) : null}
+                                        {isLoadingMore ? "Memuat..." : "Lihat Lebih Banyak"}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {!hasMore && posts.length > 0 && (
+                                <div className="p-12 text-center opacity-20 border-t border-white/5">
+                                    <p className="text-sm italic text-muted-foreground">Anda sudah melihat semuanya ✨</p>
                                 </div>
                             )}
                         </div>

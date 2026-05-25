@@ -32,7 +32,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toggleLikeAction, repostAction, deletePostAction } from "../../../posts.action";
+import { toggleLikeAction, repostAction, deletePostAction } from "@/app/posts.action";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { extractUrls } from "@/lib/extract-urls";

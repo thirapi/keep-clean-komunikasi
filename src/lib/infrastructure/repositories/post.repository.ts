@@ -104,7 +104,7 @@ export class PostRepository implements IPostRepository {
         return dto;
     }
 
-    async findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts"): Promise<PostWithUserDTO[]> {
+    async findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
             where: (posts, { and, eq, isNotNull, isNull }) => {
                 const base = and(eq(posts.userId, userId), eq(posts.isDeleted, false));
@@ -114,6 +114,8 @@ export class PostRepository implements IPostRepository {
                 return base;
             },
             orderBy: [desc(posts.createdAt)],
+            limit,
+            offset,
             with: {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },

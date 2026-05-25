@@ -26,11 +26,6 @@ export function NavFeed() {
             url: "/following",
             icon: Users,
         },
-        {
-            name: "Discovery",
-            url: "/discovery",
-            icon: Compass,
-        },
     ];
 
     return (

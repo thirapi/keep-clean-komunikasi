@@ -34,9 +34,9 @@ export async function deletePostAction(postId: string, userId: string): Promise<
     }
 }
 
-export async function getFollowingFeedAction(userId: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+export async function getFollowingFeedAction(userId: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
-        const feed = await getFollowingFeedController(userId, 20, 0);
+        const feed = await getFollowingFeedController(userId, limit, offset);
         return {
             status: "success",
             data: feed,
@@ -47,9 +47,9 @@ export async function getFollowingFeedAction(userId: string): Promise<ServerResp
     }
 }
 
-export async function getDiscoveryFeedAction(currentUserId?: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+export async function getDiscoveryFeedAction(currentUserId?: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
-        const feed = await getDiscoveryFeedController(20, 0, currentUserId);
+        const feed = await getDiscoveryFeedController(limit, offset, currentUserId);
         return {
             status: "success",
             data: feed,
@@ -98,11 +98,13 @@ export async function createPostAction(
 export async function getProfileFeedAction(
     username: string,
     filter?: "threads" | "replies" | "reposts",
-    currentUserId?: string
+    currentUserId?: string,
+    limit = 20,
+    offset = 0
 ): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
         // We'd need to resolve username to userId first, or update controller
-        const feed = await getProfileFeedController(username, currentUserId, filter);
+        const feed = await getProfileFeedController(username, currentUserId, filter, limit, offset);
         return {
             status: "success",
             data: feed,
@@ -120,9 +122,9 @@ export async function getProfileFeedAction(
     }
 }
 
-export async function getGlobalFeedAction(currentUserId?: string): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+export async function getGlobalFeedAction(currentUserId?: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
-        const feed = await getGlobalFeedController(20, 0, currentUserId);
+        const feed = await getGlobalFeedController(limit, offset, currentUserId);
         return {
             status: "success",
             data: feed,

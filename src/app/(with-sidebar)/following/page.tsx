@@ -14,9 +14,11 @@ export default async function FollowingPage() {
         <TimelineView
             initialPosts={initialPosts}
             title="Mengikuti"
+            queryKey={["posts", "feed", "following"]}
+            feedAction={getFollowingFeedAction}
             currentUser={{
                 id: user.id,
-                name: user.username,
+                username: user.username,
                 avatar: user.avatar,
             }}
         />

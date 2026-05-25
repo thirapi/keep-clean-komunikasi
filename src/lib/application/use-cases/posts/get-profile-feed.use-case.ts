@@ -6,7 +6,7 @@ export class GetProfileFeedUseCase {
         private postRepository: IPostRepository
     ) { }
 
-    async execute(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts"): Promise<PostWithUserDTO[]> {
-        return await this.postRepository.findByUserId(userId, currentUserId, filter);
+    async execute(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
+        return await this.postRepository.findByUserId(userId, currentUserId, filter, limit, offset);
     }
 }
