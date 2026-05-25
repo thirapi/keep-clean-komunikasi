@@ -38,7 +38,7 @@ export class CreatePostUseCase {
             updatedAt: new Date(),
         };
 
-        await this.postRepository.create(postRecord);
+        await this.postRepository.create(postRecord, attachments);
 
         const postWithDetails = await this.postRepository.findByIdWithDetails(id, userId);
 

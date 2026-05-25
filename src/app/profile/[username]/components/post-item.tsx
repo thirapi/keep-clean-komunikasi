@@ -29,9 +29,9 @@ import { QuoteDialog } from "./quote-dialog";
 import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/components/link-preview-card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createId } from "@paralleldrive/cuid2";
-import { optimisticPostRepository } from "@/lib/infrastructure/optimistic-post.repository";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface PostItemProps {
     post: PostWithUserDTO;
@@ -59,16 +59,13 @@ export function PostItem({
     onUpdate
 }: PostItemProps) {
     const queryClient = useQueryClient();
-    const [isLiking, setIsLiking] = useState(false);
-    const [isReposting, setIsReposting] = useState(false);
+    const router = useRouter();
     const [isReplyOpen, setIsReplyOpen] = useState(false);
     const [isQuoteOpen, setIsQuoteOpen] = useState(false);
-    const [isOptimisticDeleted, setIsOptimisticDeleted] = useState(false);
-    const router = useRouter();
 
     const currentUserId = explicitUserId || currentUser?.id;
 
-    // Memoized states derived from props to ensure 100% sync
+    // Derived states
     const hasLiked = useMemo(() => post.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️"), [post.reactions, currentUserId]);
     const likeCount = useMemo(() => post.reactions?.filter(r => r.emoji === "❤️").length || 0, [post.reactions]);
     const isQuotePost = !!post.repostOf && post.content !== "";
@@ -77,6 +74,7 @@ export function PostItem({
     const displayUserInfo = isPureRepost && post.repostOf ? post.repostOf.user : post.user;
     const displayContent = isPureRepost && post.repostOf ? post.repostOf.content : post.content;
     const createdAt = isPureRepost && post.repostOf ? post.repostOf.createdAt : post.createdAt;
+    const displayAttachments = isPureRepost && post.repostOf ? post.repostOf.attachments : post.attachments;
 
     const urls = useMemo(() => extractUrls(displayContent), [displayContent]);
 
@@ -86,150 +84,104 @@ export function PostItem({
             d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     }, [createdAt]);
 
-    const updateGlobalCache = (updatedData: Partial<PostWithUserDTO>) => {
-        const targetId = post.repostOfId || post.id;
-
-        // Pattern matching to update ALL post-related queries (feed, profile, following, search, etc.)
-        queryClient.setQueriesData({ queryKey: [] }, (old: any) => {
-            // If it's an array (list of posts like feed/profile)
-            if (Array.isArray(old)) {
-                return old.map((p: PostWithUserDTO) => {
-                    if (p.id === targetId) return { ...p, ...updatedData };
-                    if (p.repostOfId === targetId) return { ...p, repostOf: p.repostOf ? { ...p.repostOf, ...updatedData } : p.repostOf };
-                    return p;
-                });
-            }
-
-            // If it's a single object (like Post Detail)
-            if (old && typeof old === "object" && (old.id === targetId || old.repostOfId === targetId)) {
-                if (old.id === targetId) return { ...old, ...updatedData };
-                return { ...old, repostOf: old.repostOf ? { ...old.repostOf, ...updatedData } : old.repostOf };
-            }
-
-            return old;
-        });
-
-        if (onUpdate) onUpdate({ ...post, ...updatedData });
-    };
-
-    const handleLike = async (e: React.MouseEvent) => {
-        e.preventDefault(); e.stopPropagation();
-        if (!currentUserId || isLiking) return;
-
-        const targetId = post.repostOfId || post.id;
-        const optimisticId = createId();
-        setIsLiking(true);
-
-        const newReactions = hasLiked
-            ? (post.reactions || []).filter(r => !(r.userId === currentUserId && r.emoji === "❤️"))
-            : [...(post.reactions || []), { userId: currentUserId, emoji: "❤️", createdAt: new Date() }];
-
-        updateGlobalCache({ reactions: newReactions as any });
-
-        try {
-            const response = await toggleLikeAction(targetId, currentUserId, optimisticId);
-            if (response.data) updateGlobalCache(response.data);
-        } catch (err) {
+    // Simple Mutation Logic
+    const likeMutation = useMutation({
+        mutationFn: async () => {
+            const targetId = post.repostOfId || post.id;
+            return toggleLikeAction(targetId, currentUserId!, "like-" + Date.now());
+        },
+        onSuccess: () => {
+            // Conventional way: Just invalidate all related posts
+            queryClient.invalidateQueries({ queryKey: ["posts"] });
+            queryClient.invalidateQueries({ queryKey: ["feed"] });
+            if (onUpdate) onUpdate(post);
+        },
+        onError: () => {
             toast.error("Gagal menyukai");
-        } finally { setIsLiking(false); }
+        }
+    });
+
+    const repostMutation = useMutation({
+        mutationFn: async () => {
+            const targetId = post.repostOfId || post.id;
+            return repostAction(targetId, currentUserId!, "repost-" + Date.now());
+        },
+        onSuccess: (res) => {
+            queryClient.invalidateQueries({ queryKey: ["posts"] });
+            queryClient.invalidateQueries({ queryKey: ["feed"] });
+            if (res.status === "success" && !res.data) {
+                toast.success("Berhasil membatalkan repost");
+            } else if (res.status === "success") {
+                toast.success("Berhasil membagikan");
+            }
+        },
+        onError: () => {
+            toast.error("Gagal membagikan");
+        }
+    });
+
+    const handleLike = (e: React.MouseEvent) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!currentUserId) return;
+        likeMutation.mutate();
     };
 
-    const handleRepost = async (e?: React.MouseEvent) => {
+    const handleRepost = (e?: React.MouseEvent) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (!currentUserId || isReposting) return;
-
-        const targetId = post.repostOfId || post.id;
-        const optimisticId = createId();
-        setIsReposting(true);
-
-        const wasReposted = post.isRepostedByCurrentUser;
-
-        // Optimistic UI interaction
-        if (wasReposted && isPureRepost) {
-            setIsOptimisticDeleted(true);
-        }
-
-        const updatedFields = {
-            isRepostedByCurrentUser: !wasReposted,
-            repostCount: Math.max(0, (post.repostCount || 0) + (wasReposted ? -1 : 1))
-        };
-
-        updateGlobalCache(updatedFields);
-
-        try {
-            const response = await repostAction(targetId, currentUserId, optimisticId);
-
-            if (response.status === "success") {
-                const updatedPost = response.data;
-                if (updatedPost) {
-                    // It was a REPOST: Save to local DB and MANUALLY insert into cache list
-                    await optimisticPostRepository.savePendingPost({
-                        ...updatedPost,
-                        optimisticId
-                    } as PostWithUserDTO);
-
-                    // Optimistically insert into the list to prevent flicker
-                    queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) => {
-                        if (!old) return [updatedPost];
-                        if (old.some((item: any) => item.id === updatedPost.id)) return old;
-                        return [updatedPost, ...old];
-                    });
-
-                    // Invalidate all feed-related queries to ensure data consistency everywhere
-                    queryClient.invalidateQueries({ queryKey: ["feed"] });
-                    queryClient.invalidateQueries({ queryKey: ["user-posts"] });
-                    queryClient.invalidateQueries({ queryKey: ["following-feed"] });
-                    queryClient.invalidateQueries({ queryKey: ["post"] });
-                    updateGlobalCache(updatedPost);
-                } else {
-                    // This was an UNREPOST
-                    if (isPureRepost) {
-                        setIsOptimisticDeleted(true);
-                    }
-
-                    // Manually remove from cache to prevent flicker
-                    queryClient.setQueriesData({ queryKey: [] }, (old: any) => {
-                        if (Array.isArray(old)) {
-                            return old.filter((item: any) => item.id !== post.id && item.repostOfId !== post.id);
-                        }
-                        return old;
-                    });
-
-                    queryClient.invalidateQueries({ queryKey: ["feed"] });
-                    queryClient.invalidateQueries({ queryKey: ["user-posts"] });
-                    queryClient.invalidateQueries({ queryKey: ["following-feed"] });
-                    queryClient.invalidateQueries({ queryKey: ["post"] });
-
-                    // Ensure original item count is updated
-                    updateGlobalCache({
-                        isRepostedByCurrentUser: false,
-                        repostCount: Math.max(0, (post.repostCount || 0) - 1)
-                    });
-                }
-            } else {
-                setIsOptimisticDeleted(false);
-                updateGlobalCache({
-                    isRepostedByCurrentUser: wasReposted,
-                    repostCount: post.repostCount
-                });
-                toast.error("Gagal membagikan");
-            }
-        } catch (err) {
-            setIsOptimisticDeleted(false);
-            updateGlobalCache({
-                isRepostedByCurrentUser: wasReposted,
-                repostCount: post.repostCount
-            });
-            toast.error("Gagal membagikan");
-        } finally {
-            setIsReposting(false);
-        }
+        if (!currentUserId) return;
+        repostMutation.mutate();
     };
 
     const handleCopyLink = (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
         navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`);
         toast.success("Tautan disalin!");
+    };
+
+    const renderMedia = (attachments?: any[]) => {
+        if (!attachments || attachments.length === 0) return null;
+
+        const count = attachments.length;
+        const gridClass = count === 1 ? "grid-cols-1" : "grid-cols-2";
+
+        return (
+            <div
+                className={cn("grid gap-1 mt-3 rounded-2xl overflow-hidden border border-white/5 bg-black/20", gridClass)}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {attachments.map((att, idx) => {
+                    const isVideo = att.fileType?.startsWith("video/");
+                    // Special layout for 3 items: first item is tall
+                    const isLarge = count === 3 && idx === 0;
+
+                    return (
+                        <div
+                            key={att.id || idx}
+                            className={cn(
+                                "relative bg-zinc-900 flex items-center justify-center overflow-hidden group border-[0.5px] border-white/5",
+                                isLarge ? "row-span-2 aspect-[4/5]" : "aspect-video",
+                                count === 1 ? "aspect-auto max-h-[500px]" : ""
+                            )}
+                        >
+                            {isVideo ? (
+                                <video
+                                    src={att.url}
+                                    controls
+                                    className="w-full h-full object-contain bg-black"
+                                />
+                            ) : (
+                                <img
+                                    src={att.url}
+                                    alt="Post attachment"
+                                    className="w-full h-full object-cover cursor-pointer"
+                                    onClick={() => window.open(att.url, '_blank')}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     const renderQuotedPost = (quotedPost: PostWithUserDTO) => (
@@ -255,11 +207,10 @@ export function PostItem({
                     {formatDistanceToNow(new Date(quotedPost.createdAt), { addSuffix: true, locale: id })}
                 </span>
             </div>
-            <p className="text-zinc-300 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>
+            {quotedPost.content && <p className="text-zinc-300 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>}
+            {renderMedia(quotedPost.attachments)}
         </div>
     );
-
-    if (isOptimisticDeleted) return null;
 
     if (isFocused) {
         return (
@@ -274,7 +225,7 @@ export function PostItem({
                                 <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[16px] text-zinc-100 hover:underline leading-tight relative z-30" onClick={(e) => e.stopPropagation()}>
                                     {displayUserInfo.username}
                                 </Link>
-                                <span className="text-zinc-500 text-[14px]">@{displayUserInfo.username.toLowerCase()}</span>
+                                <span className="text-zinc-500 text-[14px]">@{displayUserInfo.username?.toLowerCase() || ""}</span>
                             </div>
                         </div>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 rounded-full hover:bg-white/5 transition-colors relative z-30" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
@@ -290,7 +241,24 @@ export function PostItem({
                         </div>
                     )}
 
-                    <p className="text-[20px] text-zinc-100 leading-normal mb-4 whitespace-pre-wrap">{displayContent}</p>
+                    {displayContent && (
+                        <div className="text-[20px] text-zinc-100 leading-normal mb-1">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
+                                    p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
+                                    strong: ({ node, ...props }) => <strong {...props} className="font-bold text-white" />,
+                                    em: ({ node, ...props }) => <em {...props} className="italic" />,
+                                    code: ({ node, ...props }) => <code {...props} className="bg-white/10 px-1 py-0.5 rounded text-[0.9em] font-mono" />,
+                                }}
+                            >
+                                {displayContent}
+                            </ReactMarkdown>
+                        </div>
+                    )}
+
+                    {renderMedia(displayAttachments)}
 
                     {isQuotePost && post.repostOf && renderQuotedPost(post.repostOf)}
 
@@ -402,13 +370,32 @@ export function PostItem({
                             </div>
                         )}
                         {!hideReplyIndicator && post.replyToId && !showConnector && (
-                            <div className="text-[14px] text-zinc-500 mb-1 z-30 relative pointer-events-auto">
+                            <div className="text-[14px] text-zinc-500 mb-1 z-30 relative">
                                 {post.replyTo ? (
-                                    <>Membalas <Link href={`/profile/${post.replyTo.user.username}`} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>@{post.replyTo.user.username}</Link></>
+                                    <>Membalas <Link href={`/profile/${post.replyTo.user.username}`} className="text-sky-500 hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>@{post.replyTo.user.username}</Link></>
                                 ) : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
                             </div>
                         )}
-                        <p className="text-[15px] text-zinc-100 leading-normal pointer-events-auto">{displayContent}</p>
+                        {displayContent && (
+                            <div className="text-[15px] text-zinc-100 leading-normal relative z-30">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
+                                        p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
+                                        strong: ({ node, ...props }) => <strong {...props} className="font-bold text-white" />,
+                                        em: ({ node, ...props }) => <em {...props} className="italic" />,
+                                        code: ({ node, ...props }) => <code {...props} className="bg-white/10 px-1 py-0.5 rounded text-[0.9em] font-mono" />,
+                                    }}
+                                >
+                                    {displayContent}
+                                </ReactMarkdown>
+                            </div>
+                        )}
+
+                        <div className="relative z-30 pointer-events-auto">
+                            {renderMedia(displayAttachments)}
+                        </div>
                     </div>
 
                     {isQuotePost && post.repostOf && <div className="pointer-events-auto relative z-30">{renderQuotedPost(post.repostOf)}</div>}

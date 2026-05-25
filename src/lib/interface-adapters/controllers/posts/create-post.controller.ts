@@ -11,7 +11,7 @@ const createPostUseCase = new CreatePostUseCase(postRepository, pusherService);
 
 const createPostSchema = z.object({
     id: z.string().optional(),
-    content: z.string().min(1),
+    content: z.string().default(""),
     visibility: z.enum(["public", "unlisted", "private"]).default("public"),
     replyToId: z.string().optional(),
     repostOfId: z.string().optional(),
@@ -21,6 +21,12 @@ const createPostSchema = z.object({
         fileType: z.string(),
         size: z.number().optional(),
     })).optional(),
+}).refine(data => {
+    // Post must have either content or attachments
+    return data.content.trim().length > 0 || (data.attachments && data.attachments.length > 0);
+}, {
+    message: "Postingan harus memiliki konten teks atau lampiran",
+    path: ["content"]
 });
 
 export const createPostController = async (

@@ -15,13 +15,15 @@ export function useCreatePost(queryKey: QueryKey) {
     mutationFn: (args: {
       userId: string;
       content: string;
+      username: string;
+      avatar: string | null;
       attachments?: any[];
       replyToId?: string;
       repostOfId?: string;
       id?: string;
     }) => createPostAction(args.userId, args.content, args.attachments, args.replyToId, args.repostOfId, args.id),
 
-    onMutate: async ({ userId, content, attachments, id: predefinedId }) => {
+    onMutate: async ({ userId, content, username, avatar, attachments, id: predefinedId }) => {
       // Pastikan data konsisten sebelum optimis update
       await queryClient.cancelQueries({ queryKey });
 
@@ -36,8 +38,8 @@ export function useCreatePost(queryKey: QueryKey) {
         updatedAt: new Date(),
         isDeleted: false,
         user: {
-          username: "You",
-          avatar: null,
+          username: username,
+          avatar: avatar,
         },
         reactions: [],
         repostCount: 0,
@@ -82,6 +84,7 @@ export function useCreatePost(queryKey: QueryKey) {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
     }
   });
 }

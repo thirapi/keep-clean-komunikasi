@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,59 +61,31 @@ interface ProfileViewProps {
 
 export default function ProfileView({ user, currentUser }: ProfileViewProps) {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [activeTab, setActiveTab] = useState("Threads");
-    const [posts, setPosts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const isOwnProfile = currentUser?.id === user.id;
 
-    // Fetch feed & Real-time setup
-    useEffect(() => {
-        const fetchFeed = async () => {
-            setIsLoading(true);
-            try {
-                let filter: any = "threads";
-                if (activeTab === "Replies") filter = "replies";
-                if (activeTab === "Reposts") filter = "reposts";
+    // Unified Post Query using React Query
+    const { data: posts = [], isLoading } = useQuery({
+        queryKey: ["posts", "profile", user.id, activeTab],
+        queryFn: async () => {
+            let filter: any = "threads";
+            if (activeTab === "Replies") filter = "replies";
+            if (activeTab === "Reposts") filter = "reposts";
 
-                const response = await getProfileFeedAction(user.username, filter, currentUser?.id);
-                if (response.status === "success" && response.data) {
-                    setPosts(response.data);
-                }
-            } catch (error) {
-                console.error("Gagal mengambil feed:", error);
-            } finally {
-                setIsLoading(false);
+            const response = await getProfileFeedAction(user.username, filter, currentUser?.id);
+            if (response.status === "success" && response.data) {
+                return response.data;
             }
-        };
-
-        fetchFeed();
-
-        // Real-time for new posts on this profile
-        const userChannel = pusher.subscribe(`user-posts-${user.id}`);
-        userChannel.bind("new-post", (newPost: any) => {
-            setPosts((prev) => {
-                if (prev.some(p => p.id === newPost.id)) return prev;
-                return [newPost, ...prev];
-            });
-        });
-
-        // For reactions, we need to listen globally or per post?
-        // Let's listen to global for now or we could optimize by subscribing to specific posts
-        // But for many posts, global might be easier if we have a global-reactions channel
-        // Since we don't have that yet, we use individual post subscriptions inside PostItem (simpler for now)
-
-        return () => {
-            userChannel.unbind("new-post");
-            pusher.unsubscribe(`user-posts-${user.id}`);
-        };
-    }, [user.id, user.username, activeTab]);
+            return [];
+        },
+        staleTime: 5000,
+    });
 
     const handlePostCreated = (newPost: any) => {
-        setPosts((prev) => {
-            if (prev.some(p => p.id === newPost.id)) return prev;
-            return [newPost, ...prev];
-        });
+        // We can just invalidate the profile query to show the new post
+        queryClient.invalidateQueries({ queryKey: ["posts", "profile", user.id] });
     };
 
     const handleStartDM = async () => {
