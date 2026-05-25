@@ -41,7 +41,8 @@ export class InteractWithPostUseCase {
                 where: and(
                     eq(posts.userId, userId),
                     eq(posts.repostOfId, originalPostId),
-                    eq(posts.isDeleted, false)
+                    eq(posts.isDeleted, false),
+                    eq(posts.content, "")
                 )
             });
 

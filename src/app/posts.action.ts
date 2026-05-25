@@ -25,7 +25,7 @@ export async function deletePostAction(postId: string, userId: string): Promise<
     } catch (error: any) {
         return {
             status: "error",
-            data: null,
+            data: undefined as any,
             error: {
                 message: error.message || "Failed to delete post",
                 type: error.constructor.name,

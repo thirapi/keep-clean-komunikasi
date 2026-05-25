@@ -54,7 +54,8 @@ export class PostRepository implements IPostRepository {
             where: and(
                 eq(posts.userId, userId),
                 eq(posts.repostOfId, originalPostId),
-                eq(posts.isDeleted, false)
+                eq(posts.isDeleted, false),
+                eq(posts.content, "")
             )
         });
         return (result as unknown as PostRecord) || null;
@@ -287,7 +288,12 @@ export class PostRepository implements IPostRepository {
 
         if (currentUserId) {
             const userReposts = await this.client.query.posts.findMany({
-                where: and(eq(posts.userId, currentUserId), isNotNull(posts.repostOfId), eq(posts.isDeleted, false)),
+                where: and(
+                    eq(posts.userId, currentUserId),
+                    isNotNull(posts.repostOfId),
+                    eq(posts.isDeleted, false),
+                    eq(posts.content, "")
+                ),
                 columns: { repostOfId: true }
             });
             userReposts.forEach(r => { if (r.repostOfId) repostedIds.add(r.repostOfId); });

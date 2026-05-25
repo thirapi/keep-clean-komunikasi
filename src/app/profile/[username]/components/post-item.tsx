@@ -2,6 +2,8 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { PostMedia } from "./post-media";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import {
@@ -40,7 +42,7 @@ import { QuoteDialog } from "./quote-dialog";
 import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/components/link-preview-card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ImageLightbox, ImageSource } from "@/components/ui/image-lightbox";
+import { ImageSource } from "@/components/ui/image-lightbox";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -185,65 +187,9 @@ export function PostItem({
         toast.success("Tautan disalin!");
     };
 
-    const renderMedia = (attachments?: any[]) => {
-        if (!attachments || attachments.length === 0) return null;
-
-        const count = attachments.length;
-        const gridClass = count === 1 ? "grid-cols-1" : "grid-cols-2";
-
-        return (
-            <div
-                className={cn("grid gap-1 mt-3 rounded-2xl overflow-hidden border border-white/5 bg-black/20", gridClass)}
-            >
-                {attachments.map((att, idx) => {
-                    const isVideo = att.fileType?.startsWith("video/");
-                    // Special layout for 3 items: first item is tall
-                    const isLarge = count === 3 && idx === 0;
-
-                    return (
-                        <div
-                            key={att.id || idx}
-                            className={cn(
-                                "relative bg-zinc-900 flex items-center justify-center overflow-hidden group border-[0.5px] border-white/5",
-                                isLarge ? "row-span-2 aspect-[4/5]" : "aspect-video",
-                                count === 1 ? "aspect-auto max-h-[500px]" : ""
-                            )}
-                        >
-                            {isVideo ? (
-                                <div
-                                    className="w-full h-full cursor-pointer pointer-events-auto"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setLightboxIndex(idx);
-                                        setIsLightboxOpen(true);
-                                    }}
-                                >
-                                    <video
-                                        src={att.url}
-                                        className="w-full h-full object-contain bg-black pointer-events-none"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                                        <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
-                                            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M8 5v14l11-7z" /></svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <img
-                                    src={att.url}
-                                    alt="Post attachment"
-                                    className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                                    onClick={() => {
-                                        setLightboxIndex(idx);
-                                        setIsLightboxOpen(true);
-                                    }}
-                                />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        );
+    const handleMediaClick = (attachments: any[], index: number) => {
+        setLightboxIndex(index);
+        setIsLightboxOpen(true);
     };
 
     const renderQuotedPost = (quotedPost: PostWithUserDTO) => (
@@ -270,7 +216,7 @@ export function PostItem({
                 </span>
             </div>
             {quotedPost.content && <p className="text-zinc-300 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>}
-            {renderMedia(quotedPost.attachments)}
+            <PostMedia attachments={quotedPost.attachments || []} onImageClick={(idx) => handleMediaClick(quotedPost.attachments || [], idx)} isQuoted />
         </div>
     );
 
@@ -332,7 +278,7 @@ export function PostItem({
                         </div>
                     )}
 
-                    {renderMedia(displayAttachments)}
+                    <PostMedia attachments={displayAttachments || []} onImageClick={(idx) => handleMediaClick(displayAttachments || [], idx)} />
 
                     {isQuotePost && post.repostOf && renderQuotedPost(post.repostOf)}
 
@@ -418,8 +364,8 @@ export function PostItem({
                         />
                     </div>
                 </div>
-                {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={post.repostOf || post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
-                {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={post.repostOf || post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
+                {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={(isPureRepost && post.repostOf) ? post.repostOf : post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
+                {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={(isPureRepost && post.repostOf) ? post.repostOf : post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
                 {displayAttachments && displayAttachments.length > 0 && (
                     <ImageLightbox
                         images={displayAttachments.map(a => ({ url: a.url, filename: a.key, type: a.fileType?.startsWith('video/') ? 'video' : 'image' }))}
@@ -508,7 +454,7 @@ export function PostItem({
                         )}
 
                         <div className="relative z-30 pointer-events-auto">
-                            {renderMedia(displayAttachments)}
+                            <PostMedia attachments={displayAttachments || []} onImageClick={(idx) => handleMediaClick(displayAttachments || [], idx)} />
                         </div>
                     </div>
 
@@ -575,8 +521,8 @@ export function PostItem({
                     </div>
                 </div>
             </div>
-            {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={post.repostOf || post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
-            {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={post.repostOf || post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
+            {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={(isPureRepost && post.repostOf) ? post.repostOf : post} currentUser={currentUser} onReplyCreated={(reply: any) => { if (onUpdate) onUpdate(reply); }} />}
+            {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={(isPureRepost && post.repostOf) ? post.repostOf : post} currentUser={currentUser} onQuoteCreated={(quote: any) => { if (onUpdate) onUpdate(quote); }} />}
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="bg-zinc-900 border-white/10 text-zinc-100 z-[1100]">
