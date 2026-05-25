@@ -53,6 +53,26 @@ export class FollowerRepository implements IFollowerRepository {
         return results.map(r => r.followingId);
     }
 
+    async getFollowersList(userId: string): Promise<{ id: string; username: string; avatar: string }[]> {
+        const results = await this.client.query.followers.findMany({
+            where: eq(followers.followingId, userId),
+            with: {
+                follower: { columns: { id: true, username: true, avatar: true } }
+            }
+        });
+        return results.map(r => r.follower);
+    }
+
+    async getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string }[]> {
+        const results = await this.client.query.followers.findMany({
+            where: eq(followers.followerId, userId),
+            with: {
+                following: { columns: { id: true, username: true, avatar: true } }
+            }
+        });
+        return results.map(r => r.following);
+    }
+
     async getFollowerCount(userId: string): Promise<number> {
         const [result] = await this.client.select({ count: sql<number>`count(*)` }).from(followers).where(eq(followers.followingId, userId));
         return Number(result?.count || 0);

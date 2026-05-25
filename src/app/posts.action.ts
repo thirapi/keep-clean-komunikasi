@@ -1,7 +1,7 @@
 "use server";
 
 import { createPostController } from "@/lib/interface-adapters/controllers/posts/create-post.controller";
-import { getProfileFeedController } from "@/lib/interface-adapters/controllers/posts/get-profile-feed.controller";
+import { getProfileFeedController, getProfileFeedCountController } from "@/lib/interface-adapters/controllers/posts/get-profile-feed.controller";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 
@@ -97,13 +97,12 @@ export async function createPostAction(
 
 export async function getProfileFeedAction(
     username: string,
-    filter?: "threads" | "replies" | "reposts",
+    filter?: "threads" | "replies" | "reposts" | "media",
     currentUserId?: string,
     limit = 20,
     offset = 0
 ): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
-        // We'd need to resolve username to userId first, or update controller
         const feed = await getProfileFeedController(username, currentUserId, filter, limit, offset);
         return {
             status: "success",
@@ -116,6 +115,29 @@ export async function getProfileFeedAction(
             data: null,
             error: {
                 message: error.message || "Failed to fetch feed",
+                type: error.constructor.name,
+            },
+        };
+    }
+}
+
+export async function getProfileFeedCountAction(
+    username: string,
+    filter?: "threads" | "replies" | "reposts" | "media"
+): Promise<ServerResponse<number | null>> {
+    try {
+        const count = await getProfileFeedCountController(username, filter);
+        return {
+            status: "success",
+            data: count,
+            error: null,
+        };
+    } catch (error: any) {
+        return {
+            status: "error",
+            data: null,
+            error: {
+                message: error.message || "Failed to fetch count",
                 type: error.constructor.name,
             },
         };

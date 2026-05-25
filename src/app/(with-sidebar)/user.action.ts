@@ -8,6 +8,7 @@ import { changePasswordController } from "@/lib/interface-adapters/controllers/u
 import { getProfileController } from "@/lib/interface-adapters/controllers/users/get-profile.controller";
 import { followUserController } from "@/lib/interface-adapters/controllers/users/follow-user.controller";
 import { unfollowUserController } from "@/lib/interface-adapters/controllers/users/unfollow-user.controller";
+import { getFollowersController, getFollowingController } from "@/lib/interface-adapters/controllers/users/get-follow-list.controller";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
 import { db } from "@/lib/db";
 
@@ -124,5 +125,23 @@ export const checkFollowingStatusAction = async (followerId: string, followingId
     return { status: "success", data: result, error: null };
   } catch (err: any) {
     return { status: "error", data: false, error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const getFollowersAction = async (userId: string) => {
+  try {
+    const data = await getFollowersController(userId);
+    return { status: "success", data, error: null };
+  } catch (err: any) {
+    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const getFollowingAction = async (userId: string) => {
+  try {
+    const data = await getFollowingController(userId);
+    return { status: "success", data, error: null };
+  } catch (err: any) {
+    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
   }
 };

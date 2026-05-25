@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
     MessageSquare,
     Sparkles,
@@ -17,10 +17,9 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "../../channels/[roomId]/room.action";
-import { getProfileFeedAction } from "../../../posts.action";
+import { getProfileFeedAction, getProfileFeedCountAction } from "../../../posts.action";
 import { PostInput } from "./components/post-input";
 import { PostItem } from "./components/post-item";
-import { pusher } from "@/lib/pusher/pusher.client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { UserSettingsDialog } from "../../user-settings-dialog";
@@ -31,6 +30,8 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { FollowButton } from "./components/follow-button";
+import { UserListDialog } from "./components/user-list-dialog";
+import { getFollowersAction, getFollowingAction } from "../../user.action";
 
 interface ProfileViewProps {
     user: {
@@ -50,7 +51,7 @@ interface ProfileViewProps {
     };
     currentUser: {
         id: string;
-        name: string; // This is the username from page.tsx mapping
+        name: string;
         initial: string;
         role: string;
         email: string;
@@ -75,13 +76,13 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
 
-    // Unified Post Query using React Query
     const { data: posts = [], isLoading, refetch } = useQuery({
         queryKey: ["posts", "profile", user.id, activeTab],
         queryFn: async () => {
             let filter: any = "threads";
             if (activeTab === "Replies") filter = "replies";
             if (activeTab === "Reposts") filter = "reposts";
+            if (activeTab === "Media") filter = "media";
 
             const response = await getProfileFeedAction(user.username, filter, currentUser?.id, 20, 0);
             if (response.status === "success" && response.data) {
@@ -93,6 +94,20 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
         staleTime: 5000,
     });
 
+    const { data: postCount = 0 } = useQuery({
+        queryKey: ["posts", "count", user.id, activeTab],
+        queryFn: async () => {
+            let filter: any = "threads";
+            if (activeTab === "Replies") filter = "replies";
+            if (activeTab === "Reposts") filter = "reposts";
+            if (activeTab === "Media") filter = "media";
+
+            const response = await getProfileFeedCountAction(user.username, filter);
+            return response.status === "success" && response.data !== null ? response.data : 0;
+        },
+        staleTime: 5000,
+    });
+
     const handleLoadMore = async () => {
         if (isLoading || isLoadingMore || !hasMore) return;
         setIsLoadingMore(true);
@@ -100,6 +115,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
             let filter: any = "threads";
             if (activeTab === "Replies") filter = "replies";
             if (activeTab === "Reposts") filter = "reposts";
+            if (activeTab === "Media") filter = "media";
 
             const response = await getProfileFeedAction(user.username, filter, currentUser?.id, 20, posts.length);
             if (response.status === "success" && response.data) {
@@ -210,7 +226,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                         </Button>
                         <div className="flex flex-col flex-1">
                             <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
-                            <p className="text-xs text-muted-foreground">{posts.length} Posts</p>
+                            <p className="text-xs text-muted-foreground">{postCount} {activeTab}</p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -321,14 +337,28 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                             <span>Joined {formattedJoinDate}</span>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1 hover:underline cursor-pointer">
-                                                <span className="font-bold text-foreground">{user.stats?.following || 0}</span>
-                                                <span>Following</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 hover:underline cursor-pointer">
-                                                <span className="font-bold text-foreground">{user.stats?.followers || 0}</span>
-                                                <span>Followers</span>
-                                            </div>
+                                            <UserListDialog
+                                                title="Following"
+                                                userId={user.id}
+                                                fetchAction={getFollowingAction}
+                                                trigger={
+                                                    <div className="flex items-center gap-1 hover:underline cursor-pointer">
+                                                        <span className="font-bold text-foreground">{user.stats?.following || 0}</span>
+                                                        <span>Following</span>
+                                                    </div>
+                                                }
+                                            />
+                                            <UserListDialog
+                                                title="Followers"
+                                                userId={user.id}
+                                                fetchAction={getFollowersAction}
+                                                trigger={
+                                                    <div className="flex items-center gap-1 hover:underline cursor-pointer">
+                                                        <span className="font-bold text-foreground">{user.stats?.followers || 0}</span>
+                                                        <span>Followers</span>
+                                                    </div>
+                                                }
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -356,75 +386,66 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
                         {/* Content */}
                         <div className="flex flex-col min-h-[400px]">
-                            {activeTab === "Threads" && (
-                                <div className="flex flex-col animate-in fade-in duration-500">
-                                    {isOwnProfile && currentUser && (
-                                        <div className="border-b border-border/10">
-                                            <PostInput
-                                                currentUser={{
+                            {/* Display posts for any active tab that fetches data */}
+                            <div className="flex flex-col animate-in fade-in duration-500">
+                                {isOwnProfile && currentUser && activeTab === "Threads" && (
+                                    <div className="border-b border-border/10">
+                                        <PostInput
+                                            currentUser={{
+                                                id: currentUser.id,
+                                                username: currentUser.name,
+                                                avatar: currentUser.avatar,
+                                            }}
+                                            onPostCreated={handlePostCreated}
+                                        />
+                                    </div>
+                                )}
+
+                                {isLoading ? (
+                                    <div className="flex flex-col items-center justify-center p-20 gap-4">
+                                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                                        <p className="text-muted-foreground text-sm">Memuat...</p>
+                                    </div>
+                                ) : posts.length > 0 ? (
+                                    <div className="flex flex-col">
+                                        {posts.map((post: any) => (
+                                            <PostItem
+                                                key={post.id}
+                                                post={post}
+                                                currentUserId={currentUser?.id}
+                                                currentUser={currentUser ? {
                                                     id: currentUser.id,
                                                     username: currentUser.name,
-                                                    avatar: currentUser.avatar,
-                                                }}
-                                                onPostCreated={handlePostCreated}
+                                                    avatar: currentUser.avatar
+                                                } : undefined}
+                                                onUpdate={handlePostCreated}
                                             />
-                                        </div>
-                                    )}
+                                        ))}
 
-                                    {isLoading ? (
-                                        <div className="flex flex-col items-center justify-center p-20 gap-4">
-                                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                                            <p className="text-muted-foreground text-sm">Memuat...</p>
-                                        </div>
-                                    ) : posts.length > 0 ? (
-                                        <div className="flex flex-col">
-                                            {posts.map((post: any) => (
-                                                <PostItem
-                                                    key={post.id}
-                                                    post={post}
-                                                    currentUserId={currentUser?.id}
-                                                    currentUser={currentUser ? {
-                                                        id: currentUser.id,
-                                                        username: currentUser.name,
-                                                        avatar: currentUser.avatar
-                                                    } : undefined}
-                                                    onUpdate={handlePostCreated}
-                                                />
-                                            ))}
-
-                                            {hasMore && (
-                                                <div ref={loadMoreRef} className="p-8 flex justify-center">
-                                                    <Button
-                                                        variant="ghost"
-                                                        onClick={handleLoadMore}
-                                                        disabled={isLoadingMore}
-                                                        className="text-primary hover:bg-primary/5 rounded-full px-8 font-bold"
-                                                    >
-                                                        {isLoadingMore ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                        ) : null}
-                                                        {isLoadingMore ? "Memuat..." : "Lihat Lebih Banyak"}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center p-20 opacity-30 select-none">
-                                            <p className="text-sm font-medium italic text-muted-foreground">
-                                                Belum ada postingan.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab !== "Threads" && (
-                                <div className="flex flex-col items-center justify-center p-20 opacity-30 select-none">
-                                    <p className="text-sm font-medium italic text-muted-foreground">
-                                        Segera hadir ✨
-                                    </p>
-                                </div>
-                            )}
+                                        {hasMore && (
+                                            <div ref={loadMoreRef} className="p-8 flex justify-center">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={handleLoadMore}
+                                                    disabled={isLoadingMore}
+                                                    className="text-primary hover:bg-primary/5 rounded-full px-8 font-bold"
+                                                >
+                                                    {isLoadingMore ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                    ) : null}
+                                                    {isLoadingMore ? "Memuat..." : "Lihat Lebih Banyak"}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center p-20 opacity-30 select-none">
+                                        <p className="text-sm font-medium italic text-muted-foreground">
+                                            Belum ada postingan.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

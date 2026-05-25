@@ -7,7 +7,8 @@ export interface IPostRepository {
     findById(id: string): Promise<PostRecord | null>;
     findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null>;
     findRepost(userId: string, originalPostId: string): Promise<PostRecord | null>;
-    findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
+    findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
+    countByUserId(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getGlobalFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;

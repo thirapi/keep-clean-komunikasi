@@ -8,7 +8,7 @@ const getProfileFeedUseCase = new GetProfileFeedUseCase(postRepository);
 export const getProfileFeedController = async (
     username: string,
     currentUserId?: string,
-    filter?: "threads" | "replies" | "reposts",
+    filter?: "threads" | "replies" | "reposts" | "media",
     limit = 20,
     offset = 0
 ) => {
@@ -21,4 +21,19 @@ export const getProfileFeedController = async (
     }
 
     return await getProfileFeedUseCase.execute(user.id, currentUserId, filter, limit, offset);
+};
+
+export const getProfileFeedCountController = async (
+    username: string,
+    filter?: "threads" | "replies" | "reposts" | "media"
+) => {
+    const user = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.username, username),
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return await getProfileFeedUseCase.getCount(user.id, filter);
 };
