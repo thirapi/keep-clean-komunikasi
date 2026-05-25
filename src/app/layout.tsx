@@ -7,6 +7,7 @@ import { Doto } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import NextTopLoader from "nextjs-toploader";
+import { QueryProvider } from "@/components/query-provider";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -78,12 +79,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className="h-full" suppressHydrationWarning>
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="robots" content="index, follow" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${doto.variable} antialiased h-full flex flex-col`}
       >
@@ -104,11 +99,14 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          enableColorScheme={false}
         >
-           {children}
-          <Toaster />
-          <ServiceWorkerRegister />
+          <QueryProvider>
+            {children}
+            <Toaster />
+          </QueryProvider>
         </ThemeProvider>
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
     </html>

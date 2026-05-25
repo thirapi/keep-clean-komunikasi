@@ -7,6 +7,7 @@ export const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-z
  * Extract all unique URLs from a given text string
  */
 export function extractUrls(text: string): string[] {
+  if (!text) return [];
   const matches = text.match(URL_REGEX);
   if (!matches) return [];
   

@@ -15,9 +15,10 @@ export class CreatePostUseCase {
         visibility: "public" | "unlisted" | "private" = "public",
         replyToId?: string,
         repostOfId?: string,
-        attachments?: { url: string; key: string; fileType: string; size?: number }[]
+        attachments?: { url: string; key: string; fileType: string; size?: number }[],
+        predefinedId?: string
     ): Promise<PostWithUserDTO> {
-        const id = createId();
+        const id = predefinedId || createId();
 
         // In a real implementation, we'd get the base URL from env
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.verdi";
@@ -39,7 +40,7 @@ export class CreatePostUseCase {
 
         await this.postRepository.create(postRecord);
 
-        const postWithDetails = await this.postRepository.findByIdWithDetails(id);
+        const postWithDetails = await this.postRepository.findByIdWithDetails(id, userId);
 
         if (!postWithDetails) {
             throw new Error("Failed to create post");
@@ -48,6 +49,14 @@ export class CreatePostUseCase {
         // Trigger real-time update (Global Feed or Profile Feed)
         await this.pusherService.trigger("global-feed", "new-post", postWithDetails);
         await this.pusherService.trigger(`user-posts-${userId}`, "new-post", postWithDetails);
+
+        // If it's a quote post, also notify the original post channel about the new repost count
+        if (repostOfId) {
+            const updatedOriginal = await this.postRepository.findByIdWithDetails(repostOfId, userId);
+            if (updatedOriginal) {
+                await this.pusherService.trigger(`post-${repostOfId}`, "reaction-updated", updatedOriginal);
+            }
+        }
 
         return postWithDetails;
     }

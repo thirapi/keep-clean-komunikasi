@@ -11,7 +11,7 @@ import { RealtimeNotificationListener } from "@/components/realtime-notification
 import { getSidebarData } from "@/app/(with-sidebar)/channels/[roomId]/room.action";
 import { PresenceProvider } from "@/components/presence-provider";
 import { UnreadProvider } from "@/components/unread-provider";
-import { getInitials } from "@/lib/utils";
+import { getInitials } from "@/lib/get-initials";
 import { MobileStackContent } from "@/app/(with-sidebar)/mobile-stack-content";
 
 export default async function layout({

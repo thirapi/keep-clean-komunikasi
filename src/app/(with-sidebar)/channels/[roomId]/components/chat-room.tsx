@@ -632,7 +632,7 @@ export function ChatRoom({
       <MobileMemberList
         roomData={roomData}
         onlineUserIds={onlineUserIds}
-        isOpen={showMembers && isMobile}
+        isOpen={showMembers && !!isMobile}
         onClose={() => setShowMembers(false)}
         currentUserId={userId}
       />

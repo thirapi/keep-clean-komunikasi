@@ -23,7 +23,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn, stripMarkdown } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { stripMarkdown } from "@/lib/strip-markdown";
 
 type Groups = {
   id: string;

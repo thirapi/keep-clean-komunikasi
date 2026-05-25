@@ -10,6 +10,7 @@ const pusherService = new PusherService();
 const createPostUseCase = new CreatePostUseCase(postRepository, pusherService);
 
 const createPostSchema = z.object({
+    id: z.string().optional(),
     content: z.string().min(1),
     visibility: z.enum(["public", "unlisted", "private"]).default("public"),
     replyToId: z.string().optional(),
@@ -25,6 +26,7 @@ const createPostSchema = z.object({
 export const createPostController = async (
     userId: string,
     data: {
+        id?: string;
         content: string;
         visibility?: "public" | "unlisted" | "private";
         replyToId?: string;
@@ -44,6 +46,7 @@ export const createPostController = async (
         parsed.data.visibility,
         parsed.data.replyToId,
         parsed.data.repostOfId,
-        parsed.data.attachments
+        parsed.data.attachments,
+        parsed.data.id
     );
 };

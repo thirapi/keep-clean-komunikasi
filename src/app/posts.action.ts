@@ -44,10 +44,12 @@ export async function createPostAction(
     content: string,
     attachments?: { url: string; key: string; fileType: string; size?: number }[],
     replyToId?: string,
-    repostOfId?: string
+    repostOfId?: string,
+    id?: string
 ): Promise<ServerResponse<PostWithUserDTO | null>> {
     try {
         const post = await createPostController(userId, {
+            id,
             content,
             attachments,
             replyToId,
@@ -128,8 +130,8 @@ export async function repostAction(postId: string, userId: string, optimisticId?
     }
 }
 
-export async function getPostThreadAction(postId: string, currentUserId?: string): Promise<ServerResponse<{ 
-    post: PostWithUserDTO; 
+export async function getPostThreadAction(postId: string, currentUserId?: string): Promise<ServerResponse<{
+    post: PostWithUserDTO;
     replies: PostWithUserDTO[];
     parents: PostWithUserDTO[];
 } | null>> {
@@ -147,9 +149,9 @@ export async function getNewPostsAction(sinceId: string, currentUserId?: string)
         // For efficiency, we should ideally have a getNewPostsController
         const feed = await getGlobalFeedController(50, 0, currentUserId);
         const sinceIdx = feed.findIndex(p => p.id === sinceId);
-        
+
         const newPosts = sinceIdx > 0 ? feed.slice(0, sinceIdx) : [];
-        
+
         return {
             status: "success",
             data: newPosts,

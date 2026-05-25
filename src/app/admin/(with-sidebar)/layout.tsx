@@ -12,7 +12,7 @@ import {
 import { BreadcrumbProvider } from "@/components/breadcrumb/breadcrumb-context";
 import { RealtimeNotificationListener } from "@/components/realtime-notification-listener";
 import { UnreadProvider } from "@/components/unread-provider";
-import { getInitials } from "@/lib/utils";
+import { getInitials } from "@/lib/get-initials";
 
 export default async function layout({
   children,

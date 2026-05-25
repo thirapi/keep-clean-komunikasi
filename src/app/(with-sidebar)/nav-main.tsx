@@ -11,7 +11,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
-import { cn, stripMarkdown } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { stripMarkdown } from "@/lib/strip-markdown";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";

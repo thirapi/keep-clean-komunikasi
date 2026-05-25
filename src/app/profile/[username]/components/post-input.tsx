@@ -7,6 +7,9 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { createPostAction } from "../../../posts.action";
 import { toast } from "sonner";
 import { SendHorizontal } from "lucide-react";
+import { optimisticPostRepository } from "@/lib/infrastructure/optimistic-post.repository";
+import { createId } from "@paralleldrive/cuid2";
+import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 
 interface PostInputProps {
     currentUser: {
@@ -24,17 +27,43 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
     const handleSend = async () => {
         if (!content.trim() || isSending) return;
 
+        const tempId = createId();
+        const optimisticPost: PostWithUserDTO = {
+            id: tempId,
+            content,
+            userId: currentUser.id,
+            visibility: "public",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isDeleted: false,
+            user: {
+                username: currentUser.username,
+                avatar: currentUser.avatar,
+            },
+            reactions: [],
+            repostCount: 0,
+            replyCount: 0,
+            optimisticId: tempId
+        } as PostWithUserDTO;
+
         setIsSending(true);
+        // Save to IndexedDB so useFeedWithOptimistic can find it
+        await optimisticPostRepository.savePendingPost(optimisticPost);
+
         try {
-            const response = await createPostAction(currentUser.id, content);
+            const response = await createPostAction(currentUser.id, content, undefined, undefined, undefined, tempId);
             if (response.status === "success" && response.data) {
+                // We no longer removePendingPost here. 
+                // useFeedWithOptimistic will auto-cleanup when it sees the ID in the server fetch.
                 onPostCreated(response.data);
                 setContent("");
                 toast.success("Kiriman berhasil dibuat");
             } else {
+                await optimisticPostRepository.removePendingPost(tempId);
                 toast.error(response.error?.message || "Gagal membuat kiriman");
             }
         } catch (error) {
+            await optimisticPostRepository.removePendingPost(tempId);
             toast.error("Terjadi kesalahan");
         } finally {
             setIsSending(false);

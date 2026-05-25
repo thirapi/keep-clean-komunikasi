@@ -78,19 +78,28 @@ export class PostRepository implements IPostRepository {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
+                        reactions: { with: { user: { columns: { username: true } } } },
+                        reposts: { columns: { id: true } },
+                        replies: { columns: { id: true } }
                     },
                 },
-                reposts: { columns: { id: true } },
-                replies: { columns: { id: true } }
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                }
             },
         });
 
         if (!result) return null;
-        
+
         const results = await this.mapPostsWithStates([result] as any, currentUserId);
         const dto = results[0];
-        dto.isDeleted = result.isDeleted; 
-        
+        dto.isDeleted = result.isDeleted;
+
         return dto;
     }
 
@@ -114,10 +123,19 @@ export class PostRepository implements IPostRepository {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
+                        reactions: true,
+                        reposts: { columns: { id: true } },
+                        replies: { columns: { id: true } }
                     },
                 },
-                reposts: { columns: { id: true } },
-                replies: { columns: { id: true } },
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                },
                 replyTo: { with: { user: { columns: { username: true } } } }
             },
         });
@@ -135,8 +153,23 @@ export class PostRepository implements IPostRepository {
                 },
                 attachments: true,
                 reactions: true,
-                reposts: { columns: { id: true } },
-                replies: { columns: { id: true } }
+                repostOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        attachments: true,
+                        reactions: true,
+                        reposts: { columns: { id: true } },
+                        replies: { columns: { id: true } }
+                    },
+                },
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                }
             },
         });
 
@@ -151,10 +184,10 @@ export class PostRepository implements IPostRepository {
         while (currentPostId && depth < 10) {
             const post = await this.findByIdWithDetails(currentPostId, currentUserId);
             if (!post || !post.replyToId) break;
-            
+
             const parent = await this.findByIdWithDetails(post.replyToId, currentUserId);
             if (!parent) break;
-            
+
             chain.unshift(parent);
             currentPostId = parent.id;
             depth++;
@@ -185,10 +218,19 @@ export class PostRepository implements IPostRepository {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
+                        reactions: true,
+                        reposts: { columns: { id: true } },
+                        replies: { columns: { id: true } }
                     },
                 },
-                reposts: { columns: { id: true } },
-                replies: { columns: { id: true } }
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                }
             },
         });
 
@@ -197,7 +239,10 @@ export class PostRepository implements IPostRepository {
 
     async getGlobalFeed(limit: number = 20, offset: number = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: eq(posts.isDeleted, false),
+            where: and(
+                eq(posts.isDeleted, false),
+                eq(posts.visibility, "public")
+            ),
             orderBy: [desc(posts.createdAt)],
             limit,
             offset,
@@ -214,10 +259,19 @@ export class PostRepository implements IPostRepository {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
+                        reactions: true,
+                        reposts: { columns: { id: true } },
+                        replies: { columns: { id: true } }
                     },
                 },
-                reposts: { columns: { id: true } },
-                replies: { columns: { id: true } }
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                }
             },
         });
 
@@ -230,7 +284,7 @@ export class PostRepository implements IPostRepository {
 
     private async mapPostsWithStates(results: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
         const repostedIds = new Set<string>();
-        
+
         if (currentUserId) {
             const userReposts = await this.client.query.posts.findMany({
                 where: and(eq(posts.userId, currentUserId), isNotNull(posts.repostOfId), eq(posts.isDeleted, false)),
@@ -241,11 +295,26 @@ export class PostRepository implements IPostRepository {
 
         return results.map(p => {
             const dto = p as unknown as PostWithUserDTO;
-            const targetId = dto.repostOfId || dto.id;
-            dto.isLikedByCurrentUser = dto.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️");
+
+            // Interaction logic: Pure Reposts share the original post's interactions
+            const isPureRepost = !!p.repostOfId && p.content === "";
+            const targetPost = (isPureRepost && p.repostOf) ? p.repostOf : p;
+            const targetId = targetPost.id;
+
+            dto.isLikedByCurrentUser = targetPost.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️");
             dto.isRepostedByCurrentUser = repostedIds.has(targetId);
-            dto.repostCount = (p.reposts || []).length;
-            dto.replyCount = (p.replies || []).length;
+
+            // Robust Count: Use unique userIds for reposts to handle legacy duplicate data
+            const uniqueRepostUserIds = new Set((targetPost.reposts || []).map((r: any) => r.userId));
+            dto.repostCount = uniqueRepostUserIds.size;
+
+            dto.replyCount = (targetPost.replies || []).length;
+
+            // Ensure reactions are synced for Pure Repost
+            if (isPureRepost && p.repostOf) {
+                dto.reactions = p.repostOf.reactions;
+            }
+
             return dto;
         });
     }

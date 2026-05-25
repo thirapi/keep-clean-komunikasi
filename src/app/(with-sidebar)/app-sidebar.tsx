@@ -80,13 +80,20 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const isMobile = useIsMobile();
+  const isMobileFromHook = useIsMobile();
   const { state } = useSidebar();
   const { unreadRooms, initializeUnread } = useUnread();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"channels" | "dms">("channels");
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const isMobile = isMobileFromHook ?? false;
 
   React.useEffect(() => {
     initializeUnread(
@@ -163,6 +170,15 @@ export function AppSidebar({
   }, [user?.id, router]);
 
   const isDefaultRoom = pathname === "/channels/default" || pathname === "/channels";
+
+  // Prevent layout shift by rendering a static/skeleton state or null until mounted
+  if (!isMounted) {
+    return (
+      <Sidebar collapsible="none" className="border-none bg-transparent" {...props}>
+        <div className="flex items-center gap-2 px-6 py-4 opacity-0" />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar
