@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
+import { usePresence } from "@/components/presence-provider";
 import {
     MessageSquare,
     Sparkles,
@@ -64,6 +65,8 @@ interface ProfileViewProps {
 
 export default function ProfileView({ user, currentUser }: ProfileViewProps) {
     const { toggleSidebar } = useSidebar();
+    const { onlineUserIds } = usePresence();
+    const isUserOnline = onlineUserIds.includes(user.id);
     const router = useRouter();
     const queryClient = useQueryClient();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -285,8 +288,11 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                 src={user.avatar}
                                                 className="h-24 w-24 sm:h-32 sm:w-32 rounded-xl"
                                             />
-                                            <div className="absolute bottom-2 right-2 h-4 w-4 sm:h-6 sm:w-6 bg-emerald-500 rounded-full border-4 border-background shadow-lg" />
                                         </div>
+                                        {isUserOnline && (
+                                            <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-emerald-500 rounded-full 
+                        border-[3px] border-background shadow-lg" />
+                                        )}
                                     </div>
 
                                     <div className="pt-4 flex gap-2">
@@ -423,18 +429,10 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                         ))}
 
                                         {hasMore && (
-                                            <div ref={loadMoreRef} className="p-8 flex justify-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    onClick={handleLoadMore}
-                                                    disabled={isLoadingMore}
-                                                    className="text-primary hover:bg-primary/5 rounded-full px-8 font-bold"
-                                                >
-                                                    {isLoadingMore ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                    ) : null}
-                                                    {isLoadingMore ? "Memuat..." : "Lihat Lebih Banyak"}
-                                                </Button>
+                                            <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
+                                                {isLoadingMore && (
+                                                    <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                                                )}
                                             </div>
                                         )}
                                     </div>

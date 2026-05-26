@@ -40,7 +40,7 @@ export default function TimelineView({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(initialPosts.length === 20);
 
-    const { data: posts, refetch, isFetching } = useFeedWithOptimistic(
+    const { data: posts, refetch, isFetching, isLoading } = useFeedWithOptimistic(
         QUERY_KEY,
         async () => {
             const res = await FETCH_ACTION(currentUser?.id);
@@ -199,7 +199,12 @@ export default function TimelineView({
                         )}
 
                         <div className="flex flex-col">
-                            {posts.length > 0 ? (
+                            {isLoading ? (
+                                <div className="p-20 flex flex-col items-center justify-center gap-3 text-muted-foreground select-none">
+                                    <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+                                    <span className="text-sm font-medium">Memuat timeline...</span>
+                                </div>
+                            ) : posts.length > 0 ? (
                                 posts.map((post: PostWithUserDTO) => (
                                     <PostItem
                                         key={post.id}
@@ -220,18 +225,10 @@ export default function TimelineView({
                             )}
 
                             {hasMore && (
-                                <div ref={loadMoreRef} className="p-8 flex justify-center">
-                                    <Button
-                                        variant="ghost"
-                                        onClick={handleLoadMore}
-                                        disabled={isLoadingMore}
-                                        className="text-primary hover:bg-primary/5 rounded-full px-8 font-bold"
-                                    >
-                                        {isLoadingMore ? (
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        ) : null}
-                                        {isLoadingMore ? "Memuat..." : "Lihat Lebih Banyak"}
-                                    </Button>
+                                <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
+                                    {isLoadingMore && (
+                                        <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                                    )}
                                 </div>
                             )}
 

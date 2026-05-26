@@ -14,6 +14,8 @@ import {
     MoreHorizontal,
     PenLine,
     Trash2,
+    Link2,
+    Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +23,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
@@ -310,6 +313,11 @@ export function PostItem({
         toast.success("Tautan disalin!");
     };
 
+    const handleReport = (e: React.MouseEvent) => {
+        e.preventDefault(); e.stopPropagation();
+        toast.success("Laporan terkirim. Terima kasih atas masukan Anda!");
+    };
+
     const handleMediaClick = (attachments: any[], index: number) => {
         setLightboxIndex(index);
         setIsLightboxOpen(true);
@@ -365,12 +373,25 @@ export function PostItem({
                                     <MoreHorizontal className="h-5 w-5" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
-                                {post.userId === currentUserId && (
-                                    <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Hapus</span>
+                            <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000] w-48">
+                                <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer focus:bg-white/5 flex items-center">
+                                    <Link2 className="mr-2 h-4 w-4 text-zinc-400" />
+                                    <span>Salin Tautan</span>
+                                </DropdownMenuItem>
+                                {post.userId !== currentUserId && (
+                                    <DropdownMenuItem onClick={handleReport} className="cursor-pointer focus:bg-white/5 flex items-center text-amber-500 focus:text-amber-500">
+                                        <Flag className="mr-2 h-4 w-4" />
+                                        <span>Laporkan</span>
                                     </DropdownMenuItem>
+                                )}
+                                {post.userId === currentUserId && (
+                                    <>
+                                        <DropdownMenuSeparator className="bg-white/5" />
+                                        <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500 flex items-center">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Hapus</span>
+                                        </DropdownMenuItem>
+                                    </>
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -534,12 +555,25 @@ export function PostItem({
                                         <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
-                                    {post.userId === currentUserId && (
-                                        <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            <span>Hapus</span>
+                                <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000] w-48">
+                                    <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer focus:bg-white/5 flex items-center">
+                                        <Link2 className="mr-2 h-4 w-4 text-zinc-400" />
+                                        <span>Salin Tautan</span>
+                                    </DropdownMenuItem>
+                                    {post.userId !== currentUserId && (
+                                        <DropdownMenuItem onClick={handleReport} className="cursor-pointer focus:bg-white/5 flex items-center text-amber-500 focus:text-amber-500">
+                                            <Flag className="mr-2 h-4 w-4" />
+                                            <span>Laporkan</span>
                                         </DropdownMenuItem>
+                                    )}
+                                    {post.userId === currentUserId && (
+                                        <>
+                                            <DropdownMenuSeparator className="bg-white/5" />
+                                            <DropdownMenuItem onClick={handleDelete} className="cursor-pointer focus:bg-red-500/10 text-red-500 focus:text-red-500 flex items-center">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                <span>Hapus</span>
+                                            </DropdownMenuItem>
+                                        </>
                                     )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
