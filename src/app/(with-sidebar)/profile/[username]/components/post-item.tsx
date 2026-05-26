@@ -82,11 +82,81 @@ export function PostItem({
 
     const currentUserId = explicitUserId || currentUser?.id;
 
-    // Derived states
-    const hasLiked = useMemo(() => post.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️"), [post.reactions, currentUserId]);
-    const likeCount = useMemo(() => post.reactions?.filter(r => r.emoji === "❤️").length || 0, [post.reactions]);
     const isQuotePost = !!post.repostOf && post.content !== "";
     const isPureRepost = !!post.repostOf && post.content === "";
+
+    // If it's a pure repost, we should bind the interactive states to the original post (post.repostOf)
+    const targetPost = isPureRepost && post.repostOf ? post.repostOf : post;
+
+    // Helper to update a specific post inside React Query cached feeds/details
+    const updatePostInCache = (targetId: string, updater: (p: PostWithUserDTO) => PostWithUserDTO) => {
+        queryClient.setQueriesData(
+            {
+                predicate: (query) => {
+                    const firstKey = query.queryKey[0];
+                    return firstKey === "posts" || firstKey === "feed";
+                }
+            },
+            (oldData: any) => {
+                if (!oldData) return oldData;
+
+                const updateObject = (item: any): any => {
+                    if (item && typeof item === "object") {
+                        let newItem = { ...item };
+                        let updated = false;
+
+                        if (newItem.id === targetId) {
+                            newItem = updater(newItem);
+                            updated = true;
+                        }
+
+                        if (newItem.repostOf && newItem.repostOf.id === targetId) {
+                            newItem.repostOf = updater(newItem.repostOf);
+                            updated = true;
+                        }
+
+                        if (newItem.replyTo && newItem.replyTo.id === targetId) {
+                            newItem.replyTo = updater(newItem.replyTo);
+                            updated = true;
+                        }
+
+                        if (newItem.post && typeof newItem.post === "object") {
+                            newItem.post = updateObject(newItem.post);
+                            if (Array.isArray(newItem.replies)) {
+                                newItem.replies = newItem.replies.map(updateObject);
+                            }
+                            if (Array.isArray(newItem.parents)) {
+                                newItem.parents = newItem.parents.map(updateObject);
+                            }
+                            updated = true;
+                        }
+
+                        return newItem;
+                    }
+                    return item;
+                };
+
+                if (Array.isArray(oldData)) {
+                    return oldData.map(updateObject);
+                }
+
+                return updateObject(oldData);
+            }
+        );
+    };
+
+    // Derived states - use precomputed backend values directly with defensive fallback
+    const hasLiked = !!targetPost.isLikedByCurrentUser;
+    const likeCount = useMemo(() => {
+        const baseCount = targetPost.reactions?.filter(r => r.emoji === "❤️").length || 0;
+        const containsUser = targetPost.reactions?.some(r => r.userId === currentUserId && r.emoji === "❤️");
+        if (targetPost.isLikedByCurrentUser && !containsUser) {
+            return baseCount + 1;
+        } else if (!targetPost.isLikedByCurrentUser && containsUser) {
+            return Math.max(0, baseCount - 1);
+        }
+        return baseCount;
+    }, [targetPost.reactions, targetPost.isLikedByCurrentUser, currentUserId]);
 
     const displayUserInfo = isPureRepost && post.repostOf ? post.repostOf.user : post.user;
     const displayContent = isPureRepost && post.repostOf ? post.repostOf.content : post.content;
@@ -101,20 +171,50 @@ export function PostItem({
             d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     }, [createdAt]);
 
-    // Simple Mutation Logic
+    // Simple Mutation Logic with Optimistic Updates
     const likeMutation = useMutation({
         mutationFn: async () => {
             const targetId = post.repostOfId || post.id;
             return toggleLikeAction(targetId, currentUserId!, "like-" + Date.now());
         },
-        onSuccess: () => {
-            // Conventional way: Just invalidate all related posts
+        onMutate: async () => {
+            const targetId = post.repostOfId || post.id;
+            
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["posts"] });
+            await queryClient.cancelQueries({ queryKey: ["feed"] });
+
+            const nextLiked = !targetPost.isLikedByCurrentUser;
+            
+            updatePostInCache(targetId, (oldPost) => {
+                const containsUser = oldPost.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️");
+                let newReactions = oldPost.reactions || [];
+                if (nextLiked && !containsUser) {
+                    newReactions = [...newReactions, { id: "temp", postId: targetId, userId: currentUserId!, emoji: "❤️", createdAt: new Date(), updatedAt: new Date(), user: { username: currentUser?.username || "" } }];
+                } else if (!nextLiked && containsUser) {
+                    newReactions = newReactions.filter((r: any) => !(r.userId === currentUserId && r.emoji === "❤️"));
+                }
+                return {
+                    ...oldPost,
+                    isLikedByCurrentUser: nextLiked,
+                    reactions: newReactions,
+                    reactionCount: newReactions.length,
+                };
+            });
+        },
+        onSuccess: (res) => {
+            if (res.status === "success" && res.data) {
+                const targetId = post.repostOfId || post.id;
+                updatePostInCache(targetId, () => res.data!);
+            }
             queryClient.invalidateQueries({ queryKey: ["posts"] });
             queryClient.invalidateQueries({ queryKey: ["feed"] });
             if (onUpdate) onUpdate(post);
         },
         onError: () => {
             toast.error("Gagal menyukai");
+            queryClient.invalidateQueries({ queryKey: ["posts"] });
+            queryClient.invalidateQueries({ queryKey: ["feed"] });
         }
     });
 
@@ -123,7 +223,28 @@ export function PostItem({
             const targetId = post.repostOfId || post.id;
             return repostAction(targetId, currentUserId!, "repost-" + Date.now());
         },
+        onMutate: async () => {
+            const targetId = post.repostOfId || post.id;
+            
+            await queryClient.cancelQueries({ queryKey: ["posts"] });
+            await queryClient.cancelQueries({ queryKey: ["feed"] });
+
+            const nextReposted = !targetPost.isRepostedByCurrentUser;
+            
+            updatePostInCache(targetId, (oldPost) => {
+                const currentCount = oldPost.repostCount || 0;
+                return {
+                    ...oldPost,
+                    isRepostedByCurrentUser: nextReposted,
+                    repostCount: nextReposted ? currentCount + 1 : Math.max(0, currentCount - 1),
+                };
+            });
+        },
         onSuccess: (res) => {
+            if (res.status === "success" && res.data) {
+                const targetId = post.repostOfId || post.id;
+                updatePostInCache(targetId, () => res.data!);
+            }
             queryClient.invalidateQueries({ queryKey: ["posts"] });
             queryClient.invalidateQueries({ queryKey: ["feed"] });
             if (res.status === "success" && !res.data) {
@@ -134,6 +255,8 @@ export function PostItem({
         },
         onError: () => {
             toast.error("Gagal membagikan");
+            queryClient.invalidateQueries({ queryKey: ["posts"] });
+            queryClient.invalidateQueries({ queryKey: ["feed"] });
         }
     });
 
@@ -288,11 +411,11 @@ export function PostItem({
                         <div className="text-zinc-500 text-[15px]">
                             {formattedDate}
                         </div>
-                        {(likeCount > 0 || (post.repostCount ?? 0) > 0) && (
+                        {(likeCount > 0 || (targetPost.repostCount ?? 0) > 0) && (
                             <div className="flex gap-4 text-[15px] border-t border-white/5 pt-4">
-                                {(post.repostCount ?? 0) > 0 && (
+                                {(targetPost.repostCount ?? 0) > 0 && (
                                     <div className="flex gap-1 items-center">
-                                        <span className="font-bold text-zinc-100">{post.repostCount}</span>
+                                        <span className="font-bold text-zinc-100">{targetPost.repostCount}</span>
                                         <span className="text-zinc-500">Reposts</span>
                                     </div>
                                 )}
@@ -309,7 +432,7 @@ export function PostItem({
                     <div className="flex items-center justify-between py-1 max-w-[400px] w-full relative z-30 pointer-events-none">
                         <InteractionButton
                             icon={MessageSquare}
-                            label={post.replyCount || ""}
+                            label={targetPost.replyCount || ""}
                             onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }}
                             className="pointer-events-auto"
                             hoverColor="hover:text-sky-400"
@@ -321,11 +444,11 @@ export function PostItem({
                                 <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
                                     <InteractionButton
                                         icon={Repeat2}
-                                        label={post.repostCount || ""}
+                                        label={targetPost.repostCount || ""}
                                         onClick={(e) => e.preventDefault()}
                                         hoverColor="hover:text-emerald-500"
                                         hoverBg="group-hover/btn:bg-emerald-500/10"
-                                        active={post.isRepostedByCurrentUser}
+                                        active={targetPost.isRepostedByCurrentUser}
                                         activeColor="text-emerald-500"
                                         activeBg="bg-transparent"
                                     />
@@ -334,7 +457,7 @@ export function PostItem({
                             <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
                                 <DropdownMenuItem onClick={handleRepost} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <Repeat2 className="mr-2 h-4 w-4" />
-                                    <span>{post.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
+                                    <span>{targetPost.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <PenLine className="mr-2 h-4 w-4" />
@@ -380,7 +503,7 @@ export function PostItem({
 
     return (
         <div className={cn("relative border-b border-white/5 transition-colors duration-200 hover:bg-white/[0.01] overflow-hidden")}>
-            <Link href={`/posts/${post.repostOfId || post.id}`} className="absolute inset-0 z-10 opacity-0" aria-label="View post" />
+            <Link href={`/posts/${isPureRepost ? (post.repostOfId || post.id) : post.id}`} className="absolute inset-0 z-10 opacity-0" aria-label="View post" />
 
             {showConnector && (
                 <div className={cn("absolute left-[39px] w-[2px] bg-zinc-800 z-0", isLastInChain ? "top-0 h-4" : "top-0 bottom-0")} />
@@ -465,7 +588,7 @@ export function PostItem({
                     <div className="flex items-center justify-between mt-3 max-w-[400px] w-full z-30 relative pointer-events-none">
                         <InteractionButton
                             icon={MessageSquare}
-                            label={post.replyCount || ""}
+                            label={targetPost.replyCount || ""}
                             onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }}
                             className="pointer-events-auto"
                             hoverColor="hover:text-sky-400"
@@ -477,11 +600,11 @@ export function PostItem({
                                 <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
                                     <InteractionButton
                                         icon={Repeat2}
-                                        label={post.repostCount || ""}
+                                        label={targetPost.repostCount || ""}
                                         onClick={(e) => e.preventDefault()}
                                         hoverColor="hover:text-emerald-500"
                                         hoverBg="group-hover/btn:bg-emerald-500/10"
-                                        active={post.isRepostedByCurrentUser}
+                                        active={targetPost.isRepostedByCurrentUser}
                                         activeColor="text-emerald-500"
                                         activeBg="bg-transparent"
                                     />
@@ -490,7 +613,7 @@ export function PostItem({
                             <DropdownMenuContent align="start" className="bg-zinc-900 border-white/10 text-zinc-100 z-[1000]">
                                 <DropdownMenuItem onClick={handleRepost} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <Repeat2 className="mr-2 h-4 w-4" />
-                                    <span>{post.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
+                                    <span>{targetPost.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-white/5 focus:text-emerald-500">
                                     <PenLine className="mr-2 h-4 w-4" />

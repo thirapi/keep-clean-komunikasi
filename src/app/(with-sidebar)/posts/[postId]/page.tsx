@@ -1,5 +1,4 @@
 import { getPostThreadAction } from "../../../posts.action";
-import { sidaBarUserInfo } from "../../../auth.action";
 import PostDetailView from "./post-detail-view";
 import { notFound } from "next/navigation";
 
@@ -12,16 +11,16 @@ interface PostPageProps {
 export default async function PostPage({ params }: PostPageProps) {
     const { postId } = await params;
 
-    const response = await getPostThreadAction(postId);
+    const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();
+
+    const response = await getPostThreadAction(postId, fullCurrentUser?.id);
 
     if (response.status === "error" || !response.data) {
         notFound();
     }
 
     const { post, replies, parents } = response.data;
-    const currentUser = await sidaBarUserInfo();
 
-    const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();
     const finalCurrentUser = fullCurrentUser ? {
         id: fullCurrentUser.id,
         name: fullCurrentUser.username,

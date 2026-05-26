@@ -159,9 +159,9 @@ export default function TimelineView({
                         </div>
                         <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>
                         {isFetching && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
-                                <div className="h-1 w-1 rounded-full bg-current" />
-                                Memperbarui...
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="h-1 w-1 rounded-full bg-current animate-ping" />
+                                <span className="animate-pulse">Memperbarui...</span>
                             </div>
                         )}
                     </div>

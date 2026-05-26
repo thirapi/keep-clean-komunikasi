@@ -80,8 +80,14 @@ export class PostRepository implements IPostRepository {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
                         reactions: { with: { user: { columns: { username: true } } } },
-                        reposts: { columns: { id: true } },
-                        replies: { columns: { id: true } }
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        }
                     },
                 },
                 reposts: {
@@ -130,8 +136,14 @@ export class PostRepository implements IPostRepository {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
                         reactions: true,
-                        reposts: { columns: { id: true } },
-                        replies: { columns: { id: true } }
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        }
                     },
                 },
                 reposts: {
@@ -215,8 +227,14 @@ export class PostRepository implements IPostRepository {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
                         reactions: true,
-                        reposts: { columns: { id: true } },
-                        replies: { columns: { id: true } }
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        }
                     },
                 },
                 reposts: {
@@ -255,8 +273,14 @@ export class PostRepository implements IPostRepository {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
                         reactions: true,
-                        reposts: { columns: { id: true } },
-                        replies: { columns: { id: true } }
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        }
                     },
                 },
                 reposts: {
@@ -294,8 +318,14 @@ export class PostRepository implements IPostRepository {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
                         reactions: true,
-                        reposts: { columns: { id: true } },
-                        replies: { columns: { id: true } }
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        }
                     },
                 },
                 reposts: {
@@ -331,13 +361,39 @@ export class PostRepository implements IPostRepository {
     }
 
     private async mapPostsWithStates(posts: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
-        return posts.map(post => ({
-            ...post,
-            isLiked: currentUserId ? post.reactions.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
-            isReposted: currentUserId ? post.reposts.some((r: any) => r.userId === currentUserId) : false,
-            replyCount: post.replies?.length || 0,
-            repostCount: post.reposts?.length || 0,
-            reactionCount: post.reactions?.length || 0,
-        }));
+        return posts.map(post => {
+            const mappedPost = {
+                ...post,
+                isLikedByCurrentUser: currentUserId ? post.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
+                isRepostedByCurrentUser: currentUserId ? post.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                replyCount: post.replies?.length || 0,
+                repostCount: post.reposts?.length || 0,
+                reactionCount: post.reactions?.length || 0,
+            };
+
+            if (mappedPost.repostOf) {
+                mappedPost.repostOf = {
+                    ...mappedPost.repostOf,
+                    isLikedByCurrentUser: currentUserId ? mappedPost.repostOf.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
+                    isRepostedByCurrentUser: currentUserId ? mappedPost.repostOf.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                    replyCount: mappedPost.repostOf.replies?.length || 0,
+                    repostCount: mappedPost.repostOf.reposts?.length || 0,
+                    reactionCount: mappedPost.repostOf.reactions?.length || 0,
+                };
+            }
+
+            if (mappedPost.replyTo) {
+                mappedPost.replyTo = {
+                    ...mappedPost.replyTo,
+                    isLikedByCurrentUser: currentUserId ? mappedPost.replyTo.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
+                    isRepostedByCurrentUser: currentUserId ? mappedPost.replyTo.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                    replyCount: mappedPost.replyTo.replies?.length || 0,
+                    repostCount: mappedPost.replyTo.reposts?.length || 0,
+                    reactionCount: mappedPost.replyTo.reactions?.length || 0,
+                };
+            }
+
+            return mappedPost;
+        });
     }
 }

@@ -29,7 +29,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
     const { data: threadData } = useQuery({
         queryKey: ["posts", "detail", initialPost.id],
         queryFn: async () => {
-            const res = await getPostThreadAction(initialPost.id);
+            const res = await getPostThreadAction(initialPost.id, currentUser?.id);
             return res.data;
         },
         initialData: { post: initialPost, replies: initialReplies, parents: initialParents },
@@ -47,15 +47,22 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
     useEffect(() => {
         setIsMounted(true);
 
-        // Initial Anchoring
-        const timer = setTimeout(() => {
-            if (focusedPostRef.current) {
-                focusedPostRef.current.scrollIntoView({ behavior: "instant", block: "start" });
+        let attempts = 0;
+        const scrollAndCheck = () => {
+            if (scrollContainerRef.current && focusedPostRef.current) {
+                const offset = parents.length > 0 ? focusedPostRef.current.offsetTop : 0;
+                if (parents.length > 0 && offset === 0 && attempts < 30) {
+                    attempts++;
+                    requestAnimationFrame(scrollAndCheck);
+                } else {
+                    scrollContainerRef.current.scrollTop = offset;
+                }
             }
-        }, 100);
+        };
 
+        const timer = setTimeout(scrollAndCheck, 50);
         return () => clearTimeout(timer);
-    }, []);
+    }, [post.id, parents.length]);
 
     const handleNewReplyCreated = () => {
         // Just invalidate the specific thread
@@ -64,11 +71,11 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
 
     return (
         <div className="flex flex-col h-full bg-background">
-            <div className="flex justify-center flex-1">
+            <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 flex flex-col h-full">
 
                     {/* Header */}
-                    <div className="px-4 py-3 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-3">
+                    <div className="px-4 py-3 sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border flex items-center gap-3">
                         <div className="md:hidden flex items-center gap-2">
                             <Button
                                 variant="ghost"
@@ -80,15 +87,22 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                 <ChevronLeft strokeWidth="4" className="h-7 w-7" />
                             </Button>
                         </div>
+
                         {isMounted && (
-                            <Button variant="ghost" size="icon" className="h-10 w-10 text-white rounded-full hover:bg-white/10" onClick={() => router.back()}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 text-white rounded-full hover:bg-white/10"
+                                onClick={() => router.back()}
+                            >
                                 <ChevronLeft strokeWidth="3" className="h-6 w-6" />
                             </Button>
                         )}
-                        <h1 className="text-xl font-bold tracking-tight text-white">Postingan</h1>
+
+                        <h1 className="text-xl font-bold tracking-tight">Postingan</h1>
                     </div>
 
-                    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth">
+                    <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto">
                         {/* Parent Chain */}
                         {parents.length > 0 && (
                             <div className="flex flex-col">
@@ -106,39 +120,42 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                             </div>
                         )}
 
-                        {/* Focused Post */}
-                        <div ref={focusedPostRef}>
-                            <PostItem
-                                post={post}
-                                currentUser={currentUser}
-                                isFocused={true}
-                                onUpdate={handleNewReplyCreated}
-                                hideReplyIndicator={parents.length > 0}
-                            />
-                        </div>
-
-                        {/* Reply Input */}
-                        {currentUser && (
-                            <div className="px-4 py-3 border-b border-border/10">
-                                <SimpleReplyInput
-                                    postId={post.id}
+                        {/* Focused Post & Replies Container */}
+                        <div className={cn("flex flex-col", parents.length > 0 && "min-h-[calc(100dvh-60px)] pb-[40vh]")}>
+                            {/* Focused Post */}
+                            <div ref={focusedPostRef}>
+                                <PostItem
+                                    post={post}
                                     currentUser={currentUser}
-                                    onReplyCreated={handleNewReplyCreated}
+                                    isFocused={true}
+                                    onUpdate={handleNewReplyCreated}
+                                    hideReplyIndicator={parents.length > 0}
                                 />
                             </div>
-                        )}
 
-                        {/* Replies */}
-                        <div className="flex flex-col">
-                            {replies.map((reply) => (
-                                <PostItem
-                                    key={reply.id}
-                                    post={reply}
-                                    currentUser={currentUser}
-                                    onUpdate={handleNewReplyCreated}
-                                    hideReplyIndicator={true}
-                                />
-                            ))}
+                            {/* Reply Input */}
+                            {currentUser && (
+                                <div className="px-4 py-3 border-b border-border/10">
+                                    <SimpleReplyInput
+                                        postId={post.id}
+                                        currentUser={currentUser}
+                                        onReplyCreated={handleNewReplyCreated}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Replies */}
+                            <div className="flex flex-col">
+                                {replies.map((reply) => (
+                                    <PostItem
+                                        key={reply.id}
+                                        post={reply}
+                                        currentUser={currentUser}
+                                        onUpdate={handleNewReplyCreated}
+                                        hideReplyIndicator={true}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
