@@ -7,14 +7,22 @@ import { motion } from "framer-motion";
 
 interface LinkPreviewCardProps {
   url: string;
+  preview?: {
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+    siteName?: string | null;
+  };
 }
 
-export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
-  const [data, setData] = useState<LinkPreview | null>(null);
-  const [loading, setLoading] = useState(true);
+export function LinkPreviewCard({ url, preview }: LinkPreviewCardProps) {
+  const [data, setData] = useState<LinkPreview | null>(preview ? { ...preview, url } as any : null);
+  const [loading, setLoading] = useState(!preview);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (preview) return;
+
     let isMounted = true;
     fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
       .then((res) => res.json())

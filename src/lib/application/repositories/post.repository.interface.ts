@@ -11,6 +11,7 @@ export interface IPostRepository {
     countByUserId(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    findThreadDescendants(postId: string, userId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getGlobalFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getFollowingFeed(followingIds: string[], limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getDiscoveryFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;

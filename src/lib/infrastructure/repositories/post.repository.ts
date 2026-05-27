@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { posts, postReactions, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, desc, and, isNotNull, isNull, exists, sql } from "drizzle-orm";
+import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or } from "drizzle-orm";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -73,13 +73,13 @@ export class PostRepository implements IPostRepository {
                     with: { user: { columns: { username: true } } },
                 },
                 replyTo: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, bookmarks: true },
                 },
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         attachments: true,
-                        reactions: { with: { user: { columns: { username: true } } } },
+                        reactions: true,
                         reposts: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true, userId: true }
@@ -87,7 +87,8 @@ export class PostRepository implements IPostRepository {
                         replies: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true }
-                        }
+                        },
+                        bookmarks: true,
                     },
                 },
                 reposts: {
@@ -97,7 +98,9 @@ export class PostRepository implements IPostRepository {
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
-                }
+                },
+                bookmarks: true,
+                linkPreviews: true,
             },
         });
 
@@ -112,8 +115,18 @@ export class PostRepository implements IPostRepository {
 
     async findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: (posts, { and, eq, isNotNull, isNull }) => {
-                const base = and(eq(posts.userId, userId), eq(posts.isDeleted, false));
+            where: (posts, { and, eq, isNotNull, isNull, or }) => {
+                const isOwner = currentUserId === userId;
+                const base = and(
+                    eq(posts.userId, userId), 
+                    eq(posts.isDeleted, false),
+                    or(
+                        eq(posts.visibility, "public"),
+                        isOwner ? undefined : eq(posts.visibility, "unlisted"),
+                        isOwner ? eq(posts.visibility, "private") : undefined,
+                        isOwner ? eq(posts.visibility, "unlisted") : undefined
+                    )
+                );
                 if (filter === "threads") return and(base, isNull(posts.replyToId));
                 if (filter === "replies") return and(base, isNotNull(posts.replyToId));
                 if (filter === "reposts") return and(base, isNotNull(posts.repostOfId));
@@ -143,7 +156,8 @@ export class PostRepository implements IPostRepository {
                         replies: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true }
-                        }
+                        },
+                        bookmarks: true,
                     },
                 },
                 reposts: {
@@ -154,10 +168,31 @@ export class PostRepository implements IPostRepository {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { with: { user: { columns: { username: true } } } }
+                replyTo: { with: { user: { columns: { username: true } }, bookmarks: true } },
+                bookmarks: true,
+                linkPreviews: true,
             },
         });
 
+        return this.mapPostsWithStates(results as any, currentUserId);
+    }
+
+    async findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
+        const results = await this.client.query.posts.findMany({
+            where: and(eq(posts.replyToId, postId), eq(posts.isDeleted, false)),
+            orderBy: [desc(posts.createdAt)],
+            with: {
+                user: {
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                },
+                attachments: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
+                bookmarks: true,
+                linkPreviews: true,
+            }
+        });
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
@@ -176,32 +211,87 @@ export class PostRepository implements IPostRepository {
         return Number(result[0].count);
     }
 
-    async findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
-        const results = await this.client.query.posts.findMany({
-            where: and(eq(posts.replyToId, postId), eq(posts.isDeleted, false)),
-            orderBy: [desc(posts.createdAt)],
-            with: {
-                user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
-                },
-                attachments: true,
-                reactions: true,
-            }
-        });
-        return this.mapPostsWithStates(results as any, currentUserId);
-    }
-
     async findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
         const chain: PostWithUserDTO[] = [];
-        let currentId: string | null = postId;
+        
+        // Dapatkan kiriman saat ini untuk menemukan induk pertamanya
+        const currentPost = await this.findByIdWithDetails(postId, currentUserId);
+        let parentId = currentPost?.replyToId;
 
-        while (currentId) {
-            const post = await this.findByIdWithDetails(currentId, currentUserId);
-            if (!post || !post.replyToId) break;
-            currentId = post.replyToId;
-            chain.unshift(post);
+        // Telusuri ke atas hingga mencapai akar (post pertama)
+        while (parentId) {
+            const parent = await this.findByIdWithDetails(parentId, currentUserId);
+            if (!parent) break;
+            
+            chain.unshift(parent);
+            parentId = parent.replyToId;
         }
+
         return chain;
+    }
+
+    async findThreadDescendants(postId: string, userId: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
+        const descendants: PostWithUserDTO[] = [];
+        let currentId: string = postId;
+
+        // Follow the chain: find the next reply by the same author
+        while (true) {
+            const nextInThread = await this.client.query.posts.findFirst({
+                where: and(
+                    eq(posts.replyToId, currentId),
+                    eq(posts.userId, userId),
+                    eq(posts.isDeleted, false)
+                ),
+                orderBy: [asc(posts.createdAt)], // Take the earliest reply if multiple exist by same author
+                with: {
+                    user: {
+                        columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    },
+                    attachments: true,
+                    reactions: {
+                        with: { user: { columns: { username: true } } },
+                    },
+                    reposts: {
+                        where: eq(posts.isDeleted, false),
+                        columns: { id: true, userId: true }
+                    },
+                    replies: {
+                        where: eq(posts.isDeleted, false),
+                        columns: { id: true }
+                    },
+                    bookmarks: true,
+                    linkPreviews: true,
+                }
+            });
+
+            if (!nextInThread) break;
+
+            const mappedResults = await this.mapPostsWithStates([nextInThread as any], currentUserId);
+            const mapped = mappedResults[0];
+            descendants.push(mapped);
+            currentId = nextInThread.id;
+        }
+
+        return descendants;
+    }
+
+    async addReaction(postId: string, userId: string, emoji: string): Promise<void> {
+        await this.client.insert(postReactions).values({
+            id: createId(),
+            postId,
+            userId,
+            emoji
+        }).onConflictDoNothing();
+    }
+
+    async removeReaction(postId: string, userId: string, emoji: string): Promise<void> {
+        await this.client.delete(postReactions).where(
+            and(
+                eq(postReactions.postId, postId),
+                eq(postReactions.userId, userId),
+                eq(postReactions.emoji, emoji)
+            )
+        );
     }
 
     async getGlobalFeed(limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
@@ -220,7 +310,7 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, bookmarks: true },
                 },
                 repostOf: {
                     with: {
@@ -234,7 +324,8 @@ export class PostRepository implements IPostRepository {
                         replies: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true }
-                        }
+                        },
+                        bookmarks: true,
                     },
                 },
                 reposts: {
@@ -244,7 +335,9 @@ export class PostRepository implements IPostRepository {
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
-                }
+                },
+                bookmarks: true,
+                linkPreviews: true,
             },
         });
         return this.mapPostsWithStates(results as any, currentUserId);
@@ -252,9 +345,14 @@ export class PostRepository implements IPostRepository {
 
     async getFollowingFeed(followingIds: string[], limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: (posts, { and, eq, inArray }) => and(
+            where: (posts, { and, eq, inArray, or }) => and(
                 inArray(posts.userId, followingIds),
-                eq(posts.isDeleted, false)
+                eq(posts.isDeleted, false),
+                or(
+                    eq(posts.visibility, "public"),
+                    eq(posts.visibility, "unlisted"),
+                    currentUserId ? eq(posts.userId, currentUserId) : undefined
+                )
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
@@ -266,7 +364,7 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, bookmarks: true },
                 },
                 repostOf: {
                     with: {
@@ -280,7 +378,8 @@ export class PostRepository implements IPostRepository {
                         replies: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true }
-                        }
+                        },
+                        bookmarks: true,
                     },
                 },
                 reposts: {
@@ -290,7 +389,9 @@ export class PostRepository implements IPostRepository {
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
-                }
+                },
+                bookmarks: true,
+                linkPreviews: true,
             },
         });
 
@@ -325,7 +426,8 @@ export class PostRepository implements IPostRepository {
                         replies: { 
                             where: eq(posts.isDeleted, false),
                             columns: { id: true }
-                        }
+                        },
+                        bookmarks: true,
                     },
                 },
                 reposts: {
@@ -335,30 +437,15 @@ export class PostRepository implements IPostRepository {
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
-                }
+                },
+                bookmarks: true,
+                linkPreviews: true,
             },
         });
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    async addReaction(postId: string, userId: string, emoji: string): Promise<void> {
-        await this.client.insert(postReactions).values({
-            id: createId(),
-            postId,
-            userId,
-            emoji
-        }).onConflictDoNothing();
-    }
-
-    async removeReaction(postId: string, userId: string, emoji: string): Promise<void> {
-        await this.client.delete(postReactions).where(
-            and(
-                eq(postReactions.postId, postId),
-                eq(postReactions.userId, userId),
-                eq(postReactions.emoji, emoji)
-            )
-        );
-    }
+    // ... (addReaction and removeReaction remain unchanged)
 
     private async mapPostsWithStates(posts: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
         return posts.map(post => {
@@ -366,6 +453,7 @@ export class PostRepository implements IPostRepository {
                 ...post,
                 isLikedByCurrentUser: currentUserId ? post.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
                 isRepostedByCurrentUser: currentUserId ? post.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                isBookmarkedByCurrentUser: currentUserId ? post.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                 replyCount: post.replies?.length || 0,
                 repostCount: post.reposts?.length || 0,
                 reactionCount: post.reactions?.length || 0,
@@ -376,6 +464,7 @@ export class PostRepository implements IPostRepository {
                     ...mappedPost.repostOf,
                     isLikedByCurrentUser: currentUserId ? mappedPost.repostOf.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
                     isRepostedByCurrentUser: currentUserId ? mappedPost.repostOf.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                    isBookmarkedByCurrentUser: currentUserId ? mappedPost.repostOf.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                     replyCount: mappedPost.repostOf.replies?.length || 0,
                     repostCount: mappedPost.repostOf.reposts?.length || 0,
                     reactionCount: mappedPost.repostOf.reactions?.length || 0,
@@ -387,6 +476,7 @@ export class PostRepository implements IPostRepository {
                     ...mappedPost.replyTo,
                     isLikedByCurrentUser: currentUserId ? mappedPost.replyTo.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
                     isRepostedByCurrentUser: currentUserId ? mappedPost.replyTo.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                    isBookmarkedByCurrentUser: currentUserId ? mappedPost.replyTo.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                     replyCount: mappedPost.replyTo.replies?.length || 0,
                     repostCount: mappedPost.replyTo.reposts?.length || 0,
                     reactionCount: mappedPost.replyTo.reactions?.length || 0,

@@ -15,6 +15,17 @@ export interface PostRecord {
     updatedAt: Date;
 }
 
+export interface PostLinkPreview {
+    id: string;
+    postId: string;
+    url: string;
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+    siteName?: string | null;
+    createdAt: Date;
+}
+
 export interface PostWithUserDTO extends PostRecord {
     user: {
         username: string;
@@ -27,9 +38,11 @@ export interface PostWithUserDTO extends PostRecord {
     reactions?: PostReactionWithUserDTO[];
     replyTo?: PostWithUserDTO | null;
     repostOf?: PostWithUserDTO | null;
+    linkPreviews?: PostLinkPreview[];
     // UI metadata
     isLikedByCurrentUser?: boolean;
     isRepostedByCurrentUser?: boolean;
+    isBookmarkedByCurrentUser?: boolean;
     repostCount?: number;
     replyCount?: number;
     optimisticId?: string;

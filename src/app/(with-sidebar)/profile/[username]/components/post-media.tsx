@@ -26,7 +26,7 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
     return (
         <div
             className={cn(
-                "grid gap-1 mt-3 rounded-2xl overflow-hidden border border-white/5 bg-black/20",
+                "grid gap-1 mt-3 rounded-2xl overflow-hidden border border-border bg-muted/20",
                 gridClass,
                 isQuoted && "mt-2 opacity-90"
             )}
@@ -40,7 +40,7 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
                     <div
                         key={att.id || idx}
                         className={cn(
-                            "relative bg-zinc-900 flex items-center justify-center overflow-hidden group border-[0.5px] border-white/5",
+                            "relative bg-muted flex items-center justify-center overflow-hidden group border-[0.5px] border-border/50",
                             isLarge ? "row-span-2 aspect-[4/5]" : "aspect-video",
                             count === 1 ? "aspect-auto max-h-[500px]" : ""
                         )}

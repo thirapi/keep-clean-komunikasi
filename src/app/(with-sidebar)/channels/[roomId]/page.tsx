@@ -46,9 +46,6 @@ export default async function ChatPage({
         {/* blur */}
         <div className="absolute inset-0 backdrop-blur-2xl z-[1]" />
 
-        {/* overlay tone */}
-        <div className="absolute inset-0 bg-background/70 z-[2]" />
-
         <div className="relative z-10 text-center space-y-8">
           <div className="relative">
             <K className="w-24 h-24 mx-auto text-primary relative z-10" />

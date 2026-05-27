@@ -19,7 +19,7 @@ export default async function PostPage({ params }: PostPageProps) {
         notFound();
     }
 
-    const { post, replies, parents } = response.data;
+    const { post, replies, parents, thread } = response.data;
 
     const finalCurrentUser = fullCurrentUser ? {
         id: fullCurrentUser.id,
@@ -35,6 +35,7 @@ export default async function PostPage({ params }: PostPageProps) {
             initialPost={post}
             initialReplies={replies}
             initialParents={parents}
+            initialThread={thread}
             currentUser={finalCurrentUser}
         />
     );

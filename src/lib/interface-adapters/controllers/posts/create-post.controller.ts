@@ -1,13 +1,25 @@
 import { PostRepository } from "@/lib/infrastructure/repositories/post.repository";
 import { CreatePostUseCase } from "@/lib/application/use-cases/posts/create-post.use-case";
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
+import { LinkPreviewRepository } from "@/lib/infrastructure/repositories/link-preview.repository";
+import { LinkPreviewService } from "@/lib/infrastructure/services/link-preview.service";
+import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.repository";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { InputParsedError } from "@/lib/entities/errors/common";
 
 const postRepository = new PostRepository(db);
 const pusherService = new PusherService();
-const createPostUseCase = new CreatePostUseCase(postRepository, pusherService);
+const linkPreviewRepository = new LinkPreviewRepository(db);
+const linkPreviewService = new LinkPreviewService();
+const hashtagRepository = new HashtagRepository(db);
+const createPostUseCase = new CreatePostUseCase(
+    postRepository, 
+    pusherService,
+    linkPreviewRepository,
+    linkPreviewService,
+    hashtagRepository
+);
 
 const createPostSchema = z.object({
     id: z.string().optional(),

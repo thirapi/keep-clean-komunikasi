@@ -205,19 +205,85 @@ export default function TimelineView({
                                     <span className="text-sm font-medium">Memuat timeline...</span>
                                 </div>
                             ) : posts.length > 0 ? (
-                                posts.map((post: PostWithUserDTO) => (
-                                    <PostItem
-                                        key={post.id}
-                                        post={post}
-                                        currentUserId={currentUser?.id}
-                                        currentUser={currentUser ? {
-                                            id: currentUser.id,
-                                            username: currentUser.username,
-                                            avatar: currentUser.avatar
-                                        } : undefined}
-                                        onUpdate={() => refetch()}
-                                    />
-                                ))
+                                (() => {
+                                    // Robust Grouping Logic
+                                    const groupedItems: (PostWithUserDTO | PostWithUserDTO[])[] = [];
+                                    const processedIds = new Set<string>();
+
+                                    for (let i = 0; i < posts.length; i++) {
+                                        const post = posts[i];
+                                        if (processedIds.has(post.id)) continue;
+
+                                        let thread: PostWithUserDTO[] = [post];
+                                        processedIds.add(post.id);
+
+                                        let currentPost = post;
+                                        // In reverse-chronological feed, the PARENT is further down the array (older)
+                                        // We look ahead to see if the current post is a reply to something we have in the current list
+                                        let j = i + 1;
+                                        while (j < posts.length) {
+                                            const potentialParent = posts[j];
+                                            if (!processedIds.has(potentialParent.id) &&
+                                                currentPost.replyToId === potentialParent.id &&
+                                                currentPost.userId === potentialParent.userId) {
+                                                thread.push(potentialParent);
+                                                processedIds.add(potentialParent.id);
+                                                currentPost = potentialParent;
+                                                j++;
+                                            } else {
+                                                break;
+                                            }
+                                        }
+
+                                        if (thread.length > 1) {
+                                            // thread is [Newest, ..., Oldest]
+                                            // We reverse it to [Oldest, ..., Newest] for chronological reading within the block
+                                            groupedItems.push(thread.reverse());
+                                        } else {
+                                            groupedItems.push(post);
+                                        }
+                                    }
+
+                                    return groupedItems.map((item) => {
+                                        if (Array.isArray(item)) {
+                                            return (
+                                                <div key={`group-${item[0].id}`} className="flex flex-col">
+                                                    {item.map((post, idx) => (
+                                                        <PostItem
+                                                            key={post.id}
+                                                            post={post}
+                                                            currentUserId={currentUser?.id}
+                                                            currentUser={currentUser ? {
+                                                                id: currentUser.id,
+                                                                username: currentUser.username,
+                                                                avatar: currentUser.avatar
+                                                            } : undefined}
+                                                            onUpdate={() => refetch()}
+                                                            showConnector={idx < item.length - 1}
+                                                            isFirstInChain={idx === 0}
+                                                            isLastInChain={idx === item.length - 1}
+                                                            hideReplyIndicator={idx > 0}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <PostItem
+                                                key={item.id}
+                                                post={item}
+                                                currentUserId={currentUser?.id}
+                                                currentUser={currentUser ? {
+                                                    id: currentUser.id,
+                                                    username: currentUser.username,
+                                                    avatar: currentUser.avatar
+                                                } : undefined}
+                                                onUpdate={() => refetch()}
+                                            />
+                                        );
+                                    });
+                                })()
                             ) : (
                                 <div className="p-20 text-center opacity-30 select-none">
                                     <span className="text-muted-foreground font-medium italic">Timeline kosong. Mari mulai berbagi!</span>

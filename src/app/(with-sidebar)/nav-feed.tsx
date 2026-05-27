@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Users, Compass } from "lucide-react";
+import { Globe, Users, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NavFeed() {
@@ -25,6 +25,11 @@ export function NavFeed() {
             name: "Mengikuti",
             url: "/following",
             icon: Users,
+        },
+        {
+            name: "Bookmark",
+            url: "/bookmarks",
+            icon: Bookmark,
         },
     ];
 

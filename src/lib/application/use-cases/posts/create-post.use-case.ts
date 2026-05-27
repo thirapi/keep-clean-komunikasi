@@ -1,12 +1,20 @@
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { IPusherService } from "@/lib/application/services/pusher.service.interface";
+import { ILinkPreviewRepository } from "@/lib/application/repositories/link-preview.repository.interface";
+import { ILinkPreviewService } from "@/lib/application/services/link-preview.service.interface";
+import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.repository";
 import { createId } from "@paralleldrive/cuid2";
+import { extractUrls } from "@/lib/extract-urls";
+import { extractHashtags } from "@/lib/extract-hashtags";
 
 export class CreatePostUseCase {
     constructor(
         private postRepository: IPostRepository,
-        private pusherService: IPusherService
+        private pusherService: IPusherService,
+        private linkPreviewRepository: ILinkPreviewRepository,
+        private linkPreviewService: ILinkPreviewService,
+        private hashtagRepository: HashtagRepository
     ) { }
 
     async execute(
@@ -39,6 +47,35 @@ export class CreatePostUseCase {
         };
 
         await this.postRepository.create(postRecord, attachments);
+
+        // Extract and save URLs
+        const urls = extractUrls(content);
+        if (urls.length > 0) {
+            for (const url of urls.slice(0, 3)) {
+                try {
+                    const preview = await this.linkPreviewService.getPreview(url);
+                    if (preview) {
+                        await this.linkPreviewRepository.create({
+                            postId: id,
+                            url: preview.url,
+                            title: preview.title,
+                            description: preview.description,
+                            image: preview.image,
+                            siteName: preview.siteName,
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch preview for ${url}:`, err);
+                }
+            }
+        }
+
+        // Extract and save hashtags
+        const hashtags = extractHashtags(content);
+        for (const tag of hashtags) {
+            const tagId = await this.hashtagRepository.getOrCreate(tag);
+            await this.hashtagRepository.associate(id, tagId);
+        }
 
         const postWithDetails = await this.postRepository.findByIdWithDetails(id, userId);
 

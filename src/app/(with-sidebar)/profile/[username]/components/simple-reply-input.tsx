@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { createPostAction } from "@/app/posts.action";
+import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { ImagePlus, X, FileIcon, Loader2 } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 interface SimpleReplyInputProps {
     currentUser: {
@@ -15,49 +18,236 @@ interface SimpleReplyInputProps {
     };
     postId: string;
     onReplyCreated: (reply: any) => void;
+    showConnector?: boolean;
 }
 
-export function SimpleReplyInput({ currentUser, postId, onReplyCreated }: SimpleReplyInputProps) {
+export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConnector }: SimpleReplyInputProps) {
     const [content, setContent] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [filePreviews, setFilePreviews] = useState<{ file: File; preview: string | null }[]>([]);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const CHAR_LIMIT = 280;
+    const MAX_FILES = 4;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    // Auto-expand textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "inherit";
+            const scrollHeight = textareaRef.current.scrollHeight;
+            textareaRef.current.style.height = `${scrollHeight}px`;
+        }
+    }, [content]);
+
+    const generatePreview = (file: File): Promise<string | null> => {
+        return new Promise((resolve) => {
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith("video/")) {
+                resolve(URL.createObjectURL(file));
+            } else {
+                resolve(null);
+            }
+        });
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        if (selectedFiles.length + files.length > MAX_FILES) {
+            toast.error(`Maksimal ${MAX_FILES} file media per balasan`);
+            return;
+        }
+
+        const validFiles: File[] = [];
+        for (const file of files) {
+            if (file.size > MAX_FILE_SIZE) {
+                toast.error(`File "${file.name}" terlalu besar. Maksimal 10MB`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        if (validFiles.length === 0) return;
+
+        const newPreviews = await Promise.all(
+            validFiles.map(async (file) => ({
+                file,
+                preview: await generatePreview(file),
+            }))
+        );
+
+        setSelectedFiles((prev) => [...prev, ...validFiles]);
+        setFilePreviews((prev) => [...prev, ...newPreviews]);
+
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const removeFile = (index: number) => {
+        setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+        setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+    };
 
     const handleSend = async () => {
-        if (!content.trim() || isSending) return;
+        if ((!content.trim() && selectedFiles.length === 0) || isSending) return;
+        if (content.length > CHAR_LIMIT) {
+            toast.error("Melebihi batas karakter");
+            return;
+        }
 
         setIsSending(true);
+        let attachments: any[] | undefined = undefined;
+
         try {
-            const response = await createPostAction(currentUser.id, content, undefined, postId);
+            // Upload files if any
+            if (selectedFiles.length > 0) {
+                const uploadPromises = selectedFiles.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    const res = await uploadFileAction(formData, "posts");
+                    if (res.status === "success" && res.data) {
+                        return {
+                            url: res.data.fileurl,
+                            key: res.data.filename,
+                            fileType: res.data.mimetype,
+                        };
+                    }
+                    throw new Error("Gagal mengunggah media");
+                });
+                attachments = await Promise.all(uploadPromises);
+            }
+
+            const response = await createPostAction(currentUser.id, content, attachments, postId);
             if (response.status === "success" && response.data) {
                 onReplyCreated(response.data);
                 setContent("");
+                setSelectedFiles([]);
+                setFilePreviews([]);
                 toast.success("Balasan terkirim");
             } else {
                 toast.error(response.error?.message || "Gagal membalas");
             }
-        } catch (error) {
-            toast.error("Terjadi kesalahan");
+        } catch (error: any) {
+            toast.error(error.message || "Terjadi kesalahan");
         } finally {
             setIsSending(false);
         }
     };
 
+    const remaining = CHAR_LIMIT - content.length;
+    const isOverLimit = remaining < 0;
+
+    const gutterWidth = "w-12"; // 48px
+    const lineX = "left-[40px]";
+
     return (
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
-            <UserAvatar src={currentUser.avatar} className="h-9 w-9 shrink-0" />
-            <Input
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Post your reply"
-                className="flex-1 bg-transparent border-none focus-visible:ring-0 text-[15px] placeholder:text-zinc-600"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+        <div className="flex items-start gap-0 px-4 py-3 border-b border-border/10 relative">
+            {/* Always show line from top (from focused post) through bottom (to descendants) */}
+            <div className={cn("absolute w-[2px] bg-border z-0", lineX, "top-0 bottom-0")} />
+            
+            <input
+                type="file"
+                className="hidden"
+                ref={fileInputRef}
+                multiple
+                accept="image/*,video/*"
+                onChange={handleFileSelect}
             />
-            <Button
-                onClick={handleSend}
-                disabled={!content.trim() || isSending}
-                className="rounded-full bg-white text-black hover:bg-zinc-200 font-bold px-5 h-9 text-sm"
-            >
-                {isSending ? "..." : "Reply"}
-            </Button>
+
+            <div className={cn("shrink-0 z-10 relative flex flex-col items-center", gutterWidth)}>
+                <UserAvatar src={currentUser.avatar} className="h-10 w-10 shrink-0" />
+            </div>
+            
+            <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1 pl-3">
+                <div className="flex flex-col gap-2">
+                    <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="Balas postingan ini..."
+                        className="flex-1 bg-transparent border-none focus:outline-none text-[18px] placeholder:text-muted-foreground/50 p-0 min-h-[40px] w-full resize-none leading-relaxed"
+                        rows={1}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                handleSend();
+                            }
+                        }}
+                    />
+
+                    {/* Previews */}
+                    {filePreviews.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                            {filePreviews.map((item, index) => (
+                                <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
+                                    {item.preview ? (
+                                        item.file.type.startsWith("video/") ? (
+                                            <video src={item.preview} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <img src={item.preview} className="w-full h-full object-cover" alt="preview" />
+                                        )
+                                    ) : (
+                                        <div className="w-full h-full bg-accent flex items-center justify-center">
+                                            <FileIcon className="h-8 w-8 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={() => removeFile(index)}
+                                        className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 p-1.5 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between border-t border-border/5 pt-2">
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 transition-colors"
+                                onClick={() => fileInputRef.current?.click()}
+                                title="Tambahkan Gambar"
+                            >
+                                <ImagePlus className="h-4 w-4" />
+                            </Button>
+
+                            {content.length > 0 && (
+                                <div className={cn(
+                                    "text-[11px] font-medium px-2 py-0.5 rounded-md",
+                                    remaining < 20 ? "text-destructive bg-destructive/10" : "text-muted-foreground/60"
+                                )}>
+                                    {remaining}
+                                </div>
+                            )}
+                        </div>
+
+                        <Button
+                            onClick={handleSend}
+                            disabled={(!content.trim() && selectedFiles.length === 0) || isSending || isOverLimit}
+                            className="rounded-full bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white font-bold px-5 h-9 text-sm transition-colors shadow-none shrink-0"
+                        >
+                            {isSending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>Balas</>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+                {!content.trim() && selectedFiles.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground/30">
+                        Press Ctrl+Enter to send
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

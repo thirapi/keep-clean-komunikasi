@@ -16,10 +16,11 @@ interface PostDetailViewProps {
     initialPost: PostWithUserDTO;
     initialReplies: PostWithUserDTO[];
     initialParents: PostWithUserDTO[];
+    initialThread: PostWithUserDTO[];
     currentUser: any;
 }
 
-export default function PostDetailView({ initialPost, initialReplies, initialParents, currentUser }: PostDetailViewProps) {
+export default function PostDetailView({ initialPost, initialReplies, initialParents, initialThread, currentUser }: PostDetailViewProps) {
     const { toggleSidebar } = useSidebar();
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -32,13 +33,14 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
             const res = await getPostThreadAction(initialPost.id, currentUser?.id);
             return res.data;
         },
-        initialData: { post: initialPost, replies: initialReplies, parents: initialParents },
+        initialData: { post: initialPost, replies: initialReplies, parents: initialParents, thread: initialThread },
         staleTime: 5000,
     });
 
     const post = threadData?.post || initialPost;
     const replies = threadData?.replies || initialReplies;
     const parents = threadData?.parents || initialParents;
+    const authorThread = threadData?.thread || [];
 
     // Refs for anchoring
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -106,12 +108,13 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                         {/* Parent Chain */}
                         {parents.length > 0 && (
                             <div className="flex flex-col">
-                                {parents.map((parent) => (
+                                {parents.map((parent, index) => (
                                     <PostItem
                                         key={parent.id}
                                         post={parent}
                                         currentUser={currentUser}
                                         showConnector={true}
+                                        isFirstInChain={index === 0}
                                         isLastInChain={false}
                                         onUpdate={handleNewReplyCreated}
                                         hideReplyIndicator={true}
@@ -128,23 +131,41 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                     post={post}
                                     currentUser={currentUser}
                                     isFocused={true}
+                                    showConnector={authorThread.length > 0 || !!currentUser}
+                                    isFirstInChain={parents.length === 0}
                                     onUpdate={handleNewReplyCreated}
                                     hideReplyIndicator={parents.length > 0}
                                 />
                             </div>
 
-                            {/* Reply Input */}
+                            {/* Reply Input (Moved here, below Focused Post) */}
                             {currentUser && (
-                                <div className="px-4 py-3 border-b border-border/10">
-                                    <SimpleReplyInput
-                                        postId={post.id}
-                                        currentUser={currentUser}
-                                        onReplyCreated={handleNewReplyCreated}
-                                    />
+                                <SimpleReplyInput
+                                    postId={post.id}
+                                    currentUser={currentUser}
+                                    onReplyCreated={handleNewReplyCreated}
+                                    showConnector={authorThread.length > 0}
+                                />
+                            )}
+
+                            {/* Author's Thread Chain (Descendants) */}
+                            {authorThread.length > 0 && (
+                                <div className="flex flex-col">
+                                    {authorThread.map((threadPost, index) => (
+                                        <PostItem
+                                            key={threadPost.id}
+                                            post={threadPost}
+                                            currentUser={currentUser}
+                                            showConnector={true}
+                                            isLastInChain={index === authorThread.length - 1}
+                                            onUpdate={handleNewReplyCreated}
+                                            hideReplyIndicator={true}
+                                        />
+                                    ))}
                                 </div>
                             )}
 
-                            {/* Replies */}
+                            {/* General Replies (Other Authors) */}
                             <div className="flex flex-col">
                                 {replies.map((reply) => (
                                     <PostItem

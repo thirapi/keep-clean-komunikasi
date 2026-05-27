@@ -25,6 +25,7 @@ export const usersRelations = relations(users, ({ many }) => ({
     reactions: many(messageReactions),
     postReactions: many(postReactions),
     pushSubscriptions: many(pushSubscriptions),
+    bookmarks: many(bookmarks),
 }));
 
 export const pushSubscriptions = pgTable("PushSubscription", {
@@ -100,7 +101,10 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
         relationName: "reposts",
     }),
     reposts: many(posts, { relationName: "reposts" }),
+    bookmarks: many(bookmarks),
+    linkPreviews: many(postLinkPreviews),
 }));
+
 
 export const rooms = pgTable("Room", {
     id: text("id").primaryKey(),
@@ -267,3 +271,53 @@ export const followersRelations = relations(followers, ({ one }) => ({
     following: one(users, { fields: [followers.followingId], references: [users.id], relationName: "followers" }),
 }));
 
+
+export const bookmarks = pgTable("Bookmark", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull().references(() => users.id),
+    postId: text("postId").notNull().references(() => posts.id),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+    unq: unique().on(t.userId, t.postId),
+}));
+
+export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
+    user: one(users, { fields: [bookmarks.userId], references: [users.id] }),
+    post: one(posts, { fields: [bookmarks.postId], references: [posts.id] }),
+}));
+
+export const postLinkPreviews = pgTable("PostLinkPreview", {
+    id: text("id").primaryKey(),
+    postId: text("postId").notNull().references(() => posts.id),
+    url: text("url").notNull(),
+    title: text("title"),
+    description: text("description"),
+    image: text("image"),
+    siteName: text("siteName"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+    unq: unique().on(t.postId, t.url),
+}));
+
+export const postLinkPreviewsRelations = relations(postLinkPreviews, ({ one }) => ({
+    post: one(posts, { fields: [postLinkPreviews.postId], references: [posts.id] }),
+}));
+
+export const hashtags = pgTable("Hashtag", {
+    id: text("id").primaryKey(),
+    name: text("name").unique().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const postHashtags = pgTable("PostHashtag", {
+    id: text("id").primaryKey(),
+    postId: text("postId").notNull().references(() => posts.id),
+    hashtagId: text("hashtagId").notNull().references(() => hashtags.id),
+}, (t) => ({
+    unq: unique().on(t.postId, t.hashtagId),
+}));
+
+export const postHashtagsRelations = relations(postHashtags, ({ one }) => ({
+    post: one(posts, { fields: [postHashtags.postId], references: [posts.id] }),
+    hashtag: one(hashtags, { fields: [postHashtags.hashtagId], references: [hashtags.id] }),
+}));
