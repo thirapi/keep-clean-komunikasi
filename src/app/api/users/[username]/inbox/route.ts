@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
+import { PostRepository } from "@/lib/infrastructure/repositories/post.repository";
 import { SignatureVerificationService } from "@/lib/infrastructure/services/signature-verification.service";
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
+import { createId } from "@paralleldrive/cuid2";
 
 const userRepository = new UserRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db);
 const followerRepository = new FollowerRepository(db);
+const postRepository = new PostRepository(db);
 const activityPubService = new ActivityPubService(userRepository, followerRepository);
 
 /**
@@ -60,12 +63,12 @@ export async function POST(
     );
 
     if (!isValid) {
-        console.warn(`[Inbox] Invalid signature for ${username} from ${keyId}`);
+        console.warn("[Inbox] Invalid signature for " + username + " from " + keyId);
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log(`[Inbox] Verified activity received for ${username}:`, body.type);
+    console.log("[Inbox] Verified activity received for " + username + ":", body.type);
 
     // Basic Activity Handling
     switch (body.type) {
@@ -73,53 +76,151 @@ export async function POST(
             return handleFollow(user.id, username, body);
         case "Undo":
             return handleUndo(user.id, username, body);
+        case "Create":
+            return handleCreate(user.id, username, body);
+        case "Like":
+            return handleLike(user.id, username, body);
+        case "Accept":
+            return handleAccept(user.id, username, body);
         default:
             return NextResponse.json({ status: "ignored" }, { status: 202 });
     }
 }
 
+async function ensureRemoteActor(actorUrl: string) {
+    const existing = await remoteActorRepository.findById(actorUrl);
+    if (existing) return existing;
+
+    // Fetch sender's actor object
+    const senderActorData = await fetch(actorUrl, {
+        headers: { "Accept": "application/activity+json" }
+    }).then(res => res.json());
+
+    if (!senderActorData.inbox) {
+        throw new Error("Sender actor has no inbox");
+    }
+
+    const domain = new URL(actorUrl).hostname;
+
+    await remoteActorRepository.upsert({
+        id: actorUrl,
+        username: senderActorData.preferredUsername || senderActorData.name || "unknown",
+        domain: domain,
+        name: senderActorData.name,
+        avatar: senderActorData.icon?.url,
+        inbox: senderActorData.inbox,
+        sharedInbox: senderActorData.endpoints?.sharedInbox,
+        publicKey: senderActorData.publicKey?.publicKeyPem,
+        followerCount: 0,
+        followingCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    });
+
+    return await remoteActorRepository.findById(actorUrl);
+}
+
 async function handleFollow(userId: string, username: string, activity: any) {
-    console.log(`[Inbox] Verified Follow: ${activity.actor} wants to follow ${username}`);
+    console.log("[Inbox] Verified Follow: " + activity.actor + " wants to follow " + username);
     
     try {
-        // 1. Fetch sender's actor object
-        const senderActorData = await fetch(activity.actor, {
-            headers: { "Accept": "application/activity+json" }
-        }).then(res => res.json());
+        const actor = await ensureRemoteActor(activity.actor);
+        if (!actor) throw new Error("Could not ensure remote actor");
 
-        const domain = new URL(activity.actor).hostname;
-
-        // 2. Upsert RemoteActor
-        await remoteActorRepository.upsert({
-            id: activity.actor,
-            username: senderActorData.preferredUsername || senderActorData.name,
-            domain: domain,
-            name: senderActorData.name,
-            avatar: senderActorData.icon?.url,
-            inbox: senderActorData.inbox,
-            sharedInbox: senderActorData.endpoints?.sharedInbox,
-            publicKey: senderActorData.publicKey?.publicKeyPem,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        });
-
-        // 3. Record follow relationship
+        // Record follow relationship (Remote Follower -> Local User)
         await followerRepository.followRemote(activity.actor, userId);
 
-        // 4. Send Accept activity back
-        await activityPubService.sendAcceptActivity(userId, activity);
+        // Send Accept activity back
+        await activityPubService.sendAcceptActivity(userId, activity, actor.inbox);
 
         return NextResponse.json({ status: "accepted" }, { status: 202 });
     } catch (err) {
         console.error("Error handling Follow activity:", err);
-        return NextResponse.json({ error: "Internal error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal error but acknowledged" }, { status: 202 });
     }
 }
 
 async function handleUndo(userId: string, username: string, activity: any) {
     if (activity.object?.type === "Follow") {
-        console.log(`[Inbox] Verified Unfollow: ${activity.actor} stopped following ${username}`);
+        console.log("[Inbox] Verified Unfollow: " + activity.actor + " stopped following " + username);
         await followerRepository.unfollowRemote(activity.actor, userId);
     }
     return NextResponse.json({ status: "received" }, { status: 202 });
+}
+
+async function handleAccept(userId: string, username: string, activity: any) {
+    console.log("[Inbox] Verified Accept from " + activity.actor);
+    return NextResponse.json({ status: "received" }, { status: 202 });
+}
+
+async function handleLike(userId: string, username: string, activity: any) {
+    const objectUri = typeof activity.object === 'string' ? activity.object : activity.object?.id;
+    if (!objectUri) return NextResponse.json({ status: "ignored" }, { status: 202 });
+
+    const post = await postRepository.findByUri(objectUri);
+    if (!post) {
+        console.log("[Inbox] Like received for unknown post: " + objectUri);
+        return NextResponse.json({ status: "ignored" }, { status: 202 });
+    }
+
+    try {
+        const actor = await ensureRemoteActor(activity.actor);
+        if (!actor) throw new Error("Could not ensure remote actor");
+
+        console.log("[Inbox] Post " + post.id + " liked by remote actor " + actor.id);
+        await postRepository.addReaction(post.id, null, "❤️", actor.id);
+    } catch (err) {
+        console.error("Error handling Like activity:", err);
+    }
+
+    return NextResponse.json({ status: "received" }, { status: 202 });
+}
+
+async function handleCreate(userId: string, username: string, activity: any) {
+    const object = activity.object;
+    if (!object || object.type !== "Note") return NextResponse.json({ status: "ignored" }, { status: 202 });
+
+    // Avoid duplicate processing if we already have this post
+    const existingPost = await postRepository.findByUri(object.id);
+    if (existingPost) return NextResponse.json({ status: "already_exists" }, { status: 202 });
+
+    try {
+        const actor = await ensureRemoteActor(activity.actor);
+        if (!actor) throw new Error("Could not ensure remote actor");
+
+        // Determine parent post if it's a reply
+        let parentPostId: string | undefined = undefined;
+        if (object.inReplyTo) {
+            const parentPost = await postRepository.findByUri(object.inReplyTo);
+            if (parentPost) {
+                parentPostId = parentPost.id;
+                console.log("[Inbox] Received reply from " + activity.actor + " to post " + parentPost.id);
+            } else {
+                // If we don't have the parent post, we might want to fetch it, 
+                // but for now we just store it as a top-level post or ignore the reply context
+                console.log("[Inbox] Received reply to unknown post: " + object.inReplyTo);
+            }
+        } else {
+            console.log("[Inbox] Received new post from " + activity.actor);
+        }
+
+        await postRepository.create({
+            id: createId(),
+            content: object.content || "",
+            userId: null as any,
+            remoteActorId: actor.id,
+            uri: object.id,
+            url: object.url,
+            replyToId: parentPostId as any,
+            visibility: "public",
+            isDeleted: false,
+            createdAt: new Date(object.published || Date.now()),
+            updatedAt: new Date(),
+        });
+        
+        return NextResponse.json({ status: "created" }, { status: 201 });
+    } catch (err) {
+        console.error("Error creating local post from remote activity:", err);
+        return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
 }

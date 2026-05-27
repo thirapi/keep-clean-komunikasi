@@ -21,7 +21,7 @@ export class GetPostThreadUseCase {
         const [replies, parents, thread] = await Promise.all([
             this.postRepository.findReplies(postId, currentUserId),
             this.postRepository.findParentChain(postId, currentUserId),
-            this.postRepository.findThreadDescendants(postId, post.userId, currentUserId)
+            post.userId ? this.postRepository.findThreadDescendants(postId, post.userId, currentUserId) : Promise.resolve([])
         ]);
 
         // Filter out thread descendants from the standard replies to avoid duplication

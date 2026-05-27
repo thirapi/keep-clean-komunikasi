@@ -16,7 +16,11 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 
 ### 1. Identity Layer (Identity & Discovery)
 *   **WebFinger (`.well-known/webfinger`)**: Discovery protocol agar user dapat dicari dengan format `@user@domain.com`.
-*   **Actor Profile (`api/users/[username]`)**: Endpoint profil publik yang menyajikan kunci publik dan alamat inbox/outbox.
+*   **Rich Actor Profile (`api/users/[username]`)**: 
+    *   Endpoint profil publik yang menyajikan kunci publik.
+    *   Menampilkan **Avatar** dan **Banner** secara absolut.
+    *   Menyertakan **Tanggal Bergabung** (`published`) yang akurat.
+    *   Menyediakan koleksi **Followers** and **Following**.
 *   **Automated Key Generation**: 
     *   Setiap user baru otomatis mendapatkan Public/Private key saat mendaftar.
     *   User lama mendapatkan kunci secara otomatis saat melakukan Sign-in pertama kali.
@@ -27,34 +31,35 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 *   **Digest Header**: Implementasi hashing SHA-256 pada body request untuk memastikan integritas data.
 
 ### 3. Communication Layer (Inbox & Outbox)
-*   **Inbox Endpoint (`api/users/[username]/inbox`)**: 
-    *   Menerima aktivitas `Follow` dan `Undo Follow`.
-    *   Otomatis melakukan "Handshake" dengan mengirim balik aktivitas `Accept` yang sah.
+*   **Inbox Processing (Replies & Likes)**: 
+    *   Menerima dan menyimpan balasan (`Note` with `inReplyTo`) dari luar sebagai komentar lokal.
+    *   Menerima dan memproses aktivitas `Like` dari remote actor.
+    *   Mendukung penyimpanan otomatis postingan baru dari actor yang diikuti.
+*   **Outbox Endpoint (`api/users/[username]/outbox`)**:
+    *   Menyajikan 20 postingan terakhir user dalam format `OrderedCollection`.
+    *   Memungkinkan instance lain (Mastodon, dll) untuk menarik dan menampilkan postingan lama user di profil mereka.
 *   **Broadcast Engine**: 
     *   `ActivityPubService` otomatis men-generate objek `Note` setiap kali user membuat postingan.
     *   Sistem akan mengirimkan postingan tersebut ke seluruh `inbox` pengikut luar secara asinkron.
+    *   Mendukung lampiran media (`attachments`) pada postingan keluar.
 
 ### 4. Data Layer (Persistence)
 *   **`RemoteActor` Table**: Menyimpan metadata user dari instance luar (username, domain, inbox URL, public key).
-*   **`Follower` Table Updates**: Mendukung hubungan lintas-server (Remote Follower -> Local User).
+*   **`Follower` Table Updates**: Mendukung hubungan lintas-server (Remote Follower -> Local User dan Local User -> Remote Actor).
+*   **Following Feed Integration**: Feed "Mengikuti" kini mencakup postingan dari remote actor yang diikuti oleh user.
 
 ## 🚧 Fitur yang BELUM Diimplementasikan (Roadmap)
 
-1.  **Remote Follow (Outgoing Follow)**: 
-    *   Belum ada UI/Logic untuk mencari user luar dan mengirimkan request `Follow` ke mereka.
-2.  **Inbox Processing (Replies & Likes)**: 
-    *   Data `Reply` dan `Like` dari luar sudah masuk ke Inbox, tapi belum diproses untuk disimpan ke database lokal sebagai komentar atau reaksi.
-3.  **Background Queues**: 
-    *   Saat ini pengiriman (broadcast) dilakukan secara langsung (fire-and-forget). Untuk skala besar, diperlukan sistem antrian (seperti BullMQ atau Redis) agar tidak membebani performa API.
-4.  **Shared Inbox Support**: 
-    *   Optimasi pengiriman ke instance yang sama melalui satu endpoint tunggal (Shared Inbox) belum sepenuhnya diaktifkan.
-5.  **Media Synchronization**: 
-    *   Pengiriman attachment (gambar/video) agar bisa tampil dengan benar di instance lain.
+1.  **Remote Follow UI Improvement**: 
+    *   Meskipun backend sudah mendukung, UI untuk menampilkan profil remote actor sebelum follow bisa ditingkatkan.
+2.  **Background Queues** (**Penting untuk Skalabilitas**): 
+    *   Menggunakan Redis/BullMQ untuk pengiriman aktivitas. Saat pengikut mencapai ratusan, pengiriman sinkron akan membuat aplikasi terasa lambat atau timeout.
+3.  **Shared Inbox Support**: 
+    *   Optimasi pengiriman ke instance yang sama (misal 100 pengikut di `mastodon.social`) melalui satu request tunggal.
 
 ## 🛠️ Cara Melanjutkan
-1.  **Database Migration**: Jalankan migrasi Drizzle untuk tabel `RemoteActor` dan perubahan kolom pada `Follower`.
-2.  **Environment Variables**: Pastikan `NEXT_PUBLIC_APP_URL` terkonfigurasi dengan domain publik (harus HTTPS agar bisa berkomunikasi dengan Mastodon).
-3.  **Testing**: Gunakan alat seperti [ActivityPub Validator](https://activitypub.rocks/) atau buat akun Mastodon di instance publik untuk mencoba me-follow user dari platform ini.
+1.  **Environment Variables**: Pastikan `NEXT_PUBLIC_APP_URL` terkonfigurasi dengan domain publik (harus HTTPS agar bisa berkomunikasi dengan Mastodon).
+2.  **Testing**: Gunakan akun Mastodon di instance publik untuk mencoba me-follow user dari platform ini dan pastikan interaksi (Like/Reply) muncul dengan benar.
 
 ---
-*Dokumentasi dibuat oleh Gemini CLI - Mei 2026*
+*Dokumentasi diperbarui oleh Gemini CLI - Mei 2026*

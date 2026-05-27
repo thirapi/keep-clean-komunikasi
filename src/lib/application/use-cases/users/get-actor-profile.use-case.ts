@@ -11,30 +11,40 @@ export class GetActorProfileUseCase {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+    const actorId = `${baseUrl}/api/users/${user.username}`;
     
     return {
       "@context": [
         "https://www.w3.org/ns/activitystreams",
         "https://w3id.org/security/v1"
       ],
-      "id": `${baseUrl}/api/users/${user.username}`,
+      "id": actorId,
       "type": "Person",
       "preferredUsername": user.username,
       "name": user.username,
       "summary": user.bio || "",
       "url": `${baseUrl}/profile/${user.username}`,
+      "published": user.createdAt.toISOString(),
       "icon": {
         "type": "Image",
         "mediaType": "image/png",
-        "url": `${baseUrl}${user.avatar}`
+        "url": user.avatar.startsWith("http") ? user.avatar : `${baseUrl}${user.avatar}`
       },
+      "image": user.banner ? {
+        "type": "Image",
+        "mediaType": "image/png",
+        "url": user.banner.startsWith("http") ? user.banner : `${baseUrl}${user.banner}`
+      } : undefined,
+      "manuallyApprovesFollowers": false,
       "publicKey": {
-        "id": `${baseUrl}/api/users/${user.username}#main-key`,
-        "owner": `${baseUrl}/api/users/${user.username}`,
+        "id": `${actorId}#main-key`,
+        "owner": actorId,
         "publicKeyPem": user.publicKey || ""
       },
-      "inbox": `${baseUrl}/api/users/${user.username}/inbox`,
-      "outbox": `${baseUrl}/api/users/${user.username}/outbox`
+      "inbox": `${actorId}/inbox`,
+      "outbox": `${actorId}/outbox`,
+      "followers": `${actorId}/followers`,
+      "following": `${actorId}/following`
     };
   }
 }

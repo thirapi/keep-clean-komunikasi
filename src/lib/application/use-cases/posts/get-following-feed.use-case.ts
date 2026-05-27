@@ -9,13 +9,12 @@ export class GetFollowingFeedUseCase {
 
     async execute(userId: string, limit: number = 20, offset: number = 0) {
         const followingIds = await this.followerRepository.getFollowing(userId);
+        const remoteFollowingIds = await this.followerRepository.getRemoteFollowing(userId);
 
-        if (followingIds.length === 0) {
+        if (followingIds.length === 0 && remoteFollowingIds.length === 0) {
             return [];
         }
 
-        // Logic activitypub: In a real fediverse setup, this might fetch from remote outboxes
-        // For now, we fetch from local DB for users we follow
-        return await (this.postRepository as any).getFollowingFeed(followingIds, limit, offset, userId);
+        return await this.postRepository.getFollowingFeed(followingIds, remoteFollowingIds, limit, offset, userId);
     }
 }

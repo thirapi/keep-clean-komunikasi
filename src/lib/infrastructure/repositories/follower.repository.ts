@@ -102,6 +102,31 @@ export class FollowerRepository implements IFollowerRepository {
         );
     }
 
+    async followLocalToRemote(localFollowerId: string, remoteFollowingId: string): Promise<void> {
+        await this.client.insert(followers).values({
+            id: createId(),
+            followerId: localFollowerId,
+            remoteFollowingId: remoteFollowingId,
+        }).onConflictDoNothing();
+    }
+
+    async unfollowLocalToRemote(localFollowerId: string, remoteFollowingId: string): Promise<void> {
+        await this.client.delete(followers).where(
+            and(
+                eq(followers.followerId, localFollowerId),
+                eq(followers.remoteFollowingId, remoteFollowingId)
+            )
+        );
+    }
+
+    async getRemoteFollowing(userId: string): Promise<string[]> {
+        const results = await this.client.query.followers.findMany({
+            where: eq(followers.followerId, userId),
+            columns: { remoteFollowingId: true }
+        });
+        return results.map(r => r.remoteFollowingId).filter(id => id !== null) as string[];
+    }
+
     async getRemoteFollowersInboxes(localUserId: string): Promise<string[]> {
         const results = await this.client.select({
             inbox: remoteActors.inbox,

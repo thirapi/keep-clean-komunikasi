@@ -12,28 +12,57 @@ export const getProfileFeedController = async (
     limit = 20,
     offset = 0
 ) => {
-    const user = await db.query.users.findFirst({
+    // 1. Try local user
+    const localUser = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.username, username),
     });
 
-    if (!user) {
-        throw new Error("User not found");
+    if (localUser) {
+        return await getProfileFeedUseCase.execute(localUser.id, currentUserId, filter, limit, offset);
     }
 
-    return await getProfileFeedUseCase.execute(user.id, currentUserId, filter, limit, offset);
+    // 2. Try remote actor
+    if (username.includes("@")) {
+        const handle = username.startsWith("@") ? username : `@${username}`;
+        const parts = handle.slice(1).split("@");
+        const remoteActor = await db.query.remoteActors.findFirst({
+            where: (actors, { and, eq }) => and(eq(actors.username, parts[0]), eq(actors.domain, parts[1])),
+        });
+
+        if (remoteActor) {
+            // For remote actors, we fetch posts where remoteActorId matches
+            return await getProfileFeedUseCase.executeRemote(remoteActor.id, currentUserId, filter, limit, offset);
+        }
+    }
+
+    throw new Error("User not found");
 };
 
 export const getProfileFeedCountController = async (
     username: string,
     filter?: "threads" | "replies" | "reposts" | "media"
 ) => {
-    const user = await db.query.users.findFirst({
+    // 1. Try local user
+    const localUser = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.username, username),
     });
 
-    if (!user) {
-        throw new Error("User not found");
+    if (localUser) {
+        return await getProfileFeedUseCase.getCount(localUser.id, filter);
     }
 
-    return await getProfileFeedUseCase.getCount(user.id, filter);
+    // 2. Try remote actor
+    if (username.includes("@")) {
+        const handle = username.startsWith("@") ? username : `@${username}`;
+        const parts = handle.slice(1).split("@");
+        const remoteActor = await db.query.remoteActors.findFirst({
+            where: (actors, { and, eq }) => and(eq(actors.username, parts[0]), eq(actors.domain, parts[1])),
+        });
+
+        if (remoteActor) {
+            return await getProfileFeedUseCase.getCountRemote(remoteActor.id, filter);
+        }
+    }
+
+    throw new Error("User not found");
 };

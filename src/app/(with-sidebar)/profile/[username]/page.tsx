@@ -11,15 +11,19 @@ interface ProfilePageProps {
 }
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
-    const { username } = await params;
+    const { username: rawUsername } = await params;
+    const username = decodeURIComponent(rawUsername);
+    const displayHandle = username.startsWith("@") ? username : `@${username}`;
+    
     return {
-        title: `@${username} - Komunikasi`,
-        description: `Lihat profil ${username} di Komunikasi.`,
+        title: `${displayHandle} - Komunikasi`,
+        description: `Lihat profil ${displayHandle} di Komunikasi.`,
     };
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-    const { username } = await params;
+    const { username: rawUsername } = await params;
+    const username = decodeURIComponent(rawUsername);
 
     // Fetch the current user session
     const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();

@@ -4,21 +4,25 @@ import { useTransition, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserMinus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { followUserAction, unfollowUserAction, checkFollowingStatusAction } from "@/app/(with-sidebar)/user.action";
+import { followUserAction, unfollowUserAction, checkFollowingStatusAction, followRemoteUserAction } from "@/app/(with-sidebar)/user.action";
 
 interface FollowButtonProps {
     targetUserId: string;
     currentUserId: string;
     initialIsFollowing: boolean;
+    isRemote?: boolean;
+    handle?: string;
 }
 
-export function FollowButton({ targetUserId, currentUserId, initialIsFollowing }: FollowButtonProps) {
+export function FollowButton({ targetUserId, currentUserId, initialIsFollowing, isRemote, handle }: FollowButtonProps) {
     const [isPending, startTransition] = useTransition();
     const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
 
     const handleFollow = () => {
         startTransition(async () => {
             if (isFollowing) {
+                // For now, unfollow might need more work for remote, 
+                // but let's use the standard action which uses the ID (URI for remote)
                 const response = await unfollowUserAction(currentUserId, targetUserId);
                 if (response.status === "success") {
                     setIsFollowing(false);
@@ -27,7 +31,13 @@ export function FollowButton({ targetUserId, currentUserId, initialIsFollowing }
                     toast.error(response.error?.message || "Gagal berhenti mengikuti");
                 }
             } else {
-                const response = await followUserAction(currentUserId, targetUserId);
+                let response;
+                if (isRemote && handle) {
+                    response = await followRemoteUserAction(currentUserId, handle);
+                } else {
+                    response = await followUserAction(currentUserId, targetUserId);
+                }
+
                 if (response.status === "success") {
                     setIsFollowing(true);
                     toast.success("Berhasil mengikuti");

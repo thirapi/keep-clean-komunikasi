@@ -8,13 +8,16 @@ export interface IPostRepository {
     findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null>;
     findRepost(userId: string, originalPostId: string): Promise<PostRecord | null>;
     findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
+    findByRemoteActorId(remoteActorId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
     countByUserId(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
+    countByRemoteActorId(remoteActorId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    findByUri(uri: string): Promise<PostRecord | null>;
     findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findThreadDescendants(postId: string, userId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getGlobalFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
-    getFollowingFeed(followingIds: string[], limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
     getDiscoveryFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
-    addReaction(postId: string, userId: string, emoji: string): Promise<void>;
-    removeReaction(postId: string, userId: string, emoji: string): Promise<void>;
+    addReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void>;
+    removeReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void>;
 }

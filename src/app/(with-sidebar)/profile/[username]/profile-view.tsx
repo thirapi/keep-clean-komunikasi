@@ -49,6 +49,8 @@ interface ProfileViewProps {
             following: number;
         };
         isFollowing?: boolean;
+        isRemote?: boolean;
+        handle?: string;
     };
     currentUser: {
         id: string;
@@ -309,6 +311,8 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                 targetUserId={user.id}
                                                 currentUserId={currentUser.id}
                                                 initialIsFollowing={user.isFollowing || false}
+                                                isRemote={user.isRemote}
+                                                handle={user.handle}
                                             />
                                         )}
                                     </div>
@@ -318,7 +322,9 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     <div>
                                         <h2 className="text-2xl font-bold tracking-tight text-foreground">{user.username}</h2>
                                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                            @{user.username.toLowerCase()}
+                                            {user.isRemote && user.handle 
+                                                ? user.handle 
+                                                : `@${user.username.toLowerCase()}`}
                                             {user.customStatus && (
                                                 <>
                                                     <span className="text-border">•</span>

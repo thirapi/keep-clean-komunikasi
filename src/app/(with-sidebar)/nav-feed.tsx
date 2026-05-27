@@ -9,10 +9,17 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Users, Bookmark } from "lucide-react";
+import { Globe, Users, Bookmark, Search as SearchIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-export function NavFeed() {
+export function NavFeed({ onRemoteFollow }: { onRemoteFollow?: () => void }) {
     const pathname = usePathname();
 
     const pulseItems = [
@@ -37,6 +44,25 @@ export function NavFeed() {
         <SidebarGroup>
             <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50 flex items-center justify-between">
                 Feed
+                {onRemoteFollow && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
+                                    onClick={onRemoteFollow}
+                                >
+                                    <SearchIcon className="size-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p>Cari Pengguna</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </SidebarGroupLabel>
             <SidebarMenu>
                 {pulseItems.map((item) => {

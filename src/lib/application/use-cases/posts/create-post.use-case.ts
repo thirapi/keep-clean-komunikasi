@@ -52,7 +52,7 @@ export class CreatePostUseCase {
 
         // Fediverse Compatibility: Broadcast activity
         try {
-            const activity = await this.activityPubService.createNoteActivity(userId, postRecord);
+            const activity = await this.activityPubService.createNoteActivity(userId, postRecord, attachments);
             await this.activityPubService.broadcastActivity(activity, userId);
         } catch (err) {
             console.error("Failed to broadcast ActivityPub activity:", err);

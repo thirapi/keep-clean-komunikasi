@@ -9,12 +9,19 @@ export class ActivityPubService implements IActivityPubService {
         private followerRepository: IFollowerRepository
     ) { }
 
-    async createNoteActivity(userId: string, post: any): Promise<any> {
+    async createNoteActivity(userId: string, post: any, attachments?: any[]): Promise<any> {
         const user = await this.userRepository.findById(userId);
         if (!user) throw new Error("User not found");
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const apAttachments = attachments?.map((a) => ({
+            type: "Document",
+            mediaType: a.fileType,
+            url: a.url,
+            name: "Attachment"
+        })) || [];
 
         return {
             "@context": "https://www.w3.org/ns/activitystreams",
@@ -33,6 +40,7 @@ export class ActivityPubService implements IActivityPubService {
                 "url": post.url,
                 "to": ["https://www.w3.org/ns/activitystreams#Public"],
                 "cc": [`${actorUri}/followers`],
+                "attachment": apAttachments
             }
         };
     }
@@ -44,28 +52,19 @@ export class ActivityPubService implements IActivityPubService {
             return;
         }
 
-        // 1. Get local followers
-        const localFollowers = await this.followerRepository.getFollowers(actorId);
-        
-        // 2. Get remote followers' inboxes
         const remoteInboxes = await this.followerRepository.getRemoteFollowersInboxes(actorId);
         
-        console.log(`Broadcasting activity to ${localFollowers.length} local followers and ${remoteInboxes.length} remote inboxes...`);
+        console.log(`Broadcasting activity to ${remoteInboxes.length} remote inboxes...`);
 
-        // 3. Deliver to remote inboxes
         for (const inboxUrl of remoteInboxes) {
-            // We should ideally run this in background or via a queue
             this.deliverToRemoteInbox(inboxUrl, activity, {
                 username: user.username,
                 privateKey: user.privateKey
             }).catch(err => console.error(`Failed to deliver broadcast to ${inboxUrl}:`, err));
         }
-
-        // 4. Local delivery (if we had a local inbox logic for notifications/feed)
-        // For local followers, Pusher is already handling real-time updates in CreatePostUseCase.
     }
 
-    async sendAcceptActivity(localUserId: string, followActivity: any): Promise<void> {
+    async sendAcceptActivity(localUserId: string, followActivity: any, inboxUrl?: string): Promise<void> {
         const user = await this.userRepository.findById(localUserId);
         if (!user || !user.privateKey) return;
 
@@ -80,29 +79,97 @@ export class ActivityPubService implements IActivityPubService {
             "object": followActivity
         };
 
-        // We need to fetch the sender's actor object to get their inbox
-        const senderActor = await fetch(followActivity.actor, {
-            headers: { "Accept": "application/activity+json" }
-        }).then(res => res.json());
+        let targetInbox = inboxUrl;
+        if (!targetInbox) {
+            try {
+                const senderActor = await fetch(followActivity.actor, {
+                    headers: { "Accept": "application/activity+json" }
+                }).then(res => res.json());
+                targetInbox = senderActor.inbox;
+            } catch (err) {
+                console.error("Failed to fetch sender actor for Accept activity:", err);
+                return;
+            }
+        }
 
-        const inboxUrl = senderActor.inbox;
-        if (inboxUrl) {
-            await this.deliverToRemoteInbox(inboxUrl, acceptActivity, {
+        if (targetInbox) {
+            await this.deliverToRemoteInbox(targetInbox, acceptActivity, {
                 username: user.username,
                 privateKey: user.privateKey
             });
         }
     }
 
-    /**
-     * Internal method to send signed request to a remote inbox
-     */
+    async followRemote(localUserId: string, remoteActorUrl: string): Promise<void> {
+        const user = await this.userRepository.findById(localUserId);
+        if (!user || !user.privateKey) throw new Error("Local user not found or has no private key");
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const followActivity = {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": `${actorUri}#follow-${Date.now()}`,
+            "type": "Follow",
+            "actor": actorUri,
+            "object": remoteActorUrl
+        };
+
+        const remoteActor = await fetch(remoteActorUrl, {
+            headers: { "Accept": "application/activity+json" }
+        }).then(res => res.json());
+
+        if (!remoteActor.inbox) throw new Error("Remote actor has no inbox");
+
+        await this.deliverToRemoteInbox(remoteActor.inbox, followActivity, {
+            username: user.username,
+            privateKey: user.privateKey
+        });
+        
+        await this.followerRepository.followLocalToRemote(localUserId, remoteActorUrl);
+    }
+
+    async unfollowRemote(localUserId: string, remoteActorUrl: string): Promise<void> {
+        const user = await this.userRepository.findById(localUserId);
+        if (!user || !user.privateKey) throw new Error("Local user not found or has no private key");
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const undoActivity = {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": `${actorUri}#undo-${Date.now()}`,
+            "type": "Undo",
+            "actor": actorUri,
+            "object": {
+                "type": "Follow",
+                "actor": actorUri,
+                "object": remoteActorUrl
+            }
+        };
+
+        const remoteActor = await fetch(remoteActorUrl, {
+            headers: { "Accept": "application/activity+json" }
+        }).then(res => res.json());
+
+        if (!remoteActor.inbox) throw new Error("Remote actor has no inbox");
+
+        await this.deliverToRemoteInbox(remoteActor.inbox, undoActivity, {
+            username: user.username,
+            privateKey: user.privateKey
+        });
+
+        await this.followerRepository.unfollowLocalToRemote(localUserId, remoteActorUrl);
+    }
+
     private async deliverToRemoteInbox(inboxUrl: string, activity: any, user: { username: string, privateKey: string }) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const body = JSON.stringify(activity);
         const url = new URL(inboxUrl);
         const digest = HttpSignatureService.createDigest(body);
         const date = new Date().toUTCString();
+
+        const target = url.pathname + url.search;
 
         const headers: Record<string, string> = {
             "Host": url.host,
@@ -116,7 +183,7 @@ export class ActivityPubService implements IActivityPubService {
             keyId: `${baseUrl}/api/users/${user.username}#main-key`,
             privateKey: user.privateKey,
             method: "POST",
-            target: url.pathname,
+            target: target,
             headers: headers
         });
 
@@ -132,10 +199,11 @@ export class ActivityPubService implements IActivityPubService {
 
             if (!response.ok) {
                 console.error(`Failed to deliver to ${inboxUrl}: ${response.status} ${await response.text()}`);
+            } else {
+                console.log(`Successfully delivered to ${inboxUrl}`);
             }
         } catch (err) {
             console.error(`Error delivering to ${inboxUrl}:`, err);
         }
     }
 }
-

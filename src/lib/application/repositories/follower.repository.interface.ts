@@ -14,5 +14,8 @@ export interface IFollowerRepository {
     // Fediverse Compatibility
     followRemote(remoteFollowerId: string, localFollowingId: string): Promise<void>;
     unfollowRemote(remoteFollowerId: string, localFollowingId: string): Promise<void>;
+    followLocalToRemote(localFollowerId: string, remoteFollowingId: string): Promise<void>;
+    unfollowLocalToRemote(localFollowerId: string, remoteFollowingId: string): Promise<void>;
+    getRemoteFollowing(userId: string): Promise<string[]>;
     getRemoteFollowersInboxes(localUserId: string): Promise<string[]>;
 }

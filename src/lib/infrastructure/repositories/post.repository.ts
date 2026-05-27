@@ -49,6 +49,11 @@ export class PostRepository implements IPostRepository {
         return (result as unknown as PostRecord) || null;
     }
 
+    async findByUri(uri: string): Promise<PostRecord | null> {
+        const [result] = await this.client.select().from(posts).where(eq(posts.uri, uri));
+        return (result as unknown as PostRecord) || null;
+    }
+
     async findRepost(userId: string, originalPostId: string): Promise<PostRecord | null> {
         const result = await this.client.query.posts.findFirst({
             where: and(
@@ -68,6 +73,7 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: {
                     with: { user: { columns: { username: true } } },
@@ -78,6 +84,7 @@ export class PostRepository implements IPostRepository {
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
                         attachments: true,
                         reactions: true,
                         reposts: { 
@@ -142,11 +149,73 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: true,
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                },
+                replyTo: { with: { user: { columns: { username: true } }, bookmarks: true } },
+                bookmarks: true,
+                linkPreviews: true,
+            },
+        });
+
+        return this.mapPostsWithStates(results as any, currentUserId);
+    }
+
+    async findByRemoteActorId(remoteActorId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
+        const results = await this.client.query.posts.findMany({
+            where: (posts, { and, eq, isNotNull, isNull, exists }) => {
+                const base = and(
+                    eq(posts.remoteActorId, remoteActorId), 
+                    eq(posts.isDeleted, false),
+                    eq(posts.visibility, "public")
+                );
+                if (filter === "threads") return and(base, isNull(posts.replyToId));
+                if (filter === "replies") return and(base, isNotNull(posts.replyToId));
+                if (filter === "reposts") return and(base, isNotNull(posts.repostOfId));
+                if (filter === "media") return and(base, exists(
+                    this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id))
+                ));
+                return base;
+            },
+            orderBy: [desc(posts.createdAt)],
+            limit,
+            offset,
+            with: {
+                user: {
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                },
+                remoteActor: true,
+                attachments: true,
+                reactions: true,
+                repostOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
                         attachments: true,
                         reactions: true,
                         reposts: { 
@@ -185,6 +254,7 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: {
                     with: { user: { columns: { username: true } } },
@@ -203,6 +273,22 @@ export class PostRepository implements IPostRepository {
             .where(and(
                 eq(posts.userId, userId),
                 eq(posts.isDeleted, false),
+                ...filter === "threads" ? [isNull(posts.replyToId)] : [],
+                ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
+                ...filter === "reposts" ? [isNotNull(posts.repostOfId)] : [],
+                ...filter === "media" ? [exists(this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id)))] : []
+            ));
+        return Number(result[0].count);
+    }
+
+    async countByRemoteActorId(remoteActorId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number> {
+        const result = await this.client
+            .select({ count: sql<number>`count(*)` })
+            .from(posts)
+            .where(and(
+                eq(posts.remoteActorId, remoteActorId),
+                eq(posts.isDeleted, false),
+                eq(posts.visibility, "public"),
                 ...filter === "threads" ? [isNull(posts.replyToId)] : [],
                 ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
                 ...filter === "reposts" ? [isNotNull(posts.repostOfId)] : [],
@@ -247,6 +333,7 @@ export class PostRepository implements IPostRepository {
                     user: {
                         columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                     },
+                    remoteActor: true,
                     attachments: true,
                     reactions: {
                         with: { user: { columns: { username: true } } },
@@ -275,20 +362,22 @@ export class PostRepository implements IPostRepository {
         return descendants;
     }
 
-    async addReaction(postId: string, userId: string, emoji: string): Promise<void> {
+    async addReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void> {
         await this.client.insert(postReactions).values({
             id: createId(),
             postId,
             userId,
+            remoteActorId,
             emoji
         }).onConflictDoNothing();
     }
 
-    async removeReaction(postId: string, userId: string, emoji: string): Promise<void> {
+    async removeReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void> {
         await this.client.delete(postReactions).where(
             and(
                 eq(postReactions.postId, postId),
-                eq(postReactions.userId, userId),
+                userId ? eq(postReactions.userId, userId) : isNull(postReactions.userId),
+                remoteActorId ? eq(postReactions.remoteActorId, remoteActorId) : isNull(postReactions.remoteActorId),
                 eq(postReactions.emoji, emoji)
             )
         );
@@ -307,6 +396,7 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: true,
                 replyTo: {
@@ -315,6 +405,7 @@ export class PostRepository implements IPostRepository {
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
                         attachments: true,
                         reactions: true,
                         reposts: { 
@@ -343,10 +434,13 @@ export class PostRepository implements IPostRepository {
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    async getFollowingFeed(followingIds: string[], limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
+    async getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
             where: (posts, { and, eq, inArray, or }) => and(
-                inArray(posts.userId, followingIds),
+                or(
+                    followingIds.length > 0 ? inArray(posts.userId, followingIds) : undefined,
+                    remoteFollowingIds.length > 0 ? inArray(posts.remoteActorId, remoteFollowingIds) : undefined
+                ),
                 eq(posts.isDeleted, false),
                 or(
                     eq(posts.visibility, "public"),
@@ -361,6 +455,7 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: true,
                 replyTo: {
@@ -369,6 +464,7 @@ export class PostRepository implements IPostRepository {
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
                         attachments: true,
                         reactions: true,
                         reposts: { 
@@ -412,11 +508,13 @@ export class PostRepository implements IPostRepository {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
+                remoteActor: true,
                 attachments: true,
                 reactions: true,
                 repostOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
                         attachments: true,
                         reactions: true,
                         reposts: { 
@@ -444,8 +542,6 @@ export class PostRepository implements IPostRepository {
         });
         return this.mapPostsWithStates(results as any, currentUserId);
     }
-
-    // ... (addReaction and removeReaction remain unchanged)
 
     private async mapPostsWithStates(posts: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
         return posts.map(post => {

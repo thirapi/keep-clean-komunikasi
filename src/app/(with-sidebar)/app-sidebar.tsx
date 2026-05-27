@@ -28,8 +28,9 @@ import { toast } from "sonner";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { CreateChannelDialog } from "./create-channel-dialog";
 import { ExploreChannelsDialog } from "./explore-channels-dialog";
+import { SearchUserDialog } from "./search-user-dialog";
 import { useUnread } from "@/components/unread-provider";
-import { Group, Panel } from "react-resizable-panels";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { MessageSearch } from "@/components/message-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,6 +86,7 @@ export function AppSidebar({
   const { unreadRooms, initializeUnread } = useUnread();
   const [openCreateChannel, setOpenCreateChannel] = React.useState(false);
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
+  const [openSearchUser, setOpenSearchUser] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"channels" | "dms">("channels");
   const [isMounted, setIsMounted] = React.useState(false);
@@ -246,7 +248,7 @@ export function AppSidebar({
       <SidebarContent className="overflow-x-hidden pt-2">
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
-            <NavFeed />
+            <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
             <div className="h-px bg-border my-2 shrink-0 mx-2" />
             {user ? (
               mobileTab === "channels" ? (
@@ -274,22 +276,22 @@ export function AppSidebar({
           </div>
         ) : (
           <Group orientation="vertical" className="w-full min-w-0 h-full">
-            <Panel
-              minSize="15%"
-              style={{
-                overflowX: "hidden",
-                overflowY: "auto",
-                width: "100%",
-                minWidth: "0",
-              }}
-              className="min-w-0"
-            >
-              <NavFeed />
-            </Panel>
+                <Panel
+                  minSize="15%"
+                  style={{
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    width: "100%",
+                    minWidth: "0",
+                  }}
+                  className="min-w-0"
+                >
+                  <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
+                </Panel>
 
             {user ? (
               <>
-                <div className="h-px bg-border my-2 shrink-0" />
+                <Separator className="bg-border h-px my-2 shrink-0 transition-colors hover:bg-primary/30" />
 
                 <Panel
                   minSize="20%"
@@ -309,7 +311,7 @@ export function AppSidebar({
                   />
                 </Panel>
 
-                <div className="h-px bg-border my-2 shrink-0" />
+                <Separator className="bg-border h-px my-2 shrink-0 transition-colors hover:bg-primary/30" />
 
                 <Panel
                   minSize="20%"
@@ -405,6 +407,11 @@ export function AppSidebar({
       <ExploreChannelsDialog
         open={openExploreChannels}
         onOpenChange={setOpenExploreChannels}
+        userId={user?.id || ""}
+      />
+      <SearchUserDialog
+        open={openSearchUser}
+        onOpenChange={setOpenSearchUser}
         userId={user?.id || ""}
       />
       <MessageSearch

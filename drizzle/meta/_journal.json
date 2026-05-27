@@ -71,6 +71,20 @@
       "when": 1779881096750,
       "tag": "0009_legal_viper",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779886574163,
+      "tag": "0010_wet_rattler",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779892639713,
+      "tag": "0011_panoramic_carmella_unuscione",
+      "breakpoints": true
     }
   ]
 }

@@ -13,4 +13,12 @@ export class GetProfileFeedUseCase {
     async getCount(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number> {
         return await this.postRepository.countByUserId(userId, filter);
     }
+
+    async executeRemote(remoteActorId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
+        return await this.postRepository.findByRemoteActorId(remoteActorId, currentUserId, filter, limit, offset);
+    }
+
+    async getCountRemote(remoteActorId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number> {
+        return await this.postRepository.countByRemoteActorId(remoteActorId, filter);
+    }
 }

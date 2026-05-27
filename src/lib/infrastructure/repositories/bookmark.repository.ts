@@ -49,12 +49,18 @@ export class BookmarkRepository implements IBookmarkRepository {
             user: { username: "unknown" }
         })) as any;
 
+        const mappedUser = post.user ? {
+            ...post.user,
+            role: (post.user as any).userRoles?.[0]?.role?.name || "User"
+        } : {
+            username: (post as any).remoteActor?.username || "unknown",
+            avatar: (post as any).remoteActor?.avatar || "/avatars/avatar1.png",
+            role: "Remote"
+        };
+
         return {
             ...post,
-            user: {
-                ...post.user,
-                role: post.user.userRoles[0]?.role?.name || "User"
-            },
+            user: mappedUser,
             stats: {
                 likes: reactionCount,
                 replies: 0,

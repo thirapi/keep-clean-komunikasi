@@ -16,10 +16,15 @@ export class RemoteActorRepository implements IRemoteActorRepository {
                     username: actor.username,
                     domain: actor.domain,
                     name: actor.name,
+                    bio: actor.bio,
+                    banner: actor.banner,
                     avatar: actor.avatar,
                     inbox: actor.inbox,
                     sharedInbox: actor.sharedInbox,
                     publicKey: actor.publicKey,
+                    followerCount: actor.followerCount,
+                    followingCount: actor.followingCount,
+                    published: actor.published,
                     updatedAt: new Date(),
                 }
             });

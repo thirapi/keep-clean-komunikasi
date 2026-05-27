@@ -134,7 +134,13 @@ export function PostItem({
         return baseCount;
     }, [targetPost.reactions, targetPost.isLikedByCurrentUser, currentUserId]);
 
-    const displayUserInfo = isPureRepost && post.repostOf ? post.repostOf.user : post.user;
+    const rawUser = isPureRepost && post.repostOf ? (post.repostOf.user || post.repostOf.remoteActor) : (post.user || post.remoteActor);
+    const displayUserInfo = {
+        username: rawUser?.username || "unknown",
+        avatar: rawUser?.avatar || "/avatars/avatar1.png",
+        name: (rawUser as any)?.name || rawUser?.username,
+        domain: (rawUser as any)?.domain || null,
+    };
     const displayContent = isPureRepost && post.repostOf ? post.repostOf.content : post.content;
     const createdAt = isPureRepost && post.repostOf ? post.repostOf.createdAt : post.createdAt;
     const displayAttachments = isPureRepost && post.repostOf ? post.repostOf.attachments : post.attachments;
@@ -510,9 +516,14 @@ export function PostItem({
                     <div className="block group/content outline-none">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5 z-30 relative">
-                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[15px] text-foreground hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                                    {displayUserInfo.username}
-                                </Link>
+                                <div className="flex items-center gap-1.5 z-30 relative pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (!displayUserInfo.domain) router.push(`/profile/${displayUserInfo.username}`); }}>
+                                    <span className="font-bold text-[15px] text-foreground hover:underline">
+                                        {displayUserInfo.name || displayUserInfo.username}
+                                    </span>
+                                    {displayUserInfo.domain && (
+                                        <span className="text-muted-foreground text-xs font-normal">@{displayUserInfo.domain}</span>
+                                    )}
+                                </div>
                                 <span className="text-muted-foreground text-sm">·</span>
                                 <span className="text-muted-foreground text-sm">
                                     {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: id })}

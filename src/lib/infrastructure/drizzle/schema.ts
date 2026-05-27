@@ -30,7 +30,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const pushSubscriptions = pgTable("PushSubscription", {
     id: text("id").primaryKey(),
-    userId: text("userId").notNull().references(() => users.id),
+    userId: text("userId").references(() => users.id),
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     endpoint: text("endpoint").notNull(),
     p256dh: text("p256dh").notNull(),
     auth: text("auth").notNull(),
@@ -69,7 +70,8 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
 export const posts = pgTable("Post", {
     id: text("id").primaryKey(),
     content: text("content").notNull(),
-    userId: text("userId").notNull().references(() => users.id),
+    userId: text("userId").references(() => users.id),
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
 
     // Fediverse Compatibility
     uri: text("uri").unique(),        // Canonical URI
@@ -87,6 +89,7 @@ export const posts = pgTable("Post", {
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
     user: one(users, { fields: [posts.userId], references: [users.id] }),
+    remoteActor: one(remoteActors, { fields: [posts.remoteActorId], references: [remoteActors.id] }),
     attachments: many(attachments),
     reactions: many(postReactions),
     replyTo: one(posts, {
@@ -228,7 +231,8 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
 export const messageReactions = pgTable("MessageReaction", {
     id: text("id").primaryKey(),
     messageId: text("messageId").notNull().references(() => messages.id),
-    userId: text("userId").notNull().references(() => users.id),
+    userId: text("userId").references(() => users.id),
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     emoji: text("emoji").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
@@ -244,7 +248,8 @@ export const messageReactionsRelations = relations(messageReactions, ({ one }) =
 export const postReactions = pgTable("PostReaction", {
     id: text("id").primaryKey(),
     postId: text("postId").notNull().references(() => posts.id),
-    userId: text("userId").notNull().references(() => users.id),
+    userId: text("userId").references(() => users.id),
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     emoji: text("emoji").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
@@ -276,10 +281,15 @@ export const remoteActors = pgTable("RemoteActor", {
     username: text("username").notNull(),
     domain: text("domain").notNull(),
     name: text("name"),
+    bio: text("bio"),
+    banner: text("banner"),
     avatar: text("avatar"),
     inbox: text("inbox").notNull(),
     sharedInbox: text("sharedInbox"),
     publicKey: text("publicKey"),
+    followerCount: integer("followerCount").default(0).notNull(),
+    followingCount: integer("followingCount").default(0).notNull(),
+    published: timestamp("published"), // Joining date from the remote instance
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -299,7 +309,8 @@ export const followersRelations = relations(followers, ({ one }) => ({
 
 export const bookmarks = pgTable("Bookmark", {
     id: text("id").primaryKey(),
-    userId: text("userId").notNull().references(() => users.id),
+    userId: text("userId").references(() => users.id),
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     postId: text("postId").notNull().references(() => posts.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (t) => ({

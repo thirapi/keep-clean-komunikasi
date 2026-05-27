@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Plus, Hash, User } from "lucide-react";
+import { Plus } from "lucide-react";
 import { usePresence } from "@/components/presence-provider";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -89,23 +89,25 @@ export function NavMainDirectMessage({
       <SidebarGroup>
         <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50 flex items-center justify-between">
           {type}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-primary"
-                  onClick={() => setOpenDMDialog(true)}
-                >
-                  <Plus className="size-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Buat DM Baru</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setOpenDMDialog(true)}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Buat DM Baru</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </SidebarGroupLabel>
         <SidebarMenu>
           {groups.length === 0 ? (

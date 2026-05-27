@@ -3,7 +3,8 @@ import { MessageReactionWithUserDTO } from "./reaction.model";
 
 export interface PostRecord {
     id: string;
-    userId: string;
+    userId?: string | null;
+    remoteActorId?: string | null;
     content: string;
     uri?: string | null;
     url?: string | null;
@@ -32,8 +33,16 @@ export interface PostWithUserDTO extends PostRecord {
         avatar?: string | null;
         bio?: string | null;
         banner?: string | null;
+        name?: string | null;
         customStatus?: string | null;
     };
+    remoteActor?: {
+        id: string;
+        username: string;
+        domain: string;
+        name?: string | null;
+        avatar?: string | null;
+    } | null;
     attachments?: AttachmentRecord[];
     reactions?: PostReactionWithUserDTO[];
     replyTo?: PostWithUserDTO | null;
@@ -51,7 +60,8 @@ export interface PostWithUserDTO extends PostRecord {
 export interface PostReactionRecord {
     id: string;
     postId: string;
-    userId: string;
+    userId?: string | null;
+    remoteActorId?: string | null;
     emoji: string;
     createdAt: Date;
     updatedAt: Date;
