@@ -3,6 +3,7 @@ import { IPostRepository } from "@/lib/application/repositories/post.repository.
 import { IPusherService } from "@/lib/application/services/pusher.service.interface";
 import { ILinkPreviewRepository } from "@/lib/application/repositories/link-preview.repository.interface";
 import { ILinkPreviewService } from "@/lib/application/services/link-preview.service.interface";
+import { IActivityPubService } from "@/lib/application/services/activitypub.service.interface";
 import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.repository";
 import { createId } from "@paralleldrive/cuid2";
 import { extractUrls } from "@/lib/extract-urls";
@@ -14,7 +15,8 @@ export class CreatePostUseCase {
         private pusherService: IPusherService,
         private linkPreviewRepository: ILinkPreviewRepository,
         private linkPreviewService: ILinkPreviewService,
-        private hashtagRepository: HashtagRepository
+        private hashtagRepository: HashtagRepository,
+        private activityPubService: IActivityPubService
     ) { }
 
     async execute(
@@ -47,6 +49,14 @@ export class CreatePostUseCase {
         };
 
         await this.postRepository.create(postRecord, attachments);
+
+        // Fediverse Compatibility: Broadcast activity
+        try {
+            const activity = await this.activityPubService.createNoteActivity(userId, postRecord);
+            await this.activityPubService.broadcastActivity(activity, userId);
+        } catch (err) {
+            console.error("Failed to broadcast ActivityPub activity:", err);
+        }
 
         // Extract and save URLs
         const urls = extractUrls(content);

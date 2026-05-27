@@ -259,16 +259,41 @@ export const postReactionsRelations = relations(postReactions, ({ one }) => ({
 
 export const followers = pgTable("Follower", {
     id: text("id").primaryKey(),
-    followerId: text("followerId").notNull().references(() => users.id),
-    followingId: text("followingId").notNull().references(() => users.id),
+    followerId: text("followerId").references(() => users.id),
+    followingId: text("followingId").references(() => users.id),
+    
+    // Fediverse Compatibility
+    remoteFollowerId: text("remoteFollowerId").references(() => remoteActors.id),
+    remoteFollowingId: text("remoteFollowingId").references(() => remoteActors.id),
+    
     createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (t) => ({
-    unq: unique().on(t.followerId, t.followingId),
+    unq: unique().on(t.followerId, t.followingId, t.remoteFollowerId, t.remoteFollowingId),
+}));
+
+export const remoteActors = pgTable("RemoteActor", {
+    id: text("id").primaryKey(), // Usually the Actor URI
+    username: text("username").notNull(),
+    domain: text("domain").notNull(),
+    name: text("name"),
+    avatar: text("avatar"),
+    inbox: text("inbox").notNull(),
+    sharedInbox: text("sharedInbox"),
+    publicKey: text("publicKey"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export const remoteActorsRelations = relations(remoteActors, ({ many }) => ({
+    followers: many(followers, { relationName: "remoteFollowers" }),
+    following: many(followers, { relationName: "remoteFollowing" }),
 }));
 
 export const followersRelations = relations(followers, ({ one }) => ({
     follower: one(users, { fields: [followers.followerId], references: [users.id], relationName: "following" }),
     following: one(users, { fields: [followers.followingId], references: [users.id], relationName: "followers" }),
+    remoteFollower: one(remoteActors, { fields: [followers.remoteFollowerId], references: [remoteActors.id], relationName: "remoteFollowers" }),
+    remoteFollowing: one(remoteActors, { fields: [followers.remoteFollowingId], references: [remoteActors.id], relationName: "remoteFollowing" }),
 }));
 
 

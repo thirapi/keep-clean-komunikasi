@@ -10,4 +10,9 @@ export interface IFollowerRepository {
     getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string }[]>;
     getFollowerCount(userId: string): Promise<number>;
     getFollowingCount(userId: string): Promise<number>;
+
+    // Fediverse Compatibility
+    followRemote(remoteFollowerId: string, localFollowingId: string): Promise<void>;
+    unfollowRemote(remoteFollowerId: string, localFollowingId: string): Promise<void>;
+    getRemoteFollowersInboxes(localUserId: string): Promise<string[]>;
 }

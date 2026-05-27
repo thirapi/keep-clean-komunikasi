@@ -5,12 +5,14 @@ import { SessionRepository } from "@/lib/infrastructure/repositories/session.rep
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
+import { KeyService } from "@/lib/infrastructure/services/key.service";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
 
 const userRepository = new UserRepository(db);
 const sessionRepository = new SessionRepository(db);
+const keyService = new KeyService();
 
 const authenticationService = new AuthenticationService(
     sessionRepository,
@@ -21,7 +23,8 @@ const passwordService = new PasswordService();
 const signInUseCase = new SignInUseCase(
     userRepository,
     authenticationService,
-    passwordService
+    passwordService,
+    keyService
 )
 
 const formSchema = z.object({

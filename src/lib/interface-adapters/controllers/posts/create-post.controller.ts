@@ -4,6 +4,9 @@ import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { LinkPreviewRepository } from "@/lib/infrastructure/repositories/link-preview.repository";
 import { LinkPreviewService } from "@/lib/infrastructure/services/link-preview.service";
 import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.repository";
+import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
+import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
+import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { InputParsedError } from "@/lib/entities/errors/common";
@@ -13,12 +16,17 @@ const pusherService = new PusherService();
 const linkPreviewRepository = new LinkPreviewRepository(db);
 const linkPreviewService = new LinkPreviewService();
 const hashtagRepository = new HashtagRepository(db);
+const userRepository = new UserRepository(db);
+const followerRepository = new FollowerRepository(db);
+const activityPubService = new ActivityPubService(userRepository, followerRepository);
+
 const createPostUseCase = new CreatePostUseCase(
     postRepository, 
     pusherService,
     linkPreviewRepository,
     linkPreviewService,
-    hashtagRepository
+    hashtagRepository,
+    activityPubService
 );
 
 const createPostSchema = z.object({
