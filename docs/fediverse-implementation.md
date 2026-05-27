@@ -28,12 +28,16 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 ### 2. Security Layer (HTTP Signatures)
 *   **Outgoing Signatures**: Setiap request yang dikirim ke server luar ditandatangani secara digital menggunakan `privateKey` user.
 *   **Incoming Verification**: Inbox kita memvalidasi tanda tangan digital dari server pengirim. Request tanpa tanda tangan sah akan ditolak (`401 Unauthorized`).
+*   **410 Gone Resilience**: Sistem memiliki logika toleransi khusus untuk aktivitas `Delete`. Jika aktor pengirim sudah tidak ditemukan (410 Gone), sistem tetap memberikan respon `202 Accepted` untuk mencegah loop pengiriman ulang dari server asal.
 *   **Digest Header**: Implementasi hashing SHA-256 pada body request untuk memastikan integritas data.
 
 ### 3. Communication Layer (Inbox & Outbox)
+*   **Standardized User-Agent**: Seluruh request keluar menggunakan User-Agent yang robust (`Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)`) untuk menghindari pemblokiran oleh sistem proteksi bot/Cloudflare pada instance luar.
+*   **WebFinger Encoding**: Implementasi `encodeURIComponent` pada parameter resource untuk kompatibilitas penuh dengan berbagai jenis server Fediverse.
 *   **Inbox Processing (Replies & Likes)**: 
     *   Menerima dan menyimpan balasan (`Note` with `inReplyTo`) dari luar sebagai komentar lokal.
     *   Menerima dan memproses aktivitas `Like` dari remote actor.
+    *   Mendukung aktivitas `Delete` baik untuk aktor maupun postingan secara real-time.
     *   Mendukung penyimpanan otomatis postingan baru dari actor yang diikuti.
 *   **Outbox Endpoint (`api/users/[username]/outbox`)**:
     *   Menyajikan 20 postingan terakhir user dalam format `OrderedCollection`.

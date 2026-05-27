@@ -10,7 +10,8 @@ export class WebFingerService {
       if (parts.length !== 2) return null;
       
       const [username, domain] = parts;
-      const webfingerUrl = `https://${domain}/.well-known/webfinger?resource=acct:${username}@${domain}`;
+      const resource = `acct:${username}@${domain}`;
+      const webfingerUrl = `https://${domain}/.well-known/webfinger?resource=${encodeURIComponent(resource)}`;
       
       console.log(`[WebFinger] Resolving ${handle} via ${webfingerUrl}`);
 
@@ -19,7 +20,7 @@ export class WebFingerService {
           "Accept": "application/jrd+json",
           "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
         },
-        next: { revalidate: 3600 } // Cache for 1 hour
+        cache: "no-store" // Avoid caching failed/wrong responses during debug
       });
       
       if (!response.ok) {

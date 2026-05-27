@@ -51,18 +51,27 @@ export async function POST(
     // 4. Verify the signature
     let publicKey = await SignatureVerificationService.fetchRemotePublicKey(keyId);
     
+    const actorIdFromKeyId = keyId.split("#")[0];
+
     if (!publicKey) {
         // Try to find it in our local database as a fallback
-        // keyId is often actorUrl + #fragment
-        const actorId = keyId.split("#")[0];
-        const cachedActor = await remoteActorRepository.findById(actorId);
+        const cachedActor = await remoteActorRepository.findById(actorIdFromKeyId);
         if (cachedActor?.publicKey) {
-            console.log("[Inbox] Using cached public key for " + actorId);
+            console.log("[Inbox] Using cached public key for " + actorIdFromKeyId);
             publicKey = cachedActor.publicKey;
         }
     }
 
+    const body = await request.json();
+
     if (!publicKey) {
+        // Special case: If it's a Delete activity and we can't get the key, 
+        // it might be because the user is already gone. 
+        if (body.type === "Delete") {
+            console.log("[Inbox] Received Delete for " + body.actor + " but could not verify signature (Actor gone). Acknowledging.");
+            return NextResponse.json({ status: "acknowledged_unverified_delete" }, { status: 202 });
+        }
+
         console.warn("[Inbox] Could not fetch sender public key for " + keyId + " (returned 401)");
         return NextResponse.json({ error: "Could not fetch sender public key" }, { status: 401 });
     }
@@ -80,7 +89,6 @@ export async function POST(
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const body = await request.json();
     console.log("[Inbox] Verified activity received for " + username + ":", body.type);
 
     // Basic Activity Handling
@@ -95,9 +103,30 @@ export async function POST(
             return handleLike(user.id, username, body);
         case "Accept":
             return handleAccept(user.id, username, body);
+        case "Delete":
+            return handleDelete(body);
         default:
             return NextResponse.json({ status: "ignored" }, { status: 202 });
     }
+}
+
+async function handleDelete(activity: any) {
+    const objectId = typeof activity.object === 'string' ? activity.object : activity.object?.id;
+    if (!objectId) return NextResponse.json({ status: "ignored" }, { status: 202 });
+
+    console.log("[Inbox] Verified Delete for: " + objectId);
+    
+    if (objectId === activity.actor) {
+        // Actor deletion
+        console.log("[Inbox] Remote actor deleted themselves: " + objectId);
+        // We could mark them as deleted in our DB if we want to keep history
+        // or just let it be. For now we just acknowledge.
+    } else {
+        // Post deletion
+        await postRepository.deleteByUri(objectId);
+    }
+
+    return NextResponse.json({ status: "deleted" }, { status: 202 });
 }
 
 async function ensureRemoteActor(actorUrl: string) {

@@ -83,7 +83,10 @@ export class ActivityPubService implements IActivityPubService {
         if (!targetInbox) {
             try {
                 const senderActor = await fetch(followActivity.actor, {
-                    headers: { "Accept": "application/activity+json" }
+                    headers: { 
+                        "Accept": "application/activity+json",
+                        "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+                    }
                 }).then(res => res.json());
                 targetInbox = senderActor.inbox;
             } catch (err) {
@@ -116,7 +119,10 @@ export class ActivityPubService implements IActivityPubService {
         };
 
         const remoteActor = await fetch(remoteActorUrl, {
-            headers: { "Accept": "application/activity+json" }
+            headers: { 
+                "Accept": "application/activity+json",
+                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+            }
         }).then(res => res.json());
 
         if (!remoteActor.inbox) throw new Error("Remote actor has no inbox");
@@ -149,7 +155,10 @@ export class ActivityPubService implements IActivityPubService {
         };
 
         const remoteActor = await fetch(remoteActorUrl, {
-            headers: { "Accept": "application/activity+json" }
+            headers: { 
+                "Accept": "application/activity+json",
+                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+            }
         }).then(res => res.json());
 
         if (!remoteActor.inbox) throw new Error("Remote actor has no inbox");
@@ -177,6 +186,7 @@ export class ActivityPubService implements IActivityPubService {
             "Digest": digest,
             "Content-Type": "application/activity+json",
             "Accept": "application/activity+json",
+            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
         };
 
         const signature = HttpSignatureService.sign({

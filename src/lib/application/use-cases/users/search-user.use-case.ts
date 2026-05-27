@@ -19,9 +19,15 @@ export class SearchUserUseCase {
                     const actorData = await fetch(remoteActorUrl, {
                         headers: { 
                             "Accept": "application/activity+json",
-                            "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
+                            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
                         }
-                    }).then(res => res.json());
+                    }).then(async res => {
+                        if (!res.ok) {
+                            console.error(`[SearchUser] Failed to fetch actor data from ${remoteActorUrl}: ${res.status} ${res.statusText}`);
+                            return null;
+                        }
+                        return res.json();
+                    });
 
                     if (actorData) {
                         const remoteResult = {

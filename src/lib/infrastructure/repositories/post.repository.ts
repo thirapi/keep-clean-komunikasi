@@ -54,6 +54,10 @@ export class PostRepository implements IPostRepository {
         return (result as unknown as PostRecord) || null;
     }
 
+    async deleteByUri(uri: string): Promise<void> {
+        await this.client.update(posts).set({ isDeleted: true }).where(eq(posts.uri, uri));
+    }
+
     async findRepost(userId: string, originalPostId: string): Promise<PostRecord | null> {
         const result = await this.client.query.posts.findFirst({
             where: and(
