@@ -17,7 +17,7 @@ export class WebFingerService {
       const response = await fetch(webfingerUrl, {
         headers: { 
           "Accept": "application/jrd+json",
-          "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
+          "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
         },
         next: { revalidate: 3600 } // Cache for 1 hour
       });

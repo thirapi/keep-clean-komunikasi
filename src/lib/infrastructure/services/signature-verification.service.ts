@@ -56,11 +56,15 @@ export class SignatureVerificationService {
         try {
             const response = await fetch(keyId, {
                 headers: {
-                    "Accept": "application/activity+json, application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""
+                    "Accept": "application/activity+json, application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"",
+                    "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
                 }
             });
 
-            if (!response.ok) return null;
+            if (!response.ok) {
+                console.error(`[Signature] Failed to fetch remote public key from ${keyId}: ${response.status} ${response.statusText}`);
+                return null;
+            }
 
             const data = await response.json();
             
@@ -73,9 +77,10 @@ export class SignatureVerificationService {
                 return data.publicKeyPem;
             }
 
+            console.error(`[Signature] No public key found in response from ${keyId}`);
             return null;
         } catch (err) {
-            console.error(`Failed to fetch remote public key from ${keyId}:`, err);
+            console.error(`[Signature] Exception fetching remote public key from ${keyId}:`, err);
             return null;
         }
     }

@@ -49,8 +49,21 @@ export async function POST(
     const keyId = keyIdMatch[1];
 
     // 4. Verify the signature
-    const publicKey = await SignatureVerificationService.fetchRemotePublicKey(keyId);
+    let publicKey = await SignatureVerificationService.fetchRemotePublicKey(keyId);
+    
     if (!publicKey) {
+        // Try to find it in our local database as a fallback
+        // keyId is often actorUrl + #fragment
+        const actorId = keyId.split("#")[0];
+        const cachedActor = await remoteActorRepository.findById(actorId);
+        if (cachedActor?.publicKey) {
+            console.log("[Inbox] Using cached public key for " + actorId);
+            publicKey = cachedActor.publicKey;
+        }
+    }
+
+    if (!publicKey) {
+        console.warn("[Inbox] Could not fetch sender public key for " + keyId + " (returned 401)");
         return NextResponse.json({ error: "Could not fetch sender public key" }, { status: 401 });
     }
 
@@ -93,7 +106,10 @@ async function ensureRemoteActor(actorUrl: string) {
 
     // Fetch sender's actor object
     const senderActorData = await fetch(actorUrl, {
-        headers: { "Accept": "application/activity+json" }
+        headers: { 
+            "Accept": "application/activity+json",
+            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+        }
     }).then(res => res.json());
 
     if (!senderActorData.inbox) {
