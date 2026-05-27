@@ -1,3 +1,5 @@
+import { ActivityPubFetchService } from "./activitypub-fetch.service";
+
 export class WebFingerService {
   /**
    * Resolve an ActivityPub Actor URI from a handle (e.g., @user@domain.com)
@@ -15,12 +17,8 @@ export class WebFingerService {
       
       console.log(`[WebFinger] Resolving ${handle} via ${webfingerUrl}`);
 
-      const response = await fetch(webfingerUrl, {
-        headers: { 
-          "Accept": "application/jrd+json",
-          "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
-        },
-        cache: "no-store" // Avoid caching failed/wrong responses during debug
+      const response = await ActivityPubFetchService.fetchUnsigned(webfingerUrl, {
+        cache: "no-store"
       });
       
       if (!response.ok) {

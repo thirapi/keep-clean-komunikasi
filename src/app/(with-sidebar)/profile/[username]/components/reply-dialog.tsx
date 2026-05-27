@@ -136,6 +136,12 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
         }
     };
 
+    const parentUserInfo = {
+        username: parentPost.user?.username || parentPost.remoteActor?.username || "unknown",
+        avatar: parentPost.user?.avatar || parentPost.remoteActor?.avatar || "/avatars/avatar1.png",
+        handle: parentPost.remoteActor ? `@${parentPost.remoteActor.username}@${parentPost.remoteActor.domain}` : `@${parentPost.user?.username}`
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] bg-zinc-950 border-white/10 p-0 overflow-hidden">
@@ -147,10 +153,10 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                     {/* Parent Post Context */}
                     <div className="flex gap-4 relative">
                         <div className="absolute left-5 top-10 bottom-0 w-[2px] bg-zinc-800" />
-                        <UserAvatar src={parentPost.user.avatar || "/avatars/avatar1.png"} className="h-10 w-10 shrink-0 z-10" />
+                        <UserAvatar src={parentUserInfo.avatar} className="h-10 w-10 shrink-0 z-10" />
                         <div className="flex-1 flex flex-col gap-1 min-w-0 pb-6">
                             <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-bold text-white truncate">{parentPost.user.username}</span>
+                                <span className="font-bold text-white truncate">{parentUserInfo.username}</span>
                                 <span className="text-zinc-500 text-sm">·</span>
                                 <span className="text-zinc-500 text-sm whitespace-nowrap">
                                     {formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}
@@ -158,7 +164,7 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                             </div>
                             <p className="text-zinc-300 text-[15px] line-clamp-3">{parentPost.content}</p>
                             <div className="text-zinc-500 text-sm mt-2">
-                                Replying to <span className="text-sky-500">@{parentPost.user.username}</span>
+                                Replying to <span className="text-sky-500">{parentUserInfo.handle}</span>
                             </div>
                         </div>
                     </div>

@@ -53,24 +53,69 @@ export class FollowerRepository implements IFollowerRepository {
         return results.map(r => r.followingId).filter(id => id !== null) as string[];
     }
 
-    async getFollowersList(userId: string): Promise<{ id: string; username: string; avatar: string }[]> {
+    async getFollowersList(userId: string): Promise<{ id: string; username: string; avatar: string; domain?: string; isRemote: boolean }[]> {
         const results = await this.client.query.followers.findMany({
-            where: eq(followers.followingId, userId),
+            where: (followers, { or, eq }) => or(
+                eq(followers.followingId, userId),
+                eq(followers.remoteFollowingId, userId)
+            ),
             with: {
-                follower: { columns: { id: true, username: true, avatar: true } }
+                follower: { columns: { id: true, username: true, avatar: true } },
+                remoteFollower: { columns: { id: true, username: true, avatar: true, domain: true } }
             }
         });
-        return results.map(r => r.follower).filter(f => f !== null) as any;
+        
+        return results.map(r => {
+            if (r.remoteFollower) {
+                return {
+                    id: r.remoteFollower.id,
+                    username: r.remoteFollower.username,
+                    avatar: r.remoteFollower.avatar || "/avatars/avatar1.png",
+                    domain: r.remoteFollower.domain,
+                    isRemote: true
+                };
+            }
+            if (r.follower) {
+                return {
+                    id: r.follower.id,
+                    username: r.follower.username,
+                    avatar: r.follower.avatar,
+                    isRemote: false
+                };
+            }
+            return null;
+        }).filter(f => f !== null) as any;
     }
 
-    async getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string }[]> {
+    async getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string; domain?: string; isRemote: boolean }[]> {
         const results = await this.client.query.followers.findMany({
             where: eq(followers.followerId, userId),
             with: {
-                following: { columns: { id: true, username: true, avatar: true } }
+                following: { columns: { id: true, username: true, avatar: true } },
+                remoteFollowing: { columns: { id: true, username: true, avatar: true, domain: true } }
             }
         });
-        return results.map(r => r.following).filter(f => f !== null) as any;
+        
+        return results.map(r => {
+            if (r.remoteFollowing) {
+                return {
+                    id: r.remoteFollowing.id,
+                    username: r.remoteFollowing.username,
+                    avatar: r.remoteFollowing.avatar || "/avatars/avatar1.png",
+                    domain: r.remoteFollowing.domain,
+                    isRemote: true
+                };
+            }
+            if (r.following) {
+                return {
+                    id: r.following.id,
+                    username: r.following.username,
+                    avatar: r.following.avatar,
+                    isRemote: false
+                };
+            }
+            return null;
+        }).filter(f => f !== null) as any;
     }
 
     async getFollowerCount(userId: string): Promise<number> {

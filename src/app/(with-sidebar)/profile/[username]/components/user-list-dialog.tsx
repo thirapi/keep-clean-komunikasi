@@ -36,16 +36,27 @@ export function UserListDialog({ title, trigger, userId, fetchAction }: UserList
                     ) : users.length === 0 ? (
                         <p className="text-center text-sm p-4 text-muted-foreground">Tidak ada pengguna.</p>
                     ) : (
-                        users.map((user: any) => (
-                            <Link 
-                                key={user.id} 
-                                href={`/profile/${user.username}`}
-                                className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg transition-colors"
-                            >
-                                <UserAvatar src={user.avatar} className="h-8 w-8" />
-                                <span className="font-medium text-sm">{user.username}</span>
-                            </Link>
-                        ))
+                        users.map((user: any) => {
+                            const profilePath = user.isRemote 
+                                ? `/profile/@${user.username}@${user.domain}`
+                                : `/profile/${user.username}`;
+                            
+                            return (
+                                <Link 
+                                    key={user.id} 
+                                    href={profilePath}
+                                    className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg transition-colors"
+                                >
+                                    <UserAvatar src={user.avatar} className="h-8 w-8" />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-sm">{user.username}</span>
+                                        {user.isRemote && (
+                                            <span className="text-[10px] text-muted-foreground">@{user.username}@{user.domain}</span>
+                                        )}
+                                    </div>
+                                </Link>
+                            );
+                        })
                     )}
                 </div>
             </DialogContent>

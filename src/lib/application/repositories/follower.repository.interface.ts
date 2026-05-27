@@ -6,8 +6,8 @@ export interface IFollowerRepository {
     isFollowing(followerId: string, followingId: string): Promise<boolean>;
     getFollowers(userId: string): Promise<string[]>; // Returns array of user IDs
     getFollowing(userId: string): Promise<string[]>; // Returns array of user IDs
-    getFollowersList(userId: string): Promise<{ id: string; username: string; avatar: string }[]>;
-    getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string }[]>;
+    getFollowersList(userId: string): Promise<{ id: string; username: string; avatar: string; domain?: string; isRemote: boolean }[]>;
+    getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string; domain?: string; isRemote: boolean }[]>;
     getFollowerCount(userId: string): Promise<number>;
     getFollowingCount(userId: string): Promise<number>;
 

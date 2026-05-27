@@ -134,13 +134,26 @@ export function PostItem({
         return baseCount;
     }, [targetPost.reactions, targetPost.isLikedByCurrentUser, currentUserId]);
 
-    const rawUser = isPureRepost && post.repostOf ? (post.repostOf.user || post.repostOf.remoteActor) : (post.user || post.remoteActor);
-    const displayUserInfo = {
-        username: rawUser?.username || "unknown",
-        avatar: rawUser?.avatar || "/avatars/avatar1.png",
-        name: (rawUser as any)?.name || rawUser?.username,
-        domain: (rawUser as any)?.domain || null,
+    const getUserInfo = (p: PostWithUserDTO) => {
+        const u = p.user || p.remoteActor;
+        const isRemote = !!p.remoteActor;
+        const username = u?.username || "unknown";
+        const domain = p.remoteActor?.domain;
+        const handle = isRemote ? `@${username}@${domain}` : `@${username}`;
+        const profilePath = isRemote ? `/profile/@${username}@${domain}` : `/profile/${username}`;
+        
+        return {
+            username,
+            avatar: u?.avatar || "/avatars/avatar1.png",
+            displayName: (u as any)?.name || username,
+            handle,
+            profilePath,
+            isRemote,
+            domain
+        };
     };
+
+    const displayUserInfo = getUserInfo(isPureRepost && post.repostOf ? post.repostOf : post);
     const displayContent = isPureRepost && post.repostOf ? post.repostOf.content : post.content;
     const createdAt = isPureRepost && post.repostOf ? post.repostOf.createdAt : post.createdAt;
     const displayAttachments = isPureRepost && post.repostOf ? post.repostOf.attachments : post.attachments;
@@ -240,27 +253,31 @@ export function PostItem({
         setIsLightboxOpen(true);
     };
 
-    const renderQuotedPost = (quotedPost: PostWithUserDTO) => (
-        <div
-            onClick={(e) => { e.stopPropagation(); router.push(`/posts/${quotedPost.id}`); }}
-            className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-1.5 bg-accent/10 hover:bg-accent/20 transition-colors overflow-hidden cursor-pointer pointer-events-auto"
-        >
-            <div className="flex items-center gap-1.5">
-                <div onClick={(e) => { e.stopPropagation(); router.push(`/profile/${quotedPost.user.username}`); }}>
-                    <UserAvatar src={quotedPost.user.avatar || "/avatars/avatar1.png"} className="h-4 w-4 shrink-0 hover:opacity-80" />
+    const renderQuotedPost = (quotedPost: PostWithUserDTO) => {
+        const quotedUserInfo = getUserInfo(quotedPost);
+        return (
+            <div
+                onClick={(e) => { e.stopPropagation(); router.push(`/posts/${quotedPost.id}`); }}
+                className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-1.5 bg-accent/10 hover:bg-accent/20 transition-colors overflow-hidden cursor-pointer pointer-events-auto"
+            >
+                <div className="flex items-center gap-1.5">
+                    <div onClick={(e) => { e.stopPropagation(); router.push(quotedUserInfo.profilePath); }}>
+                        <UserAvatar src={quotedUserInfo.avatar} className="h-4 w-4 shrink-0 hover:opacity-80" />
+                    </div>
+                    <span onClick={(e) => { e.stopPropagation(); router.push(quotedUserInfo.profilePath); }} className="font-bold text-foreground text-[14px] truncate hover:underline">
+                        {quotedUserInfo.username}
+                    </span>
+                    {quotedUserInfo.isRemote && <span className="text-[10px] text-muted-foreground truncate">@{quotedUserInfo.domain}</span>}
+                    <span className="text-muted-foreground text-[13px]">·</span>
+                    <span className="text-muted-foreground text-[13px] whitespace-nowrap">
+                        {formatDistanceToNow(new Date(quotedPost.createdAt), { addSuffix: true, locale: id })}
+                    </span>
                 </div>
-                <span onClick={(e) => { e.stopPropagation(); router.push(`/profile/${quotedPost.user.username}`); }} className="font-bold text-foreground text-[14px] truncate hover:underline">
-                    {quotedPost.user.username}
-                </span>
-                <span className="text-muted-foreground text-[13px]">·</span>
-                <span className="text-muted-foreground text-[13px] whitespace-nowrap">
-                    {formatDistanceToNow(new Date(quotedPost.createdAt), { addSuffix: true, locale: id })}
-                </span>
+                {quotedPost.content && <p className="text-foreground/80 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>}
+                <PostMedia attachments={quotedPost.attachments || []} onImageClick={(idx) => handleMediaClick(quotedPost.attachments || [], idx)} isQuoted />
             </div>
-            {quotedPost.content && <p className="text-foreground/80 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>}
-            <PostMedia attachments={quotedPost.attachments || []} onImageClick={(idx) => handleMediaClick(quotedPost.attachments || [], idx)} isQuoted />
-        </div>
-    );
+        );
+    };
 
     const VisibilityIcon = ({ visibility, className }: { visibility?: string, className?: string }) => {
         if (visibility === "unlisted") return <Users className={cn("h-3 w-3", className)} />;
@@ -292,15 +309,15 @@ export function PostItem({
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div className={cn("shrink-0 z-30 relative flex flex-col items-center", gutterWidth)}>
-                                <Link href={`/profile/${displayUserInfo.username}`} className="hover:opacity-80 block relative z-30" onClick={(e) => e.stopPropagation()}>
+                                <Link href={displayUserInfo.profilePath} className="hover:opacity-80 block relative z-30" onClick={(e) => e.stopPropagation()}>
                                     <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-12 w-12" />
                                 </Link>
                             </div>
                             <div className="flex flex-col">
-                                <Link href={`/profile/${displayUserInfo.username}`} className="font-bold text-[16px] text-foreground hover:underline leading-tight relative z-30 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                                <Link href={displayUserInfo.profilePath} className="font-bold text-[16px] text-foreground hover:underline leading-tight relative z-30 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     {displayUserInfo.username}
                                 </Link>
-                                <span className="text-muted-foreground text-[14px]">@{displayUserInfo.username?.toLowerCase() || ""}</span>
+                                <span className="text-muted-foreground text-[14px]">{displayUserInfo.handle.toLowerCase()}</span>
                             </div>
                         </div>
                         <DropdownMenu>
@@ -336,9 +353,10 @@ export function PostItem({
                     <div className="flex flex-col transition-all pl-0">
                         {!hideReplyIndicator && post.replyToId && (
                             <div className="text-[15px] text-muted-foreground mb-3 relative z-30">
-                                {post.replyTo ? (
-                                    <>Membalas <Link href={`/profile/${post.replyTo.user.username}`} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>@{post.replyTo.user.username}</Link></>
-                                ) : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
+                                {post.replyTo ? (() => {
+                                    const replyUserInfo = getUserInfo(post.replyTo);
+                                    return <>Membalas <Link href={replyUserInfo.profilePath} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>{replyUserInfo.handle}</Link></>;
+                                })() : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
                             </div>
                         )}
 
@@ -518,7 +536,7 @@ export function PostItem({
                             <div className="flex items-center gap-1.5 z-30 relative">
                                 <div className="flex items-center gap-1.5 z-30 relative pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (!displayUserInfo.domain) router.push(`/profile/${displayUserInfo.username}`); }}>
                                     <span className="font-bold text-[15px] text-foreground hover:underline">
-                                        {displayUserInfo.name || displayUserInfo.username}
+                                        {displayUserInfo.displayName || displayUserInfo.username}
                                     </span>
                                     {displayUserInfo.domain && (
                                         <span className="text-muted-foreground text-xs font-normal">@{displayUserInfo.domain}</span>
@@ -565,16 +583,17 @@ export function PostItem({
                         {isPureRepost && (
                             <div className="mb-1 text-muted-foreground text-[13px] font-medium z-30 relative">
                                 <Repeat2 className="h-4 w-4 inline mr-1" />
-                                <Link href={`/profile/${post.user.username}`} className="hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                                    {post.user.username === currentUser?.username ? "Anda" : post.user.username} membagikan ulang
+                                <Link href={displayUserInfo.profilePath} className="hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                                    {displayUserInfo.isRemote ? displayUserInfo.handle : (displayUserInfo.username === currentUser?.username ? "Anda" : displayUserInfo.username)} membagikan ulang
                                 </Link>
                             </div>
                         )}
                         {!hideReplyIndicator && post.replyToId && !showConnector && (
                             <div className="text-[14px] text-muted-foreground mb-1 z-30 relative">
-                                {post.replyTo ? (
-                                    <>Membalas <Link href={`/profile/${post.replyTo.user.username}`} className="text-sky-500 hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>@{post.replyTo.user.username}</Link></>
-                                ) : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
+                                {post.replyTo ? (() => {
+                                    const replyUserInfo = getUserInfo(post.replyTo);
+                                    return <>Membalas <Link href={replyUserInfo.profilePath} className="text-sky-500 hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>{replyUserInfo.handle}</Link></>;
+                                })() : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
                             </div>
                         )}
                         {displayContent && (

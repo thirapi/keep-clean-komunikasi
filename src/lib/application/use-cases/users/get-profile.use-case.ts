@@ -4,6 +4,7 @@ import { IRemoteActorRepository } from "../../repositories/remote-actor.reposito
 import { WebFingerService } from "@/lib/infrastructure/services/webfinger.service";
 import { IPostRepository } from "../../repositories/post.repository.interface";
 import { createId } from "@paralleldrive/cuid2";
+import { ActivityPubFetchService } from "@/lib/infrastructure/services/activitypub-fetch.service";
 
 export class GetProfileUseCase {
     constructor(
@@ -61,13 +62,8 @@ export class GetProfileUseCase {
                 const actorUrl = await WebFingerService.resolveHandle(handle);
                 if (actorUrl) {
                     try {
-                        console.log(`[GetProfile] Fetching remote actor data from ${actorUrl}`);
-                        const response = await fetch(actorUrl, {
-                            headers: { 
-                                "Accept": "application/activity+json",
-                                "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
-                            }
-                        });
+                        console.log(`[GetProfile] Fetching remote actor data from ${actorUrl} (signed)`);
+                        const response = await ActivityPubFetchService.fetch(actorUrl, {}, currentUserId);
 
                         if (response.ok) {
                             const actorData = await response.json();
@@ -75,32 +71,32 @@ export class GetProfileUseCase {
                             // Map bio (ActivityPub summary is often HTML)
                             const bio = actorData.summary ? actorData.summary.replace(/<[^>]*>?/gm, '') : `User from ${domain}`;
                             
-                            // Try to get follower/following counts
+                            // Try to get follower/following counts (using signed fetch)
                             let followersCount = 0;
                             let followingsCount = 0;
 
                             if (actorData.followers) {
                                 try {
-                                    const fRes = await fetch(actorData.followers, {
-                                        headers: { "Accept": "application/activity+json", "User-Agent": "Komunikasi/1.0" }
-                                    });
+                                    const fRes = await ActivityPubFetchService.fetch(actorData.followers, {}, currentUserId);
                                     if (fRes.ok) {
                                         const fData = await fRes.json();
                                         followersCount = fData.totalItems || 0;
                                     }
-                                } catch (e) {}
+                                } catch (e) {
+                                    console.warn(`[GetProfile] Could not fetch followers for ${handle}`, e);
+                                }
                             }
 
                             if (actorData.following) {
                                 try {
-                                    const fRes = await fetch(actorData.following, {
-                                        headers: { "Accept": "application/activity+json", "User-Agent": "Komunikasi/1.0" }
-                                    });
+                                    const fRes = await ActivityPubFetchService.fetch(actorData.following, {}, currentUserId);
                                     if (fRes.ok) {
                                         const fData = await fRes.json();
                                         followingsCount = fData.totalItems || 0;
                                     }
-                                } catch (e) {}
+                                } catch (e) {
+                                    console.warn(`[GetProfile] Could not fetch following for ${handle}`, e);
+                                }
                             }
                             
                             remoteActor = {
@@ -125,7 +121,7 @@ export class GetProfileUseCase {
                             // Bonus: Try to fetch their outbox to populate initial posts
                             if (actorData.outbox) {
                                 // Background execution
-                                this.fetchRemoteOutbox(actorData.outbox, actorUrl).catch(err => 
+                                this.fetchRemoteOutbox(actorData.outbox, actorUrl, currentUserId).catch(err => 
                                     console.error(`[GetProfile] Failed to fetch outbox for ${handle}:`, err)
                                 );
                             }
@@ -166,40 +162,40 @@ export class GetProfileUseCase {
         throw new Error("User not found");
     }
 
-    private fetchRemoteOutbox = async (outboxUrl: string, remoteActorId: string) => {
+    private fetchRemoteOutbox = async (outboxUrl: string, remoteActorId: string, currentUserId?: string) => {
         try {
-            console.log(`[GetProfile] Fetching outbox items from ${outboxUrl}`);
-            const response = await fetch(outboxUrl, {
-                headers: { 
-                    "Accept": "application/activity+json",
-                    "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
-                }
-            });
+            console.log(`[GetProfile] Fetching outbox items from ${outboxUrl} (signed)`);
+            const response = await ActivityPubFetchService.fetch(outboxUrl, {}, currentUserId);
 
             if (!response.ok) return;
             let data = await response.json();
 
             // If it's a collection, get the first page
-            if (data.first) {
+            let items = data.orderedItems || data.items || [];
+            
+            if (items.length === 0 && data.first) {
                 const pageUrl = typeof data.first === 'string' ? data.first : data.first.id;
-                const pageResponse = await fetch(pageUrl, {
-                    headers: { 
-                        "Accept": "application/activity+json",
-                        "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
-                    }
-                });
-                if (pageResponse.ok) data = await pageResponse.json();
+                const pageResponse = await ActivityPubFetchService.fetch(pageUrl, {}, currentUserId);
+                if (pageResponse.ok) {
+                    const pageData = await pageResponse.json();
+                    items = pageData.orderedItems || pageData.items || [];
+                }
             }
 
-            const items = data.orderedItems || data.items || [];
             console.log(`[GetProfile] Found ${items.length} items in outbox for ${remoteActorId}`);
 
-            for (const item of items.slice(0, 10)) {
+            for (const item of items.slice(0, 20)) {
                 const activity = typeof item === 'string' ? null : item;
                 if (!activity) continue;
 
                 // ActivityPub items in outbox are usually 'Create' activities
-                const object = activity.object;
+                let object = activity.object;
+                
+                // If it's just the object (some outboxes return Note objects directly)
+                if (activity.type === "Note") {
+                    object = activity;
+                }
+
                 if (!object || object.type !== "Note") continue;
 
                 const existing = await this.postRepository.findByUri(object.id);

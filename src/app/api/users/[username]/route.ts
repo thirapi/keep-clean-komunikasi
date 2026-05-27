@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getActorProfileController } from "@/lib/interface-adapters/controllers/users/get-actor-profile.controller";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Actor Profile endpoint (ActivityPub)
  */

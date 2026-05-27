@@ -7,14 +7,14 @@ export class GetActorOutboxUseCase {
     private postRepository: IPostRepository
   ) {}
 
-  async execute(username: string) {
+    async execute(username: string) {
     const user = await this.userRepository.findByUsername(username);
 
     if (!user) {
       return null;
     }
 
-    const posts = await this.postRepository.findByUserId(user.id, undefined, "threads", 20, 0);
+    const posts = await this.postRepository.findByUserId(user.id, undefined, "threads", 50, 0);
     
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
     const actorId = `${baseUrl}/api/users/${user.username}`;
@@ -43,7 +43,12 @@ export class GetActorOutboxUseCase {
       "id": `${actorId}/outbox`,
       "type": "OrderedCollection",
       "totalItems": items.length,
-      "orderedItems": items
+      "first": {
+        "type": "OrderedCollectionPage",
+        "totalItems": items.length,
+        "partOf": `${actorId}/outbox`,
+        "orderedItems": items
+      }
     };
   }
 }

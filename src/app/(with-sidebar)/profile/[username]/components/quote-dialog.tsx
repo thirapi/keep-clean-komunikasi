@@ -200,8 +200,9 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                     {/* Quoted Post Box */}
                     <div className="ml-14 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 bg-white/[0.02] overflow-hidden">
                         <div className="flex items-center gap-2">
-                            <UserAvatar src={targetPost.user.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
-                            <span className="font-bold text-white text-[14px]">{targetPost.user.username}</span>
+                            <UserAvatar src={targetPost.user?.avatar || targetPost.remoteActor?.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
+                            <span className="font-bold text-white text-[14px]">{targetPost.user?.username || targetPost.remoteActor?.username || "unknown"}</span>
+                            {targetPost.remoteActor && <span className="text-[10px] text-zinc-500 truncate">@{targetPost.remoteActor.domain}</span>}
                             <span className="text-zinc-500 text-sm">·</span>
                             <span className="text-zinc-500 text-sm">
                                 {formatDistanceToNow(new Date(targetPost.createdAt), { addSuffix: true, locale: id })}
