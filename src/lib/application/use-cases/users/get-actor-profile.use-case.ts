@@ -12,7 +12,7 @@ export class GetActorProfileUseCase {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
     const actorId = `${baseUrl}/api/users/${user.username}`;
-    
+
     return {
       "@context": [
         "https://www.w3.org/ns/activitystreams",
@@ -48,3 +48,4 @@ export class GetActorProfileUseCase {
     };
   }
 }
+
