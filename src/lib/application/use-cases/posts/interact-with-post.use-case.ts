@@ -57,7 +57,7 @@ export class InteractWithPostUseCase {
 
             // Create Repost Record
             const id = optimisticId || createId();
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.verdi";
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
             const uri = `${baseUrl}/users/${userId}/posts/${id}`;
 
             const repostRecord: PostRecord = {

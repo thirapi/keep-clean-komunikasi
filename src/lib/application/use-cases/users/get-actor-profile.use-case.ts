@@ -10,7 +10,7 @@ export class GetActorProfileUseCase {
       return null;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.verdi";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
     
     return {
       "@context": [

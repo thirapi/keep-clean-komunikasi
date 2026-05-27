@@ -29,7 +29,7 @@ export class CreatePostUseCase {
         const id = predefinedId || createId();
 
         // In a real implementation, we'd get the base URL from env
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.verdi";
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const uri = `${baseUrl}/users/${userId}/posts/${id}`;
 
         const postRecord: PostRecord = {
