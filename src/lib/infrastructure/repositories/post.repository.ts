@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { posts, postReactions, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or } from "drizzle-orm";
+import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or, inArray } from "drizzle-orm";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -83,7 +83,7 @@ export class PostRepository implements IPostRepository {
                     with: { user: { columns: { username: true } } },
                 },
                 replyTo: {
-                    with: { user: { columns: { username: true } }, bookmarks: true },
+                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
                 },
                 repostOf: {
                     with: {
@@ -181,7 +181,7 @@ export class PostRepository implements IPostRepository {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { with: { user: { columns: { username: true } }, bookmarks: true } },
+                replyTo: { with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true } },
                 bookmarks: true,
                 linkPreviews: true,
             },
@@ -190,13 +190,16 @@ export class PostRepository implements IPostRepository {
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    async findByRemoteActorId(remoteActorId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
+    async findByRemoteActorId(remoteActorId: string | string[], currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit = 20, offset = 0): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: (posts, { and, eq, isNotNull, isNull, exists }) => {
+            where: (posts, { and, eq, isNotNull, isNull, exists, or, inArray }) => {
                 const base = and(
-                    eq(posts.remoteActorId, remoteActorId), 
+                    Array.isArray(remoteActorId) ? inArray(posts.remoteActorId, remoteActorId) : eq(posts.remoteActorId, remoteActorId), 
                     eq(posts.isDeleted, false),
-                    eq(posts.visibility, "public")
+                    or(
+                        eq(posts.visibility, "public"),
+                        eq(posts.visibility, "unlisted")
+                    )
                 );
                 if (filter === "threads") return and(base, isNull(posts.replyToId));
                 if (filter === "replies") return and(base, isNotNull(posts.replyToId));
@@ -241,7 +244,7 @@ export class PostRepository implements IPostRepository {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { with: { user: { columns: { username: true } }, bookmarks: true } },
+                replyTo: { with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true } },
                 bookmarks: true,
                 linkPreviews: true,
             },
@@ -285,16 +288,19 @@ export class PostRepository implements IPostRepository {
         return Number(result[0].count);
     }
 
-    async countByRemoteActorId(remoteActorId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number> {
+    async countByRemoteActorId(remoteActorId: string | string[], filter?: "threads" | "replies" | "reposts" | "media"): Promise<number> {
         const result = await this.client
             .select({ count: sql<number>`count(*)` })
             .from(posts)
             .where(and(
-                eq(posts.remoteActorId, remoteActorId),
+                Array.isArray(remoteActorId) ? inArray(posts.remoteActorId, remoteActorId) : eq(posts.remoteActorId, remoteActorId),
                 eq(posts.isDeleted, false),
-                eq(posts.visibility, "public"),
+                or(
+                    eq(posts.visibility, "public"),
+                    eq(posts.visibility, "unlisted")
+                ),
                 ...filter === "threads" ? [isNull(posts.replyToId)] : [],
-                ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
+    ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
                 ...filter === "reposts" ? [isNotNull(posts.repostOfId)] : [],
                 ...filter === "media" ? [exists(this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id)))] : []
             ));
@@ -404,7 +410,7 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } }, bookmarks: true },
+                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
                 },
                 repostOf: {
                     with: {
@@ -463,7 +469,7 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } }, bookmarks: true },
+                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
                 },
                 repostOf: {
                     with: {

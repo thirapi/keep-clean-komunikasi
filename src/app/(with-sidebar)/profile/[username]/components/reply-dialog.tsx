@@ -155,14 +155,14 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                         <div className="absolute left-5 top-10 bottom-0 w-[2px] bg-zinc-800" />
                         <UserAvatar src={parentUserInfo.avatar} className="h-10 w-10 shrink-0 z-10" />
                         <div className="flex-1 flex flex-col gap-1 min-w-0 pb-6">
-                            <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="flex items-baseline gap-1.5 leading-tight min-w-0">
                                 <span className="font-bold text-white truncate">{parentUserInfo.username}</span>
-                                <span className="text-zinc-500 text-sm">·</span>
-                                <span className="text-zinc-500 text-sm whitespace-nowrap">
-                                    {formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}
-                                </span>
+                                <span className="text-zinc-500 text-[12px] truncate">{parentUserInfo.handle}</span>
                             </div>
-                            <p className="text-zinc-300 text-[15px] line-clamp-3">{parentPost.content}</p>
+                            <div className="flex items-center gap-1 mt-1 text-zinc-500 text-xs">
+                                <span>{formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}</span>
+                            </div>
+                            <p className="text-zinc-300 text-[15px] line-clamp-3 mt-2">{parentPost.content}</p>
                             <div className="text-zinc-500 text-sm mt-2">
                                 Replying to <span className="text-sky-500">{parentUserInfo.handle}</span>
                             </div>

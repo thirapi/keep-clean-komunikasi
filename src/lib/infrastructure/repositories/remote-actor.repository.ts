@@ -2,7 +2,7 @@ import { IRemoteActorRepository } from "@/lib/application/repositories/remote-ac
 import { RemoteActorRecord } from "@/lib/entities/models/remote-actor.model";
 import { remoteActors } from "../drizzle/schema";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export class RemoteActorRepository implements IRemoteActorRepository {
     constructor(private db: NodePgDatabase<any>) {}
@@ -38,7 +38,10 @@ export class RemoteActorRepository implements IRemoteActorRepository {
     async findByUsernameAndDomain(username: string, domain: string): Promise<RemoteActorRecord | null> {
         const result = await this.db.select()
             .from(remoteActors)
-            .where(and(eq(remoteActors.username, username), eq(remoteActors.domain, domain)));
+            .where(and(
+                eq(sql`lower(${remoteActors.username})`, username.toLowerCase()), 
+                eq(sql`lower(${remoteActors.domain})`, domain.toLowerCase())
+            ));
         return result[0] || null;
     }
 }

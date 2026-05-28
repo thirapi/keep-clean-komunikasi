@@ -199,16 +199,17 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
 
                     {/* Quoted Post Box */}
                     <div className="ml-14 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 bg-white/[0.02] overflow-hidden">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start gap-2">
                             <UserAvatar src={targetPost.user?.avatar || targetPost.remoteActor?.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
-                            <span className="font-bold text-white text-[14px]">{targetPost.user?.username || targetPost.remoteActor?.username || "unknown"}</span>
-                            {targetPost.remoteActor && <span className="text-[10px] text-zinc-500 truncate">@{targetPost.remoteActor.domain}</span>}
-                            <span className="text-zinc-500 text-sm">·</span>
-                            <span className="text-zinc-500 text-sm">
-                                {formatDistanceToNow(new Date(targetPost.createdAt), { addSuffix: true, locale: id })}
-                            </span>
+                            <div className="flex items-baseline gap-1.5 min-w-0 leading-tight">
+                                <span className="font-bold text-white text-[14px] truncate">{targetPost.user?.username || targetPost.remoteActor?.username || "unknown"}</span>
+                                {targetPost.remoteActor && <span className="text-[12px] text-zinc-500 truncate">@{targetPost.remoteActor.username}@{targetPost.remoteActor.domain}</span>}
+                            </div>
+                            <div className="flex items-center gap-1 text-zinc-500 text-xs ml-auto">
+                                <span>{formatDistanceToNow(new Date(targetPost.createdAt), { addSuffix: true, locale: id })}</span>
+                            </div>
                         </div>
-                        {targetPost.content && <p className="text-zinc-300 text-[15px] line-clamp-4 leading-normal">{targetPost.content}</p>}
+                        {targetPost.content && <p className="text-zinc-300 text-[15px] line-clamp-4 leading-normal mt-1">{targetPost.content}</p>}
                         <PostMedia attachments={targetPost.attachments || []} isQuoted />
                     </div>
                 </div>

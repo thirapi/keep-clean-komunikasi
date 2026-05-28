@@ -7,6 +7,7 @@ import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.rep
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
+import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { InputParsedError } from "@/lib/entities/errors/common";
@@ -18,7 +19,8 @@ const linkPreviewService = new LinkPreviewService();
 const hashtagRepository = new HashtagRepository(db);
 const userRepository = new UserRepository(db);
 const followerRepository = new FollowerRepository(db);
-const activityPubService = new ActivityPubService(userRepository, followerRepository);
+const remoteActorRepository = new RemoteActorRepository(db as any);
+const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
 
 const createPostUseCase = new CreatePostUseCase(
     postRepository, 

@@ -9,10 +9,10 @@ import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.se
 import { createId } from "@paralleldrive/cuid2";
 
 const userRepository = new UserRepository(db);
-const remoteActorRepository = new RemoteActorRepository(db);
+const remoteActorRepository = new RemoteActorRepository(db as any);
 const followerRepository = new FollowerRepository(db);
 const postRepository = new PostRepository(db);
-const activityPubService = new ActivityPubService(userRepository, followerRepository);
+const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
 
 /**
  * User Inbox endpoint (ActivityPub)

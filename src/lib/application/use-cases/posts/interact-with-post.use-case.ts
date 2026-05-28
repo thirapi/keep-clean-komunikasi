@@ -1,5 +1,7 @@
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { IPusherService } from "@/lib/application/services/pusher.service.interface";
+import { IActivityPubService } from "@/lib/application/services/activitypub.service.interface";
+import { IRemoteActorRepository } from "@/lib/application/repositories/remote-actor.repository.interface";
 import { createId } from "@paralleldrive/cuid2";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { and, eq } from "drizzle-orm";
@@ -9,7 +11,9 @@ import { posts } from "@/lib/infrastructure/drizzle/schema";
 export class InteractWithPostUseCase {
     constructor(
         private postRepository: IPostRepository,
-        private pusherService: IPusherService
+        private pusherService: IPusherService,
+        private activityPubService: IActivityPubService,
+        private remoteActorRepository: IRemoteActorRepository
     ) { }
 
     async toggleLike(postId: string, userId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
@@ -24,6 +28,22 @@ export class InteractWithPostUseCase {
             await this.postRepository.addReaction(postId, userId, "❤️");
         }
 
+        // Fediverse Compatibility: Send Like/Undo activity
+        if (post.uri && post.remoteActorId) {
+            try {
+                const actor = await this.remoteActorRepository.findById(post.remoteActorId);
+                if (actor?.inbox) {
+                    if (hasLiked) {
+                        await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox);
+                    } else {
+                        await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to send Like activity:", err);
+            }
+        }
+
         // Trigger real-time update
         const updatedPost = await this.postRepository.findByIdWithDetails(postId, userId);
         if (updatedPost) {
@@ -35,6 +55,9 @@ export class InteractWithPostUseCase {
     }
 
     async repost(userId: string, originalPostId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
+        const originalPost = await this.postRepository.findByIdWithDetails(originalPostId);
+        if (!originalPost) throw new Error("Original post not found");
+
         const result = await db.transaction(async (tx) => {
             // Strict check within transaction to prevent race conditions
             const existingRepost = await tx.query.posts.findFirst({
@@ -52,7 +75,7 @@ export class InteractWithPostUseCase {
                     .set({ isDeleted: true, updatedAt: new Date() })
                     .where(eq(posts.id, existingRepost.id));
 
-                return { type: "unrepost" as const, id: originalPostId };
+                return { type: "unrepost" as const, id: originalPostId, repostUri: existingRepost.uri };
             }
 
             // Create Repost Record
@@ -74,16 +97,31 @@ export class InteractWithPostUseCase {
             };
 
             await tx.insert(posts).values(repostRecord);
-            return { type: "repost" as const, id: id };
+            return { type: "repost" as const, id: id, repostUri: uri };
         });
 
+        // Fediverse Compatibility: Send Announce/Undo activity
+        if (originalPost.uri && originalPost.remoteActorId) {
+            try {
+                const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
+                if (actor?.inbox) {
+                    if (result.type === "unrepost") {
+                        await this.activityPubService.sendUndoAnnounceActivity(userId, originalPost.uri, actor.inbox);
+                    } else {
+                        await this.activityPubService.sendAnnounceActivity(userId, originalPost.uri, actor.inbox);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to send Announce activity:", err);
+            }
+        }
+
         // Outside transaction, fetch fully loaded details using repository
-        // This ensures the record is committed and visible to the repository's client
         if (result.type === "unrepost") {
-            const originalPost = await this.postRepository.findByIdWithDetails(result.id, userId);
-            if (originalPost) {
-                originalPost.optimisticId = optimisticId;
-                await this.pusherService.trigger(`post-${result.id}`, "reaction-updated", originalPost);
+            const updatedOriginal = await this.postRepository.findByIdWithDetails(result.id, userId);
+            if (updatedOriginal) {
+                updatedOriginal.optimisticId = optimisticId;
+                await this.pusherService.trigger(`post-${result.id}`, "reaction-updated", updatedOriginal);
             }
             return null;
         } else {

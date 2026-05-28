@@ -148,9 +148,6 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
 
     return (
         <div className="flex items-start gap-0 px-4 py-3 border-b border-border/10 relative">
-            {/* Always show line from top (from focused post) through bottom (to descendants) */}
-            <div className={cn("absolute w-[2px] bg-border z-0", lineX, "top-0 bottom-0")} />
-            
             <input
                 type="file"
                 className="hidden"

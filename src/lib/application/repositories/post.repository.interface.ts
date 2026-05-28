@@ -8,9 +8,9 @@ export interface IPostRepository {
     findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null>;
     findRepost(userId: string, originalPostId: string): Promise<PostRecord | null>;
     findByUserId(userId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
-    findByRemoteActorId(remoteActorId: string, currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
+    findByRemoteActorId(remoteActorId: string | string[], currentUserId?: string, filter?: "threads" | "replies" | "reposts" | "media", limit?: number, offset?: number): Promise<PostWithUserDTO[]>;
     countByUserId(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
-    countByRemoteActorId(remoteActorId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
+    countByRemoteActorId(remoteActorId: string | string[], filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findByUri(uri: string): Promise<PostRecord | null>;
     deleteByUri(uri: string): Promise<void>;

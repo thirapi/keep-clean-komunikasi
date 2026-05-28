@@ -138,7 +138,7 @@ export class GetProfileUseCase {
                     
                     return {
                         id: remoteActor.id,
-                        username: remoteActor.username,
+                        username: handle,
                         avatar: remoteActor.avatar || "/avatars/avatar1.png",
                         bio: remoteActor.bio,
                         banner: remoteActor.banner,

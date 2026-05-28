@@ -1,9 +1,13 @@
 import { PostRepository } from "@/lib/infrastructure/repositories/post.repository";
+import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
 import { GetProfileFeedUseCase } from "@/lib/application/use-cases/posts/get-profile-feed.use-case";
 import { db } from "@/lib/db";
+import { remoteActors, users } from "@/lib/infrastructure/drizzle/schema";
+import { and, eq, sql } from "drizzle-orm";
 
 const postRepository = new PostRepository(db);
-const getProfileFeedUseCase = new GetProfileFeedUseCase(postRepository);
+const remoteActorRepository = new RemoteActorRepository(db as any);
+const getProfileFeedUseCase = new GetProfileFeedUseCase(postRepository, remoteActorRepository);
 
 export const getProfileFeedController = async (
     username: string,
@@ -12,9 +16,9 @@ export const getProfileFeedController = async (
     limit = 20,
     offset = 0
 ) => {
-    // 1. Try local user
+    // 1. Try local user (case insensitive)
     const localUser = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.username, username),
+        where: eq(sql`lower(${users.username})`, username.toLowerCase()),
     });
 
     if (localUser) {
@@ -25,13 +29,20 @@ export const getProfileFeedController = async (
     if (username.includes("@")) {
         const handle = username.startsWith("@") ? username : `@${username}`;
         const parts = handle.slice(1).split("@");
-        const remoteActor = await db.query.remoteActors.findFirst({
-            where: (actors, { and, eq }) => and(eq(actors.username, parts[0]), eq(actors.domain, parts[1])),
+        const localPart = parts[0].toLowerCase();
+        const domain = parts[1].toLowerCase();
+
+        const actors = await db.query.remoteActors.findMany({
+            where: and(
+                eq(sql`lower(${remoteActors.username})`, localPart), 
+                eq(sql`lower(${remoteActors.domain})`, domain)
+            ),
         });
 
-        if (remoteActor) {
-            // For remote actors, we fetch posts where remoteActorId matches
-            return await getProfileFeedUseCase.executeRemote(remoteActor.id, currentUserId, filter, limit, offset);
+        if (actors.length > 0) {
+            // Use all IDs found to catch all posts even if stored under different URI aliases
+            const actorIds = actors.map(a => a.id);
+            return await getProfileFeedUseCase.executeRemote(actorIds, currentUserId, filter, limit, offset);
         }
     }
 
@@ -44,7 +55,7 @@ export const getProfileFeedCountController = async (
 ) => {
     // 1. Try local user
     const localUser = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.username, username),
+        where: eq(sql`lower(${users.username})`, username.toLowerCase()),
     });
 
     if (localUser) {
@@ -55,12 +66,19 @@ export const getProfileFeedCountController = async (
     if (username.includes("@")) {
         const handle = username.startsWith("@") ? username : `@${username}`;
         const parts = handle.slice(1).split("@");
-        const remoteActor = await db.query.remoteActors.findFirst({
-            where: (actors, { and, eq }) => and(eq(actors.username, parts[0]), eq(actors.domain, parts[1])),
+        const localPart = parts[0].toLowerCase();
+        const domain = parts[1].toLowerCase();
+
+        const actors = await db.query.remoteActors.findMany({
+            where: and(
+                eq(sql`lower(${remoteActors.username})`, localPart), 
+                eq(sql`lower(${remoteActors.domain})`, domain)
+            ),
         });
 
-        if (remoteActor) {
-            return await getProfileFeedUseCase.getCountRemote(remoteActor.id, filter);
+        if (actors.length > 0) {
+            const actorIds = actors.map(a => a.id);
+            return await getProfileFeedUseCase.getCountRemote(actorIds, filter);
         }
     }
 
