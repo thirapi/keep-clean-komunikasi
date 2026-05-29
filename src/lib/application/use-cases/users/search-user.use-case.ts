@@ -12,7 +12,7 @@ export class SearchUserUseCase {
 
     constructor(private userRepository: IUserRepository) { }
 
-    async execute(query: string, limit?: number) {
+    async execute(query: string, limit?: number, currentUserId?: string) {
         const localResults = await this.userRepository.searchUsers(query, limit);
         
         const trimmedQuery = query.trim();
@@ -20,11 +20,11 @@ export class SearchUserUseCase {
         if (trimmedQuery.includes("@") && trimmedQuery.length > 3) {
             try {
                 console.log(`[SearchUser] Attempting remote resolution for: ${trimmedQuery}`);
-                const remoteActorUrl = await WebFingerService.resolveHandle(trimmedQuery);
+                const remoteActorUrl = await WebFingerService.resolveHandle(trimmedQuery, currentUserId);
                 if (remoteActorUrl) {
                     console.log(`[SearchUser] Resolved to ${remoteActorUrl}, fetching actor data (signed)...`);
                     // Fetch actor details using signed fetch
-                    const actorData = await ActivityPubFetchService.fetch(remoteActorUrl).then(async res => {
+                    const actorData = await ActivityPubFetchService.fetch(remoteActorUrl, {}, currentUserId).then(async res => {
                         if (!res.ok) {
                             console.error(`[SearchUser] Failed to fetch actor data from ${remoteActorUrl}: ${res.status} ${res.statusText}`);
                             return null;
@@ -62,7 +62,7 @@ export class SearchUserUseCase {
 
                         // Sync outbox in background
                         if (actorData.outbox) {
-                            this.fetchRemoteOutbox(actorData.outbox, remoteActorUrl).catch(e => 
+                            this.fetchRemoteOutbox(actorData.outbox, remoteActorUrl, currentUserId).catch(e => 
                                 console.error(`[SearchUser] Outbox sync failed for ${remoteActorUrl}`, e)
                             );
                         }
@@ -81,16 +81,16 @@ export class SearchUserUseCase {
         return localResults;
     }
 
-    private fetchRemoteOutbox = async (outboxUrl: string, remoteActorId: string) => {
+    private fetchRemoteOutbox = async (outboxUrl: string, remoteActorId: string, currentUserId?: string) => {
         try {
-            const response = await ActivityPubFetchService.fetch(outboxUrl);
+            const response = await ActivityPubFetchService.fetch(outboxUrl, {}, currentUserId);
             if (!response.ok) return;
             let data = await response.json();
 
             let items = data.orderedItems || data.items || [];
             if (items.length === 0 && data.first) {
                 const pageUrl = typeof data.first === 'string' ? data.first : data.first.id;
-                const pageResponse = await ActivityPubFetchService.fetch(pageUrl);
+                const pageResponse = await ActivityPubFetchService.fetch(pageUrl, {}, currentUserId);
                 if (pageResponse.ok) {
                     const pageData = await pageResponse.json();
                     items = pageData.orderedItems || pageData.items || [];

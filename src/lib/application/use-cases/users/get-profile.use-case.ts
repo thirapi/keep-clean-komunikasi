@@ -59,7 +59,7 @@ export class GetProfileUseCase {
                 let remoteActor = await this.remoteActorRepository.findByUsernameAndDomain(localPart, domain);
                 
                 // Fetch/Refresh remote actor data
-                const actorUrl = await WebFingerService.resolveHandle(handle);
+                const actorUrl = await WebFingerService.resolveHandle(handle, currentUserId);
                 if (actorUrl) {
                     try {
                         console.log(`[GetProfile] Fetching remote actor data from ${actorUrl} (signed)`);

@@ -7,9 +7,10 @@ export class ActivityPubFetchService {
 
     /**
      * Standardized User-Agent for all outbound Fediverse requests.
-     * Some instances (like Misskey) are picky and might block simple strings.
+     * We use a "Browser-Identified" format which is less likely to be blocked by Cloudflare/WAFs
+     * while still identifying our platform and providing a contact URL.
      */
-    private static USER_AGENT = "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)";
+    private static USER_AGENT = "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1";
 
     /**
      * Performs a signed fetch to a remote ActivityPub endpoint.
@@ -38,6 +39,7 @@ export class ActivityPubFetchService {
             "User-Agent": this.USER_AGENT,
             "Host": targetUrl.host,
             "Date": new Date().toUTCString(),
+            "Accept-Language": "en-US,en;q=0.9",
             ...(options.headers as Record<string, string> || {})
         };
 
@@ -73,11 +75,16 @@ export class ActivityPubFetchService {
      * Unsigned fetch with standardized headers for things like WebFinger
      */
     static async fetchUnsigned(url: string, options: RequestInit = {}) {
+        const targetUrl = new URL(url);
         return fetch(url, {
             ...options,
             headers: {
-                "Accept": "application/jrd+json, application/activity+json",
+                "Accept": "application/jrd+json, application/json, application/activity+json",
                 "User-Agent": this.USER_AGENT,
+                "Host": targetUrl.host,
+                "Date": new Date().toUTCString(),
+                "Accept-Language": "en-US,en;q=0.9",
+                "Connection": "keep-alive",
                 ...(options.headers as Record<string, string> || {})
             }
         });

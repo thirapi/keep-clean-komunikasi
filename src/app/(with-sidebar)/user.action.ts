@@ -62,10 +62,11 @@ export const changePasswordAction = async (
 
 export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string }[]>> => {
   try {
-    const users = await searchUserController(query);
+    const fullCurrentUser = await (await import("../auth.action")).getUserWithRolesFromSession();
+    const users = await searchUserController(query, 10, fullCurrentUser?.id);
     return {
       status: "success",
-      data: users,
+      data: users as any,
       error: null,
     };
   } catch (err: any) {

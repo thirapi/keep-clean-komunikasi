@@ -5,6 +5,6 @@ import { db } from "@/lib/db";
 const userRepository = new UserRepository(db);
 const searchUserUseCase = new SearchUserUseCase(userRepository);
 
-export async function searchUserController(query: string, limit?: number) {
-    return await searchUserUseCase.execute(query, limit);
+export async function searchUserController(query: string, limit?: number, currentUserId?: string) {
+    return await searchUserUseCase.execute(query, limit, currentUserId);
 }

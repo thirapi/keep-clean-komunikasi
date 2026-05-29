@@ -31,7 +31,7 @@ export class FollowerRepository implements IFollowerRepository {
         const result = await this.client.query.followers.findFirst({
             where: and(
                 eq(followers.followerId, followerId),
-                eq(followers.followingId, followingId)
+                sql`${followers.followingId} = ${followingId} OR ${followers.remoteFollowingId} = ${followingId}`
             )
         });
         return !!result;

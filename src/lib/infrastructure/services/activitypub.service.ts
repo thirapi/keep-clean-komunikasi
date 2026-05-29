@@ -135,7 +135,7 @@ export class ActivityPubService implements IActivityPubService {
                 const senderActor = await fetch(followActivity.actor, {
                     headers: { 
                         "Accept": "application/activity+json",
-                        "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+                        "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
                     }
                 }).then(res => res.json());
                 targetInbox = senderActor.inbox;
@@ -171,7 +171,7 @@ export class ActivityPubService implements IActivityPubService {
         const remoteActor = await fetch(remoteActorUrl, {
             headers: { 
                 "Accept": "application/activity+json",
-                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
             }
         }).then(res => res.json());
 
@@ -207,7 +207,7 @@ export class ActivityPubService implements IActivityPubService {
         const remoteActor = await fetch(remoteActorUrl, {
             headers: { 
                 "Accept": "application/activity+json",
-                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+                "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
             }
         }).then(res => res.json());
 
@@ -331,7 +331,7 @@ export class ActivityPubService implements IActivityPubService {
             "Digest": digest,
             "Content-Type": "application/activity+json",
             "Accept": "application/activity+json",
-            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
         };
 
         const signature = HttpSignatureService.sign({

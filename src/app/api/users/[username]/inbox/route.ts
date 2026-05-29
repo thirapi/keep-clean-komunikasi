@@ -137,9 +137,8 @@ async function ensureRemoteActor(actorUrl: string) {
     const senderActorData = await fetch(actorUrl, {
         headers: { 
             "Accept": "application/activity+json",
-            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
-        }
-    }).then(res => res.json());
+            "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
+        }    }).then(res => res.json());
 
     if (!senderActorData.inbox) {
         throw new Error("Sender actor has no inbox");

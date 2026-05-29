@@ -57,7 +57,7 @@ export class SignatureVerificationService {
             const response = await fetch(keyId, {
                 headers: {
                     "Accept": "application/activity+json, application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"",
-                    "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io)"
+                    "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
                 }
             });
 
