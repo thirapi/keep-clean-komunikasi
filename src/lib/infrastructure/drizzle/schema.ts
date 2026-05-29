@@ -273,7 +273,9 @@ export const followers = pgTable("Follower", {
     
     createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (t) => ({
-    unq: unique().on(t.followerId, t.followingId, t.remoteFollowerId, t.remoteFollowingId),
+    unq_local: unique().on(t.followerId, t.followingId),
+    unq_remote: unique().on(t.followerId, t.remoteFollowingId),
+    unq_incoming: unique().on(t.remoteFollowerId, t.followingId),
 }));
 
 export const remoteActors = pgTable("RemoteActor", {

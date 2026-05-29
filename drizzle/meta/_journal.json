@@ -85,6 +85,13 @@
       "when": 1779892639713,
       "tag": "0011_panoramic_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780029750715,
+      "tag": "0012_petite_joystick",
+      "breakpoints": true
     }
   ]
 }

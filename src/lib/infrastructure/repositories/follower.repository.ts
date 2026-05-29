@@ -65,26 +65,28 @@ export class FollowerRepository implements IFollowerRepository {
             }
         });
         
-        return results.map(r => {
+        const uniqueResults = new Map<string, any>();
+        
+        results.forEach(r => {
             if (r.remoteFollower) {
-                return {
+                uniqueResults.set(r.remoteFollower.id, {
                     id: r.remoteFollower.id,
                     username: r.remoteFollower.username,
                     avatar: r.remoteFollower.avatar || "/avatars/avatar1.png",
                     domain: r.remoteFollower.domain,
                     isRemote: true
-                };
-            }
-            if (r.follower) {
-                return {
+                });
+            } else if (r.follower) {
+                uniqueResults.set(r.follower.id, {
                     id: r.follower.id,
                     username: r.follower.username,
                     avatar: r.follower.avatar,
                     isRemote: false
-                };
+                });
             }
-            return null;
-        }).filter(f => f !== null) as any;
+        });
+
+        return Array.from(uniqueResults.values());
     }
 
     async getFollowingList(userId: string): Promise<{ id: string; username: string; avatar: string; domain?: string; isRemote: boolean }[]> {
@@ -96,26 +98,28 @@ export class FollowerRepository implements IFollowerRepository {
             }
         });
         
-        return results.map(r => {
+        const uniqueResults = new Map<string, any>();
+
+        results.forEach(r => {
             if (r.remoteFollowing) {
-                return {
+                uniqueResults.set(r.remoteFollowing.id, {
                     id: r.remoteFollowing.id,
                     username: r.remoteFollowing.username,
                     avatar: r.remoteFollowing.avatar || "/avatars/avatar1.png",
                     domain: r.remoteFollowing.domain,
                     isRemote: true
-                };
-            }
-            if (r.following) {
-                return {
+                });
+            } else if (r.following) {
+                uniqueResults.set(r.following.id, {
                     id: r.following.id,
                     username: r.following.username,
                     avatar: r.following.avatar,
                     isRemote: false
-                };
+                });
             }
-            return null;
-        }).filter(f => f !== null) as any;
+        });
+
+        return Array.from(uniqueResults.values());
     }
 
     async getFollowerCount(userId: string): Promise<number> {
