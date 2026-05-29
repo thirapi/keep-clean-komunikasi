@@ -10,6 +10,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Loader2, Bookmark } from "lucide-react";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
+import Link from "next/link";
 
 interface BookmarksViewProps {
     initialPosts: PostWithUserDTO[];
@@ -81,11 +82,13 @@ export default function BookmarksView({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => toggleSidebar()}
+                                asChild
                                 className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Toggle sidebar"
+                                aria-label="Back to channels"
                             >
-                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                <Link href="/channels/default">
+                                    <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                </Link>
                             </Button>
                         </div>
                         <h1 className="text-xl font-bold tracking-tight flex-1">Bookmark</h1>

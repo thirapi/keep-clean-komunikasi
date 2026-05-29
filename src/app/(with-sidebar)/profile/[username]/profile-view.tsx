@@ -202,17 +202,6 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative overflow-hidden">
                     {/* Header */}
                     <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-4 shrink-0">
-                        <div className="md:hidden">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => toggleSidebar()}
-                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Toggle sidebar"
-                            >
-                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
-                            </Button>
-                        </div>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -225,7 +214,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     router.push("/");
                                 }
                             }}
-                            className="rounded-full hover:bg-muted"
+                            className="rounded-full hover:bg-muted -ml-1"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>

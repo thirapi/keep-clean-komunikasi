@@ -10,13 +10,15 @@ import {
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Button } from "@/components/ui/button";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { ImagePlus, X, FileIcon, Loader2 } from "lucide-react";
+import { PostMedia } from "./post-media";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
+import Link from "next/link";
 
 interface ReplyDialogProps {
     isOpen: boolean;
@@ -124,55 +126,63 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                 setSelectedFiles([]);
                 setFilePreviews([]);
                 localStorage.removeItem(`draft_reply-${parentPost.id}`);
-                toast.success("Balasan terkirim");
+                toast.success("Reply posted");
                 onClose();
             } else {
-                toast.error(response.error?.message || "Gagal mengirim balasan");
+                toast.error(response.error?.message || "Failed to post reply");
             }
         } catch (error: any) {
-            toast.error(error.message || "Terjadi kesalahan");
+            toast.error(error.message || "An error occurred");
         } finally {
             setIsSending(false);
         }
     };
 
-    const parentUserInfo = {
-        username: parentPost.user?.username || parentPost.remoteActor?.username || "unknown",
-        avatar: parentPost.user?.avatar || parentPost.remoteActor?.avatar || "/avatars/avatar1.png",
-        handle: parentPost.remoteActor ? `@${parentPost.remoteActor.username}@${parentPost.remoteActor.domain}` : `@${parentPost.user?.username}`
-    };
+    const parentUserInfo = useMemo(() => {
+        const u = parentPost.user || parentPost.remoteActor;
+        const isRemote = !!parentPost.remoteActor;
+        const username = u?.username || "unknown";
+        const handle = isRemote ? `@${username}@${parentPost.remoteActor?.domain}` : `@${username}`;
+        return { username, handle, avatar: u?.avatar };
+    }, [parentPost]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] bg-zinc-950 border-white/10 p-0 overflow-hidden">
                 <DialogHeader className="p-4 border-b border-white/5">
-                    <DialogTitle className="text-white text-center">Reply</DialogTitle>
+                    <DialogTitle className="text-white text-center">Balas</DialogTitle>
                 </DialogHeader>
 
-                <div className="p-6 flex flex-col gap-4">
-                    {/* Parent Post Context */}
+                <div className="p-6 flex flex-col gap-0 max-h-[70vh] overflow-y-auto">
+                    {/* Parent Post Preview */}
                     <div className="flex gap-4 relative">
-                        <div className="absolute left-5 top-10 bottom-0 w-[2px] bg-zinc-800" />
-                        <UserAvatar src={parentUserInfo.avatar} className="h-10 w-10 shrink-0 z-10" />
-                        <div className="flex-1 flex flex-col gap-1 min-w-0 pb-6">
-                            <div className="flex items-baseline gap-1.5 leading-tight min-w-0">
-                                <span className="font-bold text-white truncate">{parentUserInfo.username}</span>
-                                <span className="text-zinc-500 text-[12px] truncate">{parentUserInfo.handle}</span>
+                        <div className="flex flex-col items-center shrink-0">
+                            <UserAvatar src={parentUserInfo.avatar || "/avatars/avatar1.png"} className="h-10 w-10 z-10" />
+                            <div className="w-0.5 flex-1 bg-zinc-800 my-1" />
+                        </div>
+                        <div className="flex-1 pb-6">
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-bold text-white line-clamp-1">{parentUserInfo.username}</span>
+                                <span className="text-zinc-500 text-[12px] line-clamp-1">{parentUserInfo.handle}</span>
+                                <span className="text-zinc-500">·</span>
+                                <span className="text-zinc-500 text-xs">{formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}</span>
                             </div>
-                            <div className="flex items-center gap-1 mt-1 text-zinc-500 text-xs">
-                                <span>{formatDistanceToNow(new Date(parentPost.createdAt), { addSuffix: true, locale: id })}</span>
-                            </div>
-                            <p className="text-zinc-300 text-[15px] line-clamp-3 mt-2">{parentPost.content}</p>
-                            <div className="text-zinc-500 text-sm mt-2">
-                                Replying to <span className="text-sky-500">{parentUserInfo.handle}</span>
+                            <p className="text-zinc-300 text-[15px] line-clamp-4 leading-normal">{parentPost.content}</p>
+                            <div className="mt-2 opacity-50 pointer-events-none">
+                                <PostMedia attachments={parentPost.attachments || []} isQuoted />
                             </div>
                         </div>
                     </div>
 
-                    {/* Reply Input */}
-                    <div className="flex gap-4">
-                        <UserAvatar src={currentUser.avatar} className="h-10 w-10 shrink-0" />
+                    {/* User Input */}
+                    <div className="flex gap-4 pt-2">
+                        <div className="flex flex-col items-center shrink-0">
+                            <UserAvatar src={currentUser.avatar} className="h-10 w-10" />
+                        </div>
                         <div className="flex-1 flex flex-col gap-3">
+                            <div className="text-[15px] text-zinc-500">
+                                Balas ke <span className="text-sky-500">{parentUserInfo.handle}</span>
+                            </div>
                             <input
                                 type="file"
                                 className="hidden"
@@ -184,9 +194,9 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                             <MentionTextarea
                                 value={content}
                                 onChange={setContent}
-                                placeholder="Post your reply"
+                                placeholder="Posting balasan Anda"
                                 onSubmit={handleSend}
-                                className="min-h-[120px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
+                                className="min-h-[100px] bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-zinc-600 p-0 text-lg"
                                 autoFocus={true}
                                 currentUserId={currentUser.id}
                                 draftKey={`reply-${parentPost.id}`}
@@ -236,7 +246,7 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                         disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
                         className="rounded-full bg-white text-black hover:bg-zinc-200 px-6 font-bold"
                     >
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reply"}
+                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Balas"}
                     </Button>
                 </div>
             </DialogContent>

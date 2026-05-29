@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 interface TimelineViewProps {
     initialPosts: PostWithUserDTO[];
@@ -150,11 +151,13 @@ export default function TimelineView({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => toggleSidebar()}
+                                asChild
                                 className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Toggle sidebar"
+                                aria-label="Back to channels"
                             >
-                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                <Link href="/channels/default">
+                                    <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                </Link>
                             </Button>
                         </div>
                         <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>

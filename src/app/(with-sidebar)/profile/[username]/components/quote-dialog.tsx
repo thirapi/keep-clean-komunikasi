@@ -202,8 +202,8 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                         <div className="flex items-start gap-2">
                             <UserAvatar src={targetPost.user?.avatar || targetPost.remoteActor?.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
                             <div className="flex items-baseline gap-1.5 min-w-0 leading-tight">
-                                <span className="font-bold text-white text-[14px] truncate">{targetPost.user?.username || targetPost.remoteActor?.username || "unknown"}</span>
-                                {targetPost.remoteActor && <span className="text-[12px] text-zinc-500 truncate">@{targetPost.remoteActor.username}@{targetPost.remoteActor.domain}</span>}
+                                <span className="font-bold text-white text-[14px] line-clamp-1">{targetPost.user?.username || targetPost.remoteActor?.username || "unknown"}</span>
+                                {targetPost.remoteActor && <span className="text-[12px] text-zinc-500 line-clamp-1">@{targetPost.remoteActor.username}@{targetPost.remoteActor.domain}</span>}
                             </div>
                             <div className="flex items-center gap-1 text-zinc-500 text-xs ml-auto">
                                 <span>{formatDistanceToNow(new Date(targetPost.createdAt), { addSuffix: true, locale: id })}</span>

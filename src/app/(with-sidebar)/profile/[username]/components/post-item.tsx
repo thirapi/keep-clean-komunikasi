@@ -18,6 +18,16 @@ import {
     Lock, 
     Users
 } from "lucide-react";
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -73,12 +83,8 @@ export function PostItem({
     const [isQuoteOpen, setIsQuoteOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    // Repost logic: if post content is empty and has repostOf, it's a "pure repost"
     const isPureRepost = !post.content && !!post.repostOf && !post.attachments?.length;
-    // Quote post logic: if post content exists and has repostOf
     const isQuotePost = (!!post.content || !!post.attachments?.length) && !!post.repostOf;
-    
-    // Target post for interactions (if pure repost, we interact with the original)
     const targetPost = isPureRepost && post.repostOf ? post.repostOf : post;
 
     const likeMutation = useMutation({
@@ -86,7 +92,6 @@ export function PostItem({
         onMutate: async () => {
             await queryClient.cancelQueries({ queryKey: ["posts"] });
             const previousPosts = queryClient.getQueryData(["posts"]);
-            
             updatePostInCache(targetPost.id, (old) => ({
                 ...old,
                 isLikedByCurrentUser: !old.isLikedByCurrentUser,
@@ -94,7 +99,6 @@ export function PostItem({
                     ? [...(old.reactions || []), { id: "temp", postId: old.id, userId: currentUserId!, emoji: "❤️", createdAt: new Date(), updatedAt: new Date(), user: { username: currentUser?.username || "me" } }]
                     : (old.reactions || []).filter(r => r.userId !== currentUserId || r.emoji !== "❤️")
             }));
-
             return { previousPosts };
         },
         onError: (err, newTodo, context) => {
@@ -116,7 +120,6 @@ export function PostItem({
                     updatePostInCache(targetPost.id, () => res.data!);
                     toast.success("Berhasil membagikan ulang");
                 } else {
-                    // Unrepost case
                     toast.success("Batal membagikan ulang");
                 }
                 queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -173,16 +176,7 @@ export function PostItem({
         const domain = p.remoteActor?.domain;
         const handle = isRemote ? `@${username}@${domain}` : `@${username}`;
         const profilePath = isRemote ? `/profile/@${username}@${domain}` : `/profile/${username}`;
-        
-        return {
-            username,
-            avatar: u?.avatar || "/avatars/avatar1.png",
-            displayName: (u as any)?.name || username,
-            handle,
-            profilePath,
-            isRemote,
-            domain
-        };
+        return { username, avatar: u?.avatar || "/avatars/avatar1.png", displayName: (u as any)?.name || username, handle, profilePath, isRemote, domain };
     };
 
     const displayUserInfo = getUserInfo(isPureRepost && post.repostOf ? post.repostOf : post);
@@ -226,28 +220,26 @@ export function PostItem({
         return (
             <div
                 onClick={(e) => { e.stopPropagation(); router.push(`/posts/${quotedPost.id}`); }}
-                className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-1.5 bg-accent/10 hover:bg-accent/20 transition-colors overflow-hidden cursor-pointer pointer-events-auto"
+                className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-2 bg-accent/10 hover:bg-accent/20 transition-colors overflow-hidden cursor-pointer pointer-events-auto"
             >
-                <div className="flex items-center gap-2">
-                    <Link href={quotedUserInfo.profilePath} onClick={(e) => e.stopPropagation()} className="shrink-0">
+                <div className="flex items-start gap-2">
+                    <Link href={quotedUserInfo.profilePath} onClick={(e) => e.stopPropagation()} className="shrink-0 mt-0.5">
                         <UserAvatar src={quotedUserInfo.avatar} className="h-5 w-5 shrink-0 hover:opacity-80" />
                     </Link>
-                    <Link 
-                        href={quotedUserInfo.profilePath} 
-                        className="flex items-baseline gap-1.5 min-w-0 group/link"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <span className="font-bold text-foreground text-[14px] truncate group-hover/link:underline">
-                            {quotedUserInfo.displayName || quotedUserInfo.username}
-                        </span>
-                        <span className="text-muted-foreground text-[12px] truncate">
-                            @{quotedUserInfo.username.toLowerCase()}{quotedUserInfo.domain && `@${quotedUserInfo.domain}`}
-                        </span>
-                    </Link>
-                    <span className="text-muted-foreground text-[13px]">·</span>
-                    <span className="text-muted-foreground text-[13px] whitespace-nowrap">
-                        {formatDistanceToNow(new Date(quotedPost.createdAt), { addSuffix: true, locale: id })}
-                    </span>
+                    <div className="flex flex-col min-w-0 leading-tight">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <Link href={quotedUserInfo.profilePath} className="font-bold text-foreground text-[14px] line-clamp-1 hover:underline" onClick={(e) => e.stopPropagation()}>
+                                {quotedUserInfo.displayName || quotedUserInfo.username}
+                            </Link>
+                            <span className="text-muted-foreground text-[13px] shrink-0">·</span>
+                            <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0">
+                                {formatDistanceToNow(new Date(quotedPost.createdAt), { addSuffix: true, locale: id })}
+                            </span>
+                        </div>
+                        <Link href={quotedUserInfo.profilePath} className="text-muted-foreground text-[12px] line-clamp-1" onClick={(e) => e.stopPropagation()}>
+                            {quotedUserInfo.handle}
+                        </Link>
+                    </div>
                 </div>
                 {quotedPost.content && <p className="text-foreground/80 text-[14px] line-clamp-3 leading-normal">{quotedPost.content}</p>}
                 <PostMedia attachments={quotedPost.attachments || []} onImageClick={(idx) => handleMediaClick(quotedPost.attachments || [], idx)} isQuoted />
@@ -261,59 +253,40 @@ export function PostItem({
         return <Globe className={cn("h-3 w-3", className)} />;
     };
 
-    // Shared Gutter Alignment Logic
-    const gutterWidth = "w-12"; // 48px
-    const lineX = "left-[39px]"; // (16px padding + 48px/2 = 40px, but 39px looks centered for 2px line)
+    const gutterWidth = "w-10 md:w-12"; 
+    const lineX = "left-[31px] md:left-[39px]"; 
 
-    const formattedDate = new Date(createdAt).toLocaleString('id-ID', {
-        hour: 'numeric',
-        minute: 'numeric',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-    });
+    const formattedDate = new Date(createdAt).toLocaleString('id-ID', { hour: 'numeric', minute: 'numeric', day: 'numeric', month: 'short', year: 'numeric' });
 
     if (isFocused) {
         return (
-            <div className="flex flex-col px-4 py-3 border-b border-border bg-background select-none">
+            <div className="flex flex-col px-4 py-4 border-b border-border bg-background select-none">
                 <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className={cn("shrink-0 z-30 relative flex flex-col items-center", gutterWidth)}>
-                                <Link href={displayUserInfo.profilePath} className="hover:opacity-80 block relative z-30" onClick={(e) => e.stopPropagation()}>
-                                    <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-12 w-12" />
-                                </Link>
-                            </div>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Link href={displayUserInfo.profilePath} className="hover:opacity-80 shrink-0 relative z-30" onClick={(e) => e.stopPropagation()}>
+                                <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-12 w-12" />
+                            </Link>
                             <div className="flex flex-col min-w-0">
-                            <div className="flex flex-col min-w-0">
-                                <Link 
-                                    href={displayUserInfo.profilePath} 
-                                    className="group/link flex flex-col leading-tight relative z-30 pointer-events-auto truncate" 
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <span className="font-bold text-[16px] text-foreground group-hover/link:underline truncate">
-                                        {displayUserInfo.displayName || displayUserInfo.username}
-                                    </span>
-                                    <span className="text-muted-foreground text-[14px] truncate">
-                                        @{displayUserInfo.username.toLowerCase()}{displayUserInfo.domain && `@${displayUserInfo.domain}`}
-                                    </span>
+                                <Link href={displayUserInfo.profilePath} className="group/link flex flex-col leading-tight relative z-30 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                                    <span className="font-bold text-[17px] text-foreground group-hover/link:underline line-clamp-1">{displayUserInfo.displayName || displayUserInfo.username}</span>
+                                    <span className="text-muted-foreground text-[14px] line-clamp-1">{displayUserInfo.handle}</span>
                                 </Link>
-                            </div>
                             </div>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground rounded-full hover:bg-accent transition-colors relative z-30" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground rounded-full hover:bg-accent transition-colors relative z-30" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                     <MoreHorizontal className="h-5 w-5" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground z-[1000] w-48">
-                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} className="cursor-pointer focus:bg-accent flex items-center">
+                            <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground z-[1000] w-48 shadow-xl">
+                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} className="cursor-pointer focus:bg-accent flex items-center py-2.5">
                                     <Share2 className="mr-2 h-4 w-4" />
                                     <span>Salin Tautan</span>
                                 </DropdownMenuItem>
                                 {post.userId !== currentUserId && (
-                                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast.success("Laporan terkirim."); }} className="cursor-pointer focus:bg-accent flex items-center text-amber-500 focus:text-amber-500">
+                                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast.success("Laporan terkirim."); }} className="cursor-pointer focus:bg-accent flex items-center py-2.5 text-amber-500 focus:text-amber-500">
                                         <Flag className="mr-2 h-4 w-4" />
                                         <span>Laporkan</span>
                                     </DropdownMenuItem>
@@ -321,7 +294,7 @@ export function PostItem({
                                 {post.userId === currentUserId && (
                                     <>
                                         <DropdownMenuSeparator className="bg-border" />
-                                        <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsDeleteDialogOpen(true); }} className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center">
+                                        <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsDeleteDialogOpen(true); }} className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center py-2.5">
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             <span>Hapus</span>
                                         </DropdownMenuItem>
@@ -331,7 +304,7 @@ export function PostItem({
                         </DropdownMenu>
                     </div>
 
-                    <div className="flex flex-col transition-all pl-0">
+                    <div className="flex flex-col">
                         {!hideReplyIndicator && post.replyToId && (
                             <div className="text-[15px] text-muted-foreground mb-3 relative z-30">
                                 {post.replyTo ? (() => {
@@ -340,27 +313,21 @@ export function PostItem({
                                 })() : <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>}
                             </div>
                         )}
-
                         {displayContent && (
-                            <div className="text-[20px] text-foreground leading-normal mb-1 relative z-30 pointer-events-none">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                        a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
-                                        p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
-                                        strong: ({ node, ...props }) => <strong {...props} className="font-bold text-foreground" />,
-                                        em: ({ node, ...props }) => <em {...props} className="italic" />,
-                                        code: ({ node, ...props }) => <code className="bg-accent px-1 py-0.5 rounded text-[0.9em] font-mono" />,
-                                    }}
-                                >
+                            <div className="text-[19px] md:text-[21px] text-foreground leading-normal mb-1 relative z-30 pointer-events-none">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                                    a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
+                                    p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
+                                    strong: ({ node, ...props }) => <strong {...props} className="font-bold text-foreground" />,
+                                    em: ({ node, ...props }) => <em {...props} className="italic" />,
+                                    code: ({ node, ...props }) => <code className="bg-accent px-1 py-0.5 rounded text-[0.9em] font-mono" />,
+                                }}>
                                     {displayContent}
                                 </ReactMarkdown>
                             </div>
                         )}
-
                         <PostMedia attachments={displayAttachments || []} onImageClick={(idx) => handleMediaClick(displayAttachments || [], idx)} />
                         {isQuotePost && post.repostOf && renderQuotedPost(post.repostOf)}
-
                         {urls.length > 0 && (
                             <div className="my-4 space-y-2">
                                 {urls.map((url) => (
@@ -370,8 +337,7 @@ export function PostItem({
                                 ))}
                             </div>
                         )}
-
-                        <div className="py-4 border-y border-border flex flex-col gap-4">
+                        <div className="py-4 border-y border-border flex flex-col gap-4 mt-2">
                             <div className="text-muted-foreground text-[15px] flex items-center gap-2">
                                 {formattedDate}
                                 <span>·</span>
@@ -395,62 +361,28 @@ export function PostItem({
                                 </div>
                             )}
                         </div>
-
                         <div className="flex items-center justify-around py-2 border-b border-border mb-2">
-                            <InteractionButton
-                                icon={MessageSquare}
-                                onClick={() => setIsReplyOpen(true)}
-                                hoverColor="hover:text-sky-500"
-                                hoverBg="group-hover/btn:bg-sky-500/10"
-                            />
+                            <InteractionButton icon={MessageSquare} onClick={() => setIsReplyOpen(true)} hoverColor="hover:text-sky-500" hoverBg="group-hover/btn:bg-sky-500/10" />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <div className="pointer-events-auto">
-                                        <InteractionButton
-                                            icon={Repeat2}
-                                            onClick={(e) => e.preventDefault()}
-                                            hoverColor="hover:text-emerald-500"
-                                            hoverBg="group-hover/btn:bg-emerald-500/10"
-                                            active={targetPost.isRepostedByCurrentUser}
-                                            activeColor="text-emerald-500"
-                                        />
+                                        <InteractionButton icon={Repeat2} onClick={(e) => e.preventDefault()} hoverColor="hover:text-emerald-500" hoverBg="group-hover/btn:bg-emerald-500/10" active={targetPost.isRepostedByCurrentUser} activeColor="text-emerald-500" />
                                     </div>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="bg-popover border-border text-popover-foreground z-[1000]">
-                                    <DropdownMenuItem onClick={() => repostMutation.mutate()} className="cursor-pointer focus:bg-accent focus:text-emerald-500">
+                                <DropdownMenuContent align="start" className="bg-popover border-border text-popover-foreground z-[1000] shadow-xl">
+                                    <DropdownMenuItem onClick={() => repostMutation.mutate()} className="cursor-pointer focus:bg-accent focus:text-emerald-500 py-2.5">
                                         <Repeat2 className="mr-2 h-4 w-4" />
                                         <span>{targetPost.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-accent focus:text-emerald-500">
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-accent focus:text-emerald-500 py-2.5">
                                         <PenLine className="mr-2 h-4 w-4" />
                                         <span>Quote</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <InteractionButton
-                                icon={Heart}
-                                onClick={() => likeMutation.mutate()}
-                                hoverColor="hover:text-rose-500"
-                                hoverBg="group-hover/btn:bg-rose-500/10"
-                                active={hasLiked}
-                                activeColor="text-rose-500"
-                                fillActive
-                            />
-                            <InteractionButton
-                                icon={Bookmark}
-                                onClick={() => bookmarkMutation.mutate()}
-                                hoverColor="hover:text-amber-500"
-                                hoverBg="group-hover/btn:bg-amber-500/10"
-                                active={isBookmarked}
-                                activeColor="text-amber-500"
-                                fillActive
-                            />
-                            <InteractionButton
-                                icon={Share2}
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
-                                hoverColor="hover:text-sky-500"
-                                hoverBg="group-hover/btn:bg-sky-500/10"
-                            />
+                            <InteractionButton icon={Heart} onClick={() => likeMutation.mutate()} hoverColor="hover:text-rose-500" hoverBg="group-hover/btn:bg-rose-500/10" active={hasLiked} activeColor="text-rose-500" fillActive />
+                            <InteractionButton icon={Bookmark} onClick={() => bookmarkMutation.mutate()} hoverColor="hover:text-amber-500" hoverBg="group-hover/btn:bg-amber-500/10" active={isBookmarked} activeColor="text-amber-500" fillActive />
+                            <InteractionButton icon={Share2} onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} hoverColor="hover:text-sky-500" hoverBg="group-hover/btn:bg-sky-500/10" />
                         </div>
                     </div>
                 </div>
@@ -458,64 +390,47 @@ export function PostItem({
         );
     }
 
-    // Default Timeline Item
     return (
-        <div 
-            onClick={() => router.push(`/posts/${post.id}`)}
-            className="flex flex-col border-b border-border/50 hover:bg-white/[0.02] transition-colors relative cursor-pointer select-none"
-        >
-            {/* Connector Line Column */}
+        <div onClick={() => router.push(`/posts/${post.id}`)} className="flex flex-col border-b border-border/50 hover:bg-white/[0.02] transition-colors relative cursor-pointer select-none">
             {showConnector && (
-                <div className={cn(
-                    "absolute w-[2px] bg-border z-0",
-                    lineX,
-                    isFirstInChain ? "top-[56px] bottom-0" : 
-                    isLastInChain ? "top-0 h-[36px]" : 
-                    "top-0 bottom-0"
-                )} />
+                <div className={cn("absolute w-[2px] bg-border z-0", lineX, isFirstInChain ? "top-[56px] bottom-0" : isLastInChain ? "top-0 h-[36px]" : "top-0 bottom-0")} />
             )}
-
             <div className="relative z-20 flex gap-0 pt-4 pb-3 px-4 pointer-events-none">
                 <div className={cn("shrink-0 z-30 relative flex flex-col items-center", gutterWidth)}>
                     <Link href={displayUserInfo.profilePath} className="hover:opacity-80 block pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                         <UserAvatar src={displayUserInfo.avatar || "/avatars/avatar1.png"} className="h-10 w-10" />
                     </Link>
                 </div>
-
-                <div className="flex-1 min-w-0 pl-3">
+                <div className="flex-1 min-w-0 pl-3 md:pl-4">
                     <div className="block group/content outline-none">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-start gap-1.5 min-w-0 z-30 relative">
-                                <Link 
-                                    href={displayUserInfo.profilePath} 
-                                    className="flex items-baseline gap-1.5 min-w-0 leading-tight pointer-events-auto group/link" 
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <span className="font-bold text-[15px] text-foreground group-hover/link:underline truncate">
+                        <div className="flex items-start justify-between mb-0.5">
+                            <div className="flex flex-col min-w-0 z-30 relative flex-1">
+                                <div className="flex items-center gap-1.5 min-w-0 leading-tight mb-0.5">
+                                    <Link href={displayUserInfo.profilePath} className="font-bold text-[15px] text-foreground hover:underline pointer-events-auto line-clamp-1" onClick={(e) => e.stopPropagation()}>
                                         {displayUserInfo.displayName || displayUserInfo.username}
+                                    </Link>
+                                    <span className="text-muted-foreground text-[13px] shrink-0">·</span>
+                                    <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0">
+                                        {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: id })}
                                     </span>
-                                    <span className="text-muted-foreground text-[14px] truncate">
-                                        @{displayUserInfo.username.toLowerCase()}{displayUserInfo.domain && `@${displayUserInfo.domain}`}
-                                    </span>
+                                </div>
+                                <Link href={displayUserInfo.profilePath} className="text-muted-foreground text-[13px] line-clamp-1 pointer-events-auto leading-none mb-1.5" onClick={(e) => e.stopPropagation()}>
+                                    {displayUserInfo.handle}
                                 </Link>
-                                <span className="text-muted-foreground text-[13px] px-1">·</span>
-                                <span className="text-muted-foreground text-[13px] whitespace-nowrap">
-                                    {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: id })}
-                                </span>
                             </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 z-30 text-muted-foreground rounded-full hover:bg-accent transition-colors relative pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 z-30 text-muted-foreground rounded-full hover:bg-accent transition-colors relative pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                         <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground z-[1000] w-48">
-                                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} className="cursor-pointer focus:bg-accent flex items-center">
+                                <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground z-[1000] w-48 shadow-xl">
+                                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} className="cursor-pointer focus:bg-accent flex items-center py-2">
                                         <Share2 className="mr-2 h-4 w-4" />
                                         <span>Salin Tautan</span>
                                     </DropdownMenuItem>
                                     {post.userId !== currentUserId && (
-                                        <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast.success("Laporan terkirim."); }} className="cursor-pointer focus:bg-accent flex items-center text-amber-500 focus:text-amber-500">
+                                        <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast.success("Laporan terkirim."); }} className="cursor-pointer focus:bg-accent flex items-center py-2 text-amber-500 focus:text-amber-500">
                                             <Flag className="mr-2 h-4 w-4" />
                                             <span>Laporkan</span>
                                         </DropdownMenuItem>
@@ -523,24 +438,25 @@ export function PostItem({
                                     {post.userId === currentUserId && (
                                         <>
                                             <DropdownMenuSeparator className="bg-border" />
-                                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsDeleteDialogOpen(true); }} className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center">
+                                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsDeleteDialogOpen(true); }} className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center py-2">
                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                 <span>Hapus</span>
                                             </DropdownMenuItem>
                                         </>
                                     )}
-                                </DropdownMenuContent>                            </DropdownMenu>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                         {isPureRepost && reposterUserInfo && (
-                            <div className="mb-1 text-muted-foreground text-[13px] font-medium z-30 relative">
-                                <Repeat2 className="h-4 w-4 inline mr-1" />
-                                <Link href={reposterUserInfo.profilePath} className="hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-2 text-muted-foreground text-[13px] font-medium z-30 relative flex items-center gap-1.5">
+                                <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                                <Link href={reposterUserInfo.profilePath} className="hover:underline pointer-events-auto line-clamp-1" onClick={(e) => e.stopPropagation()}>
                                     {reposterUserInfo.username === currentUser?.username ? "Anda" : (reposterUserInfo.isRemote ? reposterUserInfo.handle : reposterUserInfo.username)} membagikan ulang
                                 </Link>
                             </div>
                         )}
                         {!hideReplyIndicator && post.replyToId && !showConnector && (
-                            <div className="text-[14px] text-muted-foreground mb-1 z-30 relative">
+                            <div className="text-[14px] text-muted-foreground mb-1.5 z-30 relative line-clamp-1">
                                 {post.replyTo ? (() => {
                                     const replyUserInfo = getUserInfo(post.replyTo);
                                     return <>Membalas <Link href={replyUserInfo.profilePath} className="text-sky-500 hover:underline pointer-events-auto" onClick={(e) => e.stopPropagation()}>{replyUserInfo.handle}</Link></>;
@@ -548,17 +464,14 @@ export function PostItem({
                             </div>
                         )}
                         {displayContent && (
-                            <div className="text-[15px] text-foreground leading-normal relative z-30 pointer-events-none">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                        a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
-                                        p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
-                                        strong: ({ node, ...props }) => <strong {...props} className="font-bold text-foreground" />,
-                                        em: ({ node, ...props }) => <em {...props} className="italic" />,
-                                        code: ({ node, ...props }) => <code className="bg-accent px-1 py-0.5 rounded text-[0.9em] font-mono" />,
-                                    }}
-                                >
+                            <div className="text-[15px] md:text-[16px] text-foreground leading-relaxed relative z-30 pointer-events-none mb-1">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                                    a: ({ node, ...props }) => <a {...props} className="text-sky-500 hover:underline pointer-events-auto" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />,
+                                    p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />,
+                                    strong: ({ node, ...props }) => <strong {...props} className="font-bold text-foreground" />,
+                                    em: ({ node, ...props }) => <em {...props} className="italic" />,
+                                    code: ({ node, ...props }) => <code className="bg-accent px-1 py-0.5 rounded text-[0.9em] font-mono" />,
+                                }}>
                                     {displayContent}
                                 </ReactMarkdown>
                             </div>
@@ -577,68 +490,38 @@ export function PostItem({
                             ))}
                         </div>
                     )}
-                    <div className="flex items-center justify-between mt-3 max-w-[440px] w-full z-30 relative pointer-events-none">
-                        <InteractionButton
-                            icon={MessageSquare}
-                            label={targetPost.replyCount || ""}
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }}
-                            className="pointer-events-auto"
-                            hoverColor="hover:text-sky-500"
-                            hoverBg="group-hover/btn:bg-sky-500/10"
-                        />
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
-                                    <InteractionButton
-                                        icon={Repeat2}
-                                        label={targetPost.repostCount || ""}
-                                        onClick={(e) => e.preventDefault()}
-                                        hoverColor="hover:text-emerald-500"
-                                        hoverBg="group-hover/btn:bg-emerald-500/10"
-                                        active={targetPost.isRepostedByCurrentUser}
-                                        activeColor="text-emerald-500"
-                                    />
-                                </div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-popover border-border text-popover-foreground z-[1000]">
-                                <DropdownMenuItem onClick={() => repostMutation.mutate()} className="cursor-pointer focus:bg-accent focus:text-emerald-500">
-                                    <Repeat2 className="mr-2 h-4 w-4" />
-                                    <span>{targetPost.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-accent focus:text-emerald-500">
-                                    <PenLine className="mr-2 h-4 w-4" />
-                                    <span>Quote</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <InteractionButton
-                            icon={Heart}
-                            label={likeCount || ""}
-                            onClick={() => likeMutation.mutate()}
-                            className="pointer-events-auto"
-                            hoverColor="hover:text-rose-500"
-                            hoverBg="group-hover/btn:bg-rose-500/10"
-                            active={hasLiked}
-                            activeColor="text-rose-500"
-                            fillActive
-                        />
-                        <InteractionButton
-                            icon={Bookmark}
-                            onClick={() => bookmarkMutation.mutate()}
-                            className="pointer-events-auto"
-                            hoverColor="hover:text-amber-500"
-                            hoverBg="group-hover/btn:bg-amber-500/10"
-                            active={isBookmarked}
-                            activeColor="text-amber-500"
-                            fillActive
-                        />
-                        <InteractionButton
-                            icon={Share2}
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
-                            className="pointer-events-auto"
-                            hoverColor="hover:text-sky-500"
-                            hoverBg="group-hover/btn:bg-sky-500/10"
-                        />
+                    <div className="flex items-center justify-between mt-3 w-full z-30 relative pointer-events-none -ml-2">
+                        <div className="flex-1 flex justify-start">
+                            <InteractionButton icon={MessageSquare} label={targetPost.replyCount || ""} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsReplyOpen(true); }} className="pointer-events-auto" hoverColor="hover:text-sky-500" hoverBg="group-hover/btn:bg-sky-500/10" />
+                        </div>
+                        <div className="flex-1 flex justify-start">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
+                                        <InteractionButton icon={Repeat2} label={targetPost.repostCount || ""} onClick={(e) => e.preventDefault()} hoverColor="hover:text-emerald-500" hoverBg="group-hover/btn:bg-emerald-500/10" active={targetPost.isRepostedByCurrentUser} activeColor="text-emerald-500" />
+                                    </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="bg-popover border-border text-popover-foreground z-[1000] shadow-xl">
+                                    <DropdownMenuItem onClick={() => repostMutation.mutate()} className="cursor-pointer focus:bg-accent focus:text-emerald-500 py-2">
+                                        <Repeat2 className="mr-2 h-4 w-4" />
+                                        <span>{targetPost.isRepostedByCurrentUser ? "Batalkan Repost" : "Repost"}</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsQuoteOpen(true); }} className="cursor-pointer focus:bg-accent focus:text-emerald-500 py-2">
+                                        <PenLine className="mr-2 h-4 w-4" />
+                                        <span>Quote</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                        <div className="flex-1 flex justify-start">
+                            <InteractionButton icon={Heart} label={likeCount || ""} onClick={() => likeMutation.mutate()} className="pointer-events-auto" hoverColor="hover:text-rose-500" hoverBg="group-hover/btn:bg-rose-500/10" active={hasLiked} activeColor="text-rose-500" fillActive />
+                        </div>
+                        <div className="flex-1 flex justify-start">
+                            <InteractionButton icon={Bookmark} onClick={() => bookmarkMutation.mutate()} className="pointer-events-auto" hoverColor="hover:text-amber-500" hoverBg="group-hover/btn:bg-amber-500/10" active={isBookmarked} activeColor="text-amber-500" fillActive />
+                        </div>
+                        <div className="flex-1 flex justify-start">
+                            <InteractionButton icon={Share2} onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }} className="pointer-events-auto" hoverColor="hover:text-sky-500" hoverBg="group-hover/btn:bg-sky-500/10" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -646,10 +529,7 @@ export function PostItem({
             {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={targetPost} currentUser={currentUser} onQuoteCreated={(quote) => { if (onUpdate) onUpdate(quote); }} />}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="bg-popover border-border text-popover-foreground z-[1100]">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Postingan?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-muted-foreground">Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription>
-                    </AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle>Hapus Postingan?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel className="bg-accent border-border text-foreground hover:bg-accent/80 hover:text-foreground">Batal</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
@@ -657,58 +537,19 @@ export function PostItem({
                 </AlertDialogContent>
             </AlertDialog>
             {displayAttachments && displayAttachments.length > 0 && (
-                <ImageLightbox
-                    images={displayAttachments.map(a => ({ url: a.url, filename: a.key, type: a.fileType?.startsWith('video/') ? 'video' : 'image' }))}
-                    initialIndex={lightboxIndex}
-                    open={isLightboxOpen}
-                    onOpenChange={setIsLightboxOpen}
-                />
+                <ImageLightbox images={displayAttachments.map(a => ({ url: a.url, filename: a.key, type: a.fileType?.startsWith('video/') ? 'video' : 'image' }))} initialIndex={lightboxIndex} open={isLightboxOpen} onOpenChange={setIsLightboxOpen} />
             )}
         </div>
     );
 }
 
-import { 
-    AlertDialog, 
-    AlertDialogAction, 
-    AlertDialogCancel, 
-    AlertDialogContent, 
-    AlertDialogDescription, 
-    AlertDialogFooter, 
-    AlertDialogHeader, 
-    AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
-
-interface InteractionButtonProps {
-    icon: any;
-    label?: string | number;
-    onClick: (e: React.MouseEvent) => void;
-    hoverColor?: string;
-    hoverBg?: string;
-    active?: boolean;
-    activeColor?: string;
-    activeBg?: string;
-    fillActive?: boolean;
-}
-
-function InteractionButton({
-    icon: Icon,
-    label,
-    onClick,
-    hoverColor = "hover:text-foreground",
-    hoverBg = "group-hover/btn:bg-accent",
-    active,
-    activeColor,
-    activeBg,
-    fillActive,
-    className
-}: InteractionButtonProps & { className?: string }) {
+function InteractionButton({ icon: Icon, label, onClick, hoverColor = "hover:text-foreground", hoverBg = "group-hover/btn:bg-accent", active, activeColor, activeBg, fillActive, className }: { icon: any, label?: string | number, onClick: (e: React.MouseEvent) => void, hoverColor?: string, hoverBg?: string, active?: boolean, activeColor?: string, activeBg?: string, fillActive?: boolean, className?: string }) {
     return (
-        <button onClick={onClick} className={cn("flex items-center gap-1.5 transition-all group/btn outline-none", active ? (activeColor || "text-foreground") : cn("text-muted-foreground", hoverColor), className)}>
-            <div className={cn("p-1.5 rounded-full transition-colors flex items-center justify-center", active ? (activeBg || "bg-accent") : hoverBg)}>
+        <button onClick={onClick} className={cn("flex items-center gap-1 transition-all group/btn outline-none", active ? (activeColor || "text-foreground") : cn("text-muted-foreground", hoverColor), className)}>
+            <div className={cn("p-2 rounded-full transition-colors flex items-center justify-center", active ? (activeBg || "bg-accent") : hoverBg)}>
                 <Icon className={cn("h-[18px] w-[18px]", active && fillActive && "fill-current")} />
             </div>
-            {label !== undefined && label !== "" && <span className="text-[13px] font-medium pr-2">{label}</span>}
+            {label !== undefined && label !== "" && <span className="text-[13px] font-medium pr-1">{label}</span>}
         </button>
     );
 }
