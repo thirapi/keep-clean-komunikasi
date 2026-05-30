@@ -94,7 +94,7 @@ export function AppSidebar({
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
   const [openSearchUser, setOpenSearchUser] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
-  const [mobileTab, setMobileTab] = React.useState<"channels" | "dms">("channels");
+  const [mobileTab, setMobileTab] = React.useState<"channels" | "dms" | "social">("channels");
   const [sidebarMode, setSidebarMode] = React.useState<"chat" | "feed">("chat");
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -103,6 +103,17 @@ export function AppSidebar({
   }, []);
 
   const isMobile = isMobileFromHook ?? false;
+
+  // Sync sidebarMode with mobileTab when on mobile
+  React.useEffect(() => {
+    if (isMobile) {
+      if (mobileTab === "social") {
+        setSidebarMode("feed");
+      } else {
+        setSidebarMode("chat");
+      }
+    }
+  }, [isMobile, mobileTab]);
 
   React.useEffect(() => {
     initializeUnread(
@@ -254,8 +265,7 @@ export function AppSidebar({
                <span className="font-bold text-xl text-primary tracking-tight ml-1 shrink-0">{brand.name}</span>
                <div className="w-px h-4 bg-border/60 mx-0.5 shrink-0" />
                <div className="flex items-center gap-0.5 min-w-0">
-                 <ModeSwitcher />
-                 {user && (
+                 {user && sidebarMode === "chat" && (
                    <Tooltip>
                      <TooltipTrigger asChild>
                        <Button
@@ -286,7 +296,7 @@ export function AppSidebar({
             {state === "expanded" && (
               <div className="pb-1 flex items-center justify-between gap-1">
                  <ModeSwitcher />
-                 {user && (
+                 {user && sidebarMode === "chat" && (
                    <Tooltip>
                      <TooltipTrigger asChild>
                        <Button
@@ -305,7 +315,7 @@ export function AppSidebar({
             )}
           </div>
         )}
-        {!isMobile && state === "collapsed" && user && (
+        {!isMobile && state === "collapsed" && user && sidebarMode === "chat" && (
           <div className="pb-2 mt-1">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -326,7 +336,7 @@ export function AppSidebar({
       <SidebarContent className="overflow-x-hidden pt-2">
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
-            {sidebarMode === "feed" ? (
+            {mobileTab === "social" ? (
               <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
             ) : user ? (
               mobileTab === "channels" ? (
@@ -435,6 +445,14 @@ export function AppSidebar({
             >
               <MessageCircle className="h-[22px] w-[22px]" fill={mobileTab === "dms" ? "currentColor" : "none"} strokeWidth={mobileTab === "dms" ? 0 : 2} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "social" ? "text-primary" : "text-muted-foreground")}
+              onClick={() => setMobileTab("social")}
+            >
+              <Rss className="h-[22px] w-[22px]" strokeWidth={mobileTab === "social" ? 3 : 2} />
+              <span className={cn("text-[10px] tracking-wide", mobileTab === "social" ? "font-bold" : "font-medium")}>Social</span>
             </Button>
             <Button
               variant="ghost"
