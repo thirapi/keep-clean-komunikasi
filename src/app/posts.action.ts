@@ -181,6 +181,9 @@ export async function getGlobalFeedAction(currentUserId?: string, limit = 20, of
 }
 
 export async function toggleLikeAction(postId: string, userId: string, optimisticId?: string): Promise<ServerResponse<PostWithUserDTO | null>> {
+    if (!userId) {
+        return { status: "error", data: null, error: { message: "Unauthorized", type: "AuthError" } };
+    }
     try {
         const post = await toggleLikeController(userId, postId, optimisticId);
         return { status: "success", data: post, error: null };
@@ -190,6 +193,9 @@ export async function toggleLikeAction(postId: string, userId: string, optimisti
 }
 
 export async function repostAction(postId: string, userId: string, optimisticId?: string): Promise<ServerResponse<PostWithUserDTO | null>> {
+    if (!userId) {
+        return { status: "error", data: null, error: { message: "Unauthorized", type: "AuthError" } };
+    }
     try {
         const post = await repostController(userId, postId, optimisticId);
         return { status: "success", data: post, error: null };

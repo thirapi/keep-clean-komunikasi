@@ -1,5 +1,4 @@
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
-import { IPusherService } from "@/lib/application/services/pusher.service.interface";
 import { IActivityPubService } from "@/lib/application/services/activitypub.service.interface";
 import { IRemoteActorRepository } from "@/lib/application/repositories/remote-actor.repository.interface";
 import { createId } from "@paralleldrive/cuid2";
@@ -11,22 +10,46 @@ import { posts } from "@/lib/infrastructure/drizzle/schema";
 export class InteractWithPostUseCase {
     constructor(
         private postRepository: IPostRepository,
-        private pusherService: IPusherService,
         private activityPubService: IActivityPubService,
         private remoteActorRepository: IRemoteActorRepository
     ) { }
 
     async toggleLike(postId: string, userId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
+        if (!userId) throw new Error("User ID is required for local interactions");
+
         const post = await this.postRepository.findByIdWithDetails(postId);
         if (!post) throw new Error("Post not found");
 
         const hasLiked = post.reactions?.some(r => r.userId === userId && r.emoji === "❤️");
 
-        if (hasLiked) {
-            await this.postRepository.removeReaction(postId, userId, "❤️");
-        } else {
-            await this.postRepository.addReaction(postId, userId, "❤️");
-        }
+        await db.transaction(async (tx) => {
+            const postReactionsTable = (await import("@/lib/infrastructure/drizzle/schema")).postReactions;
+            
+            const existing = await tx.query.postReactions.findFirst({
+                where: and(
+                    eq(postReactionsTable.postId, postId),
+                    eq(postReactionsTable.userId, userId),
+                    eq(postReactionsTable.emoji, "❤️")
+                )
+            });
+
+            if (existing) {
+                await tx.delete(postReactionsTable).where(
+                    and(
+                        eq(postReactionsTable.postId, postId),
+                        eq(postReactionsTable.userId, userId),
+                        eq(postReactionsTable.emoji, "❤️")
+                    )
+                );
+            } else {
+                await tx.insert(postReactionsTable).values({
+                    id: createId(),
+                    postId,
+                    userId,
+                    emoji: "❤️"
+                }).onConflictDoNothing();
+            }
+        });
 
         // Fediverse Compatibility: Send Like/Undo activity
         if (post.uri && post.remoteActorId) {
@@ -44,17 +67,18 @@ export class InteractWithPostUseCase {
             }
         }
 
-        // Trigger real-time update
+        // Outside transaction, fetch fully loaded details using repository
         const updatedPost = await this.postRepository.findByIdWithDetails(postId, userId);
         if (updatedPost) {
             updatedPost.optimisticId = optimisticId;
-            await this.pusherService.trigger(`post-${postId}`, "reaction-updated", updatedPost);
         }
 
         return updatedPost;
     }
 
     async repost(userId: string, originalPostId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
+        if (!userId) throw new Error("User ID is required for local interactions");
+
         const originalPost = await this.postRepository.findByIdWithDetails(originalPostId);
         if (!originalPost) throw new Error("Original post not found");
 
@@ -116,28 +140,12 @@ export class InteractWithPostUseCase {
             }
         }
 
-        // Outside transaction, fetch fully loaded details using repository
-        if (result.type === "unrepost") {
-            const updatedOriginal = await this.postRepository.findByIdWithDetails(result.id, userId);
-            if (updatedOriginal) {
-                updatedOriginal.optimisticId = optimisticId;
-                await this.pusherService.trigger(`post-${result.id}`, "reaction-updated", updatedOriginal);
-            }
-            return null;
-        } else {
-            const postWithDetails = await this.postRepository.findByIdWithDetails(result.id, userId);
-            if (!postWithDetails) throw new Error("Failed to fetch created repost");
-
-            postWithDetails.optimisticId = optimisticId;
-            await this.pusherService.trigger("global-feed", "new-post", postWithDetails);
-            await this.pusherService.trigger(`user-posts-${userId}`, "new-post", postWithDetails);
-
-            const updatedOriginal = await this.postRepository.findByIdWithDetails(originalPostId, userId);
-            if (updatedOriginal) {
-                await this.pusherService.trigger(`post-${originalPostId}`, "reaction-updated", updatedOriginal);
-            }
-
-            return postWithDetails;
+        // Always return the UPDATED ORIGINAL post to ensure UI stats are consistent
+        const updatedOriginal = await this.postRepository.findByIdWithDetails(originalPostId, userId);
+        if (updatedOriginal) {
+            updatedOriginal.optimisticId = optimisticId;
         }
+        
+        return updatedOriginal;
     }
 }

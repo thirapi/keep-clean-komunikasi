@@ -148,10 +148,20 @@ export const getFollowingAction = async (userId: string) => {
 };
 
 import { followRemoteUserController } from "@/lib/interface-adapters/controllers/users/follow-remote-user.controller";
+import { unfollowRemoteUserController } from "@/lib/interface-adapters/controllers/users/unfollow-remote-user.controller";
 
 export const followRemoteUserAction = async (localUserId: string, handle: string): Promise<ServerResponse<null>> => {
   try {
     await followRemoteUserController(localUserId, handle);
+    return { status: "success", data: null, error: null };
+  } catch (err: any) {
+    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const unfollowRemoteUserAction = async (localUserId: string, remoteActorUrl: string): Promise<ServerResponse<null>> => {
+  try {
+    await unfollowRemoteUserController(localUserId, remoteActorUrl);
     return { status: "success", data: null, error: null };
   } catch (err: any) {
     return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };

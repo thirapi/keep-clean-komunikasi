@@ -86,7 +86,7 @@ Fitur ini dirancang "Ready" untuk Fediverse melalui:
    - [x] Implementasi Repost logic & Undo.
    - [x] Implementasi Reply nesting & Modal.
    - [x] Global Timeline feed.
-   - [x] Integrasi Pusher untuk notifikasi interaksi baru.
+   - [x] **Strict Interaction Integrity**: No Pusher for microblog interactions (Like, Repost, Bookmark). Uses local cache sync exclusively.
 
 5. **Phase 5: Unified Discovery & Following**
    - [x] Implementasi sistem Follow/Following (Clean Architecture & Fediverse-ready).
@@ -100,9 +100,16 @@ Fitur ini dirancang "Ready" untuk Fediverse melalui:
    - [x] **Import Refactoring**: Semua path import menggunakan alias `@/` untuk stabilitas.
 
 6. **Phase 6: Fediverse Advanced**
-   - [ ] Quote Posts (Repost with commentary).
-   - [ ] ActivityPub Outbox/Inbox basic logic.
-   - [ ] HTTP Signatures for cross-instance auth.
+   - [x] Quote Posts (Repost with commentary) — *Strictly separated from Reposts*.
+   - [x] ActivityPub Outbox/Inbox basic logic.
+   - [x] HTTP Signatures for cross-instance auth.
+   - [x] HTML & Fediverse Rendering (rehype-raw).
+   - [x] Accurate Profile Stats (Mastodon Extensions).
+
+## 📄 Source of Truth
+Untuk detail teknis terbaru mengenai interaksi dan integritas data, selalu rujuk pada:
+*   [docs/post-actions.md](./post-actions.md) - Standar interaksi Like/Repost/Quote.
+*   [docs/fediverse-implementation.md](./fediverse-implementation.md) - Status & teknis ActivityPub.
 
 ## 🏗️ Routing Architecture
 

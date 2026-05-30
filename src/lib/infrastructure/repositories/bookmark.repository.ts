@@ -31,23 +31,49 @@ export class BookmarkRepository implements IBookmarkRepository {
                         userRoles: { with: { role: true } }
                     }
                 },
+                remoteActor: true,
                 attachments: true,
-                reactions: true,
-                repostOf: { with: { user: true, attachments: true, bookmarks: true } },
-                replyTo: { with: { user: true, bookmarks: true } },
+                reactions: { with: { user: { columns: { username: true } } } },
+                repostOf: { 
+                    with: { 
+                        user: { columns: { username: true, avatar: true } },
+                        remoteActor: true, 
+                        attachments: true, 
+                        bookmarks: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                    } 
+                },
+                replyTo: { 
+                    with: { 
+                        user: { columns: { username: true } }, 
+                        bookmarks: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                    } 
+                },
                 bookmarks: true,
+                reposts: { 
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                    columns: { id: true, userId: true }
+                },
+                replies: { 
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                },
             }
         });
 
         if (!post) throw new Error("Post not found");
-
-        const reactionCount = post.reactions.length;
-        const userReaction = post.reactions.find(r => r.userId === userId);
-
-        const reactions = post.reactions.map(r => ({
-            ...r,
-            user: { username: "unknown" }
-        })) as any;
 
         const mappedUser = post.user ? {
             ...post.user,
@@ -58,19 +84,31 @@ export class BookmarkRepository implements IBookmarkRepository {
             role: "Remote"
         };
 
-        return {
+        const result = {
             ...post,
             user: mappedUser,
-            stats: {
-                likes: reactionCount,
-                replies: 0,
-                reposts: 0
-            },
-            reactions,
-            isLiked: !!userReaction,
-            isReposted: false,
+            isLikedByCurrentUser: userId ? post.reactions?.some((r: any) => r.userId === userId && r.emoji === "❤️") : false,
+            isRepostedByCurrentUser: userId ? post.reposts?.some((r: any) => r.userId === userId) : false,
             isBookmarkedByCurrentUser: !existing,
-        } as unknown as PostWithUserDTO;
+            replyCount: post.replies?.length || 0,
+            repostCount: post.reposts?.length || 0,
+            reactionCount: post.reactions?.length || 0,
+        } as any;
+
+        if (result.repostOf) {
+            const r = result.repostOf;
+            result.repostOf = {
+                ...r,
+                isLikedByCurrentUser: userId ? r.reactions?.some((re: any) => re.userId === userId && re.emoji === "❤️") : false,
+                isRepostedByCurrentUser: userId ? r.reposts?.some((re: any) => re.userId === userId) : false,
+                isBookmarkedByCurrentUser: userId ? r.bookmarks?.some((bo: any) => bo.userId === userId) : false,
+                replyCount: r.replies?.length || 0,
+                repostCount: r.reposts?.length || 0,
+                reactionCount: r.reactions?.length || 0,
+            };
+        }
+
+        return result as PostWithUserDTO;
     }
 
     async isBookmarked(userId: string, postId: string): Promise<boolean> {
@@ -102,22 +140,38 @@ export class BookmarkRepository implements IBookmarkRepository {
                         reactions: { with: { user: { columns: { username: true } } } },
                         repostOf: {
                             with: {
-                                user: true,
+                                user: { columns: { username: true, avatar: true } },
                                 attachments: true,
                                 bookmarks: true,
                                 reactions: true,
-                                reposts: { columns: { id: true } },
-                                replies: { columns: { id: true } },
+                                reposts: { 
+                                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                                    columns: { id: true, userId: true }
+                                },
+                                replies: { 
+                                    where: eq(posts.isDeleted, false),
+                                    columns: { id: true }
+                                },
                             }
                         },
                         replyTo: {
                             with: {
-                                user: true,
+                                user: { columns: { username: true } },
                                 bookmarks: true,
+                                reposts: { 
+                                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                                    columns: { id: true, userId: true }
+                                },
                             }
                         },
-                        reposts: { columns: { id: true, userId: true } },
-                        replies: { columns: { id: true } },
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
                         bookmarks: true,
                     }
                 }

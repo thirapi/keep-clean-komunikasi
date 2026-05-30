@@ -66,9 +66,14 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
         return () => clearTimeout(timer);
     }, [post.id, parents.length]);
 
-    const handleNewReplyCreated = () => {
-        // Just invalidate the specific thread
-        queryClient.invalidateQueries({ queryKey: ["posts", "detail", initialPost.id] });
+    const handleUpdate = (updatedItem?: any) => {
+        // Only invalidate thread if it's likely a reply to THIS post
+        // or if no item is passed (fallback to full refresh)
+        if (!updatedItem || updatedItem.replyToId === post.id) {
+            queryClient.invalidateQueries({ queryKey: ["posts", "detail", initialPost.id] });
+        }
+        // For other things (reposts of this post, bookmarks), 
+        // the PostItem's internal updatePostInCache already handled it.
     };
 
     return (
@@ -113,10 +118,11 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                         key={parent.id}
                                         post={parent}
                                         currentUser={currentUser}
+                                        currentUserId={currentUser?.id}
                                         showConnector={true}
                                         isFirstInChain={index === 0}
                                         isLastInChain={false}
-                                        onUpdate={handleNewReplyCreated}
+                                        onUpdate={handleUpdate}
                                         hideReplyIndicator={true}
                                     />
                                 ))}
@@ -130,10 +136,11 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                 <PostItem
                                     post={post}
                                     currentUser={currentUser}
+                                    currentUserId={currentUser?.id}
                                     isFocused={true}
                                     showConnector={authorThread.length > 0 || !!currentUser}
                                     isFirstInChain={parents.length === 0}
-                                    onUpdate={handleNewReplyCreated}
+                                    onUpdate={handleUpdate}
                                     hideReplyIndicator={parents.length > 0}
                                 />
                             </div>
@@ -143,7 +150,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                 <SimpleReplyInput
                                     postId={post.id}
                                     currentUser={currentUser}
-                                    onReplyCreated={handleNewReplyCreated}
+                                    onReplyCreated={handleUpdate}
                                     showConnector={authorThread.length > 0}
                                 />
                             )}
@@ -158,7 +165,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                             currentUser={currentUser}
                                             showConnector={true}
                                             isLastInChain={index === authorThread.length - 1}
-                                            onUpdate={handleNewReplyCreated}
+                                            onUpdate={handleUpdate}
                                             hideReplyIndicator={true}
                                         />
                                     ))}
@@ -172,7 +179,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                         key={reply.id}
                                         post={reply}
                                         currentUser={currentUser}
-                                        onUpdate={handleNewReplyCreated}
+                                        onUpdate={handleUpdate}
                                         hideReplyIndicator={true}
                                     />
                                 ))}

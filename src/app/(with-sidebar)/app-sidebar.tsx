@@ -30,7 +30,7 @@ import { CreateChannelDialog } from "./create-channel-dialog";
 import { ExploreChannelsDialog } from "./explore-channels-dialog";
 import { SearchUserDialog } from "./search-user-dialog";
 import { useUnread } from "@/components/unread-provider";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { Group, Panel } from "react-resizable-panels";
 import { MessageSearch } from "@/components/message-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const brand = {
-  name: "Komunikasi",
+  name: "komunikasi",
   logo: K,
   description: "webchat sederhana",
 };
@@ -184,8 +184,8 @@ export function AppSidebar({
 
   return (
     <Sidebar
-      collapsible={isMobile ? "none" : "icon"}
-      variant={isMobile ? "sidebar" : "floating"}
+      collapsible="none"
+      variant={isMobile ? "sidebar" : "inset"}
       className={cn(
         "border-none bg-transparent transition-none",
         isDefaultRoom ? "max-md:!w-full max-md:!max-w-full max-md:flex" : "max-md:hidden"
@@ -291,7 +291,7 @@ export function AppSidebar({
 
             {user ? (
               <>
-                <Separator className="bg-border h-px my-2 shrink-0 transition-colors hover:bg-primary/30" />
+                <div className="h-2 shrink-0" />
 
                 <Panel
                   minSize="20%"
@@ -311,7 +311,7 @@ export function AppSidebar({
                   />
                 </Panel>
 
-                <Separator className="bg-border h-px my-2 shrink-0 transition-colors hover:bg-primary/30" />
+                <div className="h-2 shrink-0" />
 
                 <Panel
                   minSize="20%"

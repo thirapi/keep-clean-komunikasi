@@ -92,7 +92,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -103,7 +103,7 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {
@@ -140,7 +140,7 @@ export class PostRepository implements IPostRepository {
                 );
                 if (filter === "threads") return and(base, isNull(posts.replyToId));
                 if (filter === "replies") return and(base, isNotNull(posts.replyToId));
-                if (filter === "reposts") return and(base, isNotNull(posts.repostOfId));
+                if (filter === "reposts") return and(base, isNotNull(posts.repostOfId), eq(posts.content, ""));
                 if (filter === "media") return and(base, exists(
                     this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id))
                 ));
@@ -163,7 +163,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -174,14 +174,24 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true } },
+                replyTo: { 
+                    with: { 
+                        user: { columns: { username: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                    } 
+                },
                 bookmarks: true,
                 linkPreviews: true,
             },
@@ -203,7 +213,7 @@ export class PostRepository implements IPostRepository {
                 );
                 if (filter === "threads") return and(base, isNull(posts.replyToId));
                 if (filter === "replies") return and(base, isNotNull(posts.replyToId));
-                if (filter === "reposts") return and(base, isNotNull(posts.repostOfId));
+                if (filter === "reposts") return and(base, isNotNull(posts.repostOfId), eq(posts.content, ""));
                 if (filter === "media") return and(base, exists(
                     this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id))
                 ));
@@ -226,7 +236,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -237,14 +247,24 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true } },
+                replyTo: { 
+                    with: { 
+                        user: { columns: { username: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                    } 
+                },
                 bookmarks: true,
                 linkPreviews: true,
             },
@@ -282,7 +302,7 @@ export class PostRepository implements IPostRepository {
                 eq(posts.isDeleted, false),
                 ...filter === "threads" ? [isNull(posts.replyToId)] : [],
                 ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
-                ...filter === "reposts" ? [isNotNull(posts.repostOfId)] : [],
+                ...filter === "reposts" ? [isNotNull(posts.repostOfId), eq(posts.content, "")] : [],
                 ...filter === "media" ? [exists(this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id)))] : []
             ));
         return Number(result[0].count);
@@ -301,7 +321,7 @@ export class PostRepository implements IPostRepository {
                 ),
                 ...filter === "threads" ? [isNull(posts.replyToId)] : [],
     ...filter === "replies" ? [isNotNull(posts.replyToId)] : [],
-                ...filter === "reposts" ? [isNotNull(posts.repostOfId)] : [],
+                ...filter === "reposts" ? [isNotNull(posts.repostOfId), eq(posts.content, "")] : [],
                 ...filter === "media" ? [exists(this.client.select().from(attachmentsTable).where(eq(attachmentsTable.postId, posts.id)))] : []
             ));
         return Number(result[0].count);
@@ -419,7 +439,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -430,7 +450,7 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {
@@ -478,7 +498,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -489,7 +509,7 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {
@@ -528,7 +548,7 @@ export class PostRepository implements IPostRepository {
                         attachments: true,
                         reactions: true,
                         reposts: { 
-                            where: eq(posts.isDeleted, false),
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                             columns: { id: true, userId: true }
                         },
                         replies: { 
@@ -539,7 +559,7 @@ export class PostRepository implements IPostRepository {
                     },
                 },
                 reposts: {
-                    where: eq(posts.isDeleted, false),
+                    where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
                 },
                 replies: {

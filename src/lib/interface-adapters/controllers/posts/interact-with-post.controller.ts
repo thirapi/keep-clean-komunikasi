@@ -1,6 +1,5 @@
 import { PostRepository } from "@/lib/infrastructure/repositories/post.repository";
 import { InteractWithPostUseCase } from "@/lib/application/use-cases/posts/interact-with-post.use-case";
-import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
@@ -8,7 +7,6 @@ import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-
 import { db } from "@/lib/db";
 
 const postRepository = new PostRepository(db);
-const pusherService = new PusherService();
 const userRepository = new UserRepository(db);
 const followerRepository = new FollowerRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db as any);
@@ -16,7 +14,6 @@ const activityPubService = new ActivityPubService(userRepository, followerReposi
 
 const interactWithPostUseCase = new InteractWithPostUseCase(
     postRepository, 
-    pusherService,
     activityPubService,
     remoteActorRepository
 );

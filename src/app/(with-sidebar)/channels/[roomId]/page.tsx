@@ -23,7 +23,7 @@ export default async function ChatPage({
           <SidebarTrigger />
         </div>
 
-        <div className="absolute inset-0 z-0">
+        {/* <div className="absolute inset-0 z-0">
           <ColorBends
             className="w-full h-full"
             colors={["#ff7aa2", "#8b7bff", "#4dd6c6"]}
@@ -41,10 +41,10 @@ export default async function ChatPage({
             transparent
             autoRotate={0}
           />
-        </div>
+        </div> */}
 
         {/* blur */}
-        <div className="absolute inset-0 backdrop-blur-2xl z-[1]" />
+        {/* <div className="absolute inset-0 backdrop-blur-2xl z-[1]" /> */}
 
         <div className="relative z-10 text-center space-y-8">
           <div className="relative">

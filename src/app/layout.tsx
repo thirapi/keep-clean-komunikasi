@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Doto } from "next/font/google";
+import { Doto, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import NextTopLoader from "nextjs-toploader";
@@ -15,6 +15,10 @@ const geistMono = GeistMono;
 const doto = Doto({
   subsets: ["latin"],
   variable: "--font-doto",
+});
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta-sans",
 });
 
 export const metadata: Metadata = {
@@ -80,7 +84,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="h-full" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${doto.variable} antialiased h-full flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${doto.variable} ${plusJakartaSans.variable} antialiased h-full flex flex-col`}
       >
         <NextTopLoader
           color="#A855F7"

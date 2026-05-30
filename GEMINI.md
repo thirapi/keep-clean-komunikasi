@@ -2,8 +2,21 @@
 
 ## Primary Mandates
 - **Clean Architecture**: Follow the patterns defined in [clean-architecture.md](./clean-architecture.md).
+- **Post Interactions**: All changes to Like, Repost, Quote, and Bookmark logic MUST follow [docs/post-actions.md](./docs/post-actions.md).
+- **Fediverse & ActivityPub**: Refer to [docs/fediverse-implementation.md](./docs/fediverse-implementation.md) for protocol standards and status.
 - **Mark as Read**: All changes related to message read status must adhere to the throttled and real-time synchronization strategy documented in [docs/mark-as-read.md](./docs/mark-as-read.md).
 - **Lexical Editor**: All chat input components use the Lexical rich text framework. Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for architecture decisions.
+
+## Architecture Constraints
+1. **No Pusher for Microblog**: 
+    - NEVER use Pusher for real-time updates in the `posts` or `feed` domains. 
+    - Use optimistic UI updates and local cache management instead. 
+    - Pusher is strictly reserved for the `chat` / `rooms` domain only.
+
+2. **Interaction Integrity**:
+    - **No-Null User**: All local interactions (Like, Repost, Bookmark) MUST have a valid `userId`. Backend must reject any action where `userId` is null/undefined.
+    - **Single Action (Idempotency)**: Use database transactions and unique constraints to ensure a user can only Like or Repost a specific post once. 
+    - **Visual Debugging**: If the UI shows double counts/icons but the database is clean, the bug is strictly in the Frontend state management (Optimistic UI / Cache logic), not the backend.
 
 ## Implementation Rules
 1. **Unread Management**:

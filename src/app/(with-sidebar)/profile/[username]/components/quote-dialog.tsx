@@ -198,7 +198,13 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                     </div>
 
                     {/* Quoted Post Box */}
-                    <div className="ml-14 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 bg-white/[0.02] overflow-hidden">
+                    <div 
+                        className="ml-14 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 bg-white/[0.02] overflow-hidden"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                    >
                         <div className="flex items-start gap-2">
                             <UserAvatar src={targetPost.user?.avatar || targetPost.remoteActor?.avatar || "/avatars/avatar1.png"} className="h-5 w-5 shrink-0" />
                             <div className="flex items-baseline gap-1.5 min-w-0 leading-tight">

@@ -40,10 +40,13 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 *   **Multi-ID Alias Support**: Mendukung identifikasi aktor remote melalui berbagai variasi URI (misal: Mastodon `/users/user` vs `/@user`). Feed profil akan menggabungkan semua postingan dari alias URI yang sama.
 *   **Deep Outbox Sync**: Sinkronisasi otomatis hingga 40 postingan terbaru saat profil remote dikunjungi, termasuk pemetaan relasi parent-child untuk balasan.
 *   **Visibility Mapping**: Mendukung tampilan postingan `public` dan `unlisted` dari instance remote di timeline dan profil.
+*   **Enhanced Stats Fetching**: Pengambilan jumlah pengikut (followers/following) kini memprioritaskan atribut asli Mastodon (`followersCount`, `followingCount`) untuk akurasi data yang lebih baik dibandingkan metode hitung koleksi manual.
 
 ### 5. UI/UX Layer (User Interface)
+*   **HTML & Fediverse Rendering**: Implementasi `rehype-raw` pada pipeline konten untuk merender tag HTML secara aman (`<p>`, `<a>`, `<span>`) yang dikirim dari instance luar. Mendukung styling khusus untuk hashtag dan mention Fediverse.
 *   **Standardized Header**: Username (bold) dan Handle (muted) tampil dalam satu baris horizontal yang rapi di seluruh aplikasi.
-*   **Focused View**: Tampilan postingan detail menggunakan format vertikal yang lebih lega untuk keterbacaan.
+*   **Focused View**: Tampilan postingan detail menggunakan format vertikal yang lebih lega untuk keterbacaan, lengkap dengan timestamp detail dan status interaksi yang presisi.
+*   **Real-time Hover Cards**: Kartu profil yang muncul saat kursor berada di atas nama pengguna, menampilkan data real-time (bio, banner, stats) dan tombol Ikuti/Batal Ikuti yang sinkron.
 *   **Toploader Support**: Seluruh navigasi antar profil menggunakan komponen `<Link>` untuk memberikan feedback loading bar yang konsisten.
 *   **Action Menu**: Dropdown menu pada postingan menyediakan opsi "Salin Tautan", "Laporkan" (post remote), dan "Hapus" (post lokal).
 

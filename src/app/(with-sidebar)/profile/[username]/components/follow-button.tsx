@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserMinus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { followUserAction, unfollowUserAction, checkFollowingStatusAction, followRemoteUserAction } from "@/app/(with-sidebar)/user.action";
+import { followUserAction, unfollowUserAction, followRemoteUserAction, unfollowRemoteUserAction } from "@/app/(with-sidebar)/user.action";
 
 interface FollowButtonProps {
     targetUserId: string;
@@ -21,9 +21,13 @@ export function FollowButton({ targetUserId, currentUserId, initialIsFollowing, 
     const handleFollow = () => {
         startTransition(async () => {
             if (isFollowing) {
-                // For now, unfollow might need more work for remote, 
-                // but let's use the standard action which uses the ID (URI for remote)
-                const response = await unfollowUserAction(currentUserId, targetUserId);
+                let response;
+                if (isRemote) {
+                    response = await unfollowRemoteUserAction(currentUserId, targetUserId);
+                } else {
+                    response = await unfollowUserAction(currentUserId, targetUserId);
+                }
+                
                 if (response.status === "success") {
                     setIsFollowing(false);
                     toast.success("Berhenti mengikuti");

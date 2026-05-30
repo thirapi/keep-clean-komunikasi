@@ -143,11 +143,15 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
     const remaining = CHAR_LIMIT - content.length;
     const isOverLimit = remaining < 0;
 
-    const gutterWidth = "w-12"; // 48px
-    const lineX = "left-[40px]";
+    const gutterWidth = "w-10 md:w-12";
+    const lineX = "left-[31px] md:left-[39px]";
 
     return (
-        <div className="flex items-start gap-0 px-4 py-3 border-b border-border/10 relative">
+        <div className="flex items-start gap-0 px-4 py-4 border-b border-border/50 relative bg-background select-none">
+            {showConnector && (
+                <div className={cn("absolute w-[2px] bg-border z-0 top-0 h-[30px]", lineX)} />
+            )}
+
             <input
                 type="file"
                 className="hidden"
@@ -161,14 +165,14 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                 <UserAvatar src={currentUser.avatar} className="h-10 w-10 shrink-0" />
             </div>
             
-            <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1 pl-3">
+            <div className="flex-1 flex flex-col gap-2 min-w-0 pt-0 pl-3 md:pl-4">
                 <div className="flex flex-col gap-2">
                     <textarea
                         ref={textareaRef}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        placeholder="Balas postingan ini..."
-                        className="flex-1 bg-transparent border-none focus:outline-none text-[18px] placeholder:text-muted-foreground/50 p-0 min-h-[40px] w-full resize-none leading-relaxed"
+                        placeholder="Ketik balasan Anda..."
+                        className="flex-1 bg-transparent border-none focus:outline-none text-[18px] md:text-[20px] placeholder:text-muted-foreground/60 p-0 min-h-[40px] w-full resize-none leading-normal"
                         rows={1}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -179,9 +183,12 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
 
                     {/* Previews */}
                     {filePreviews.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className={cn(
+                            "grid gap-2 mb-2 rounded-2xl overflow-hidden border border-border",
+                            filePreviews.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                        )}>
                             {filePreviews.map((item, index) => (
-                                <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
+                                <div key={index} className="relative aspect-video bg-muted group overflow-hidden">
                                     {item.preview ? (
                                         item.file.type.startsWith("video/") ? (
                                             <video src={item.preview} className="w-full h-full object-cover" />
@@ -189,13 +196,13 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                                             <img src={item.preview} className="w-full h-full object-cover" alt="preview" />
                                         )
                                     ) : (
-                                        <div className="w-full h-full bg-accent flex items-center justify-center">
+                                        <div className="w-full h-full flex items-center justify-center">
                                             <FileIcon className="h-8 w-8 text-muted-foreground" />
                                         </div>
                                     )}
                                     <button
                                         onClick={() => removeFile(index)}
-                                        className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 p-1.5 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                                        className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 p-1.5 rounded-full text-white backdrop-blur-md transition-all shadow-lg"
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
@@ -204,46 +211,43 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between border-t border-border/5 pt-2">
+                    <div className="flex items-center justify-between border-t border-border/10 pt-3">
                         <div className="flex items-center gap-1">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 transition-colors"
+                                className="h-9 w-9 text-sky-500 rounded-full hover:bg-sky-500/10 transition-colors"
                                 onClick={() => fileInputRef.current?.click()}
                                 title="Tambahkan Gambar"
                             >
-                                <ImagePlus className="h-4 w-4" />
+                                <ImagePlus className="h-[18px] w-[18px]" />
                             </Button>
+                        </div>
 
+                        <div className="flex items-center gap-4">
                             {content.length > 0 && (
                                 <div className={cn(
-                                    "text-[11px] font-medium px-2 py-0.5 rounded-md",
-                                    remaining < 20 ? "text-destructive bg-destructive/10" : "text-muted-foreground/60"
+                                    "text-[13px] font-medium tabular-nums",
+                                    remaining < 0 ? "text-destructive" : remaining < 20 ? "text-amber-500" : "text-muted-foreground"
                                 )}>
                                     {remaining}
                                 </div>
                             )}
+                            
+                            <Button
+                                onClick={handleSend}
+                                disabled={(!content.trim() && selectedFiles.length === 0) || isSending || isOverLimit}
+                                className="rounded-full bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 h-9 text-[15px] transition-colors shadow-sm shrink-0"
+                            >
+                                {isSending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <>Balas</>
+                                )}
+                            </Button>
                         </div>
-
-                        <Button
-                            onClick={handleSend}
-                            disabled={(!content.trim() && selectedFiles.length === 0) || isSending || isOverLimit}
-                            className="rounded-full bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white font-bold px-5 h-9 text-sm transition-colors shadow-none shrink-0"
-                        >
-                            {isSending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <>Balas</>
-                            )}
-                        </Button>
                     </div>
                 </div>
-                {!content.trim() && selectedFiles.length === 0 && (
-                    <div className="text-[11px] text-muted-foreground/30">
-                        Press Ctrl+Enter to send
-                    </div>
-                )}
             </div>
         </div>
     );

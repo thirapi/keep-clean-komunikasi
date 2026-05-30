@@ -71,11 +71,12 @@ export class GetProfileUseCase {
                             // Map bio (ActivityPub summary is often HTML)
                             const bio = actorData.summary ? actorData.summary.replace(/<[^>]*>?/gm, '') : `User from ${domain}`;
                             
-                            // Try to get follower/following counts (using signed fetch)
-                            let followersCount = 0;
-                            let followingsCount = 0;
+                            // Try to get follower/following counts (Mastodon extensions or collection totalItems)
+                            let followersCount = actorData.followersCount || 0;
+                            let followingsCount = actorData.followingCount || 0;
 
-                            if (actorData.followers) {
+                            // Fallback to fetching collections only if Mastodon counts aren't present
+                            if (followersCount === 0 && actorData.followers) {
                                 try {
                                     const fRes = await ActivityPubFetchService.fetch(actorData.followers, {}, currentUserId);
                                     if (fRes.ok) {
@@ -87,7 +88,7 @@ export class GetProfileUseCase {
                                 }
                             }
 
-                            if (actorData.following) {
+                            if (followingsCount === 0 && actorData.following) {
                                 try {
                                     const fRes = await ActivityPubFetchService.fetch(actorData.following, {}, currentUserId);
                                     if (fRes.ok) {
