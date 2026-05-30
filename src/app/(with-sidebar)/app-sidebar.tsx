@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash, Search, MessageCircle } from "lucide-react";
+import { User, Hash, Search, MessageCircle, ChevronDown, Rss } from "lucide-react";
 import Link from "next/link";
 
 import { NavMain } from "./nav-main";
@@ -41,6 +41,12 @@ import {
 } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const brand = {
   name: "komunikasi",
@@ -89,6 +95,7 @@ export function AppSidebar({
   const [openSearchUser, setOpenSearchUser] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"channels" | "dms">("channels");
+  const [sidebarMode, setSidebarMode] = React.useState<"chat" | "feed">("chat");
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -182,6 +189,54 @@ export function AppSidebar({
     );
   }
 
+  const ModeSwitcher = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 px-2 hover:bg-muted/50 rounded-lg h-9 transition-all group min-w-0"
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            {sidebarMode === "chat" ? (
+              <>
+                <MessageCircle className="size-4 text-primary shrink-0" />
+                <span className="font-bold text-sm truncate">Chat</span>
+              </>
+            ) : (
+              <>
+                <Rss className="size-4 text-primary shrink-0" />
+                <span className="font-bold text-sm truncate">Social Feed</span>
+              </>
+            )}
+          </div>
+          <ChevronDown className="size-3 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-52 mt-1 p-1">
+        <DropdownMenuItem
+          onClick={() => setSidebarMode("chat")}
+          className={cn(
+            "flex items-center gap-2.5 p-2 rounded-md cursor-pointer",
+            sidebarMode === "chat" && "bg-muted font-medium"
+          )}
+        >
+          <MessageCircle className={cn("size-4", sidebarMode === "chat" ? "text-primary" : "text-muted-foreground")} />
+          <span className="text-sm">Chat</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setSidebarMode("feed")}
+          className={cn(
+            "flex items-center gap-2.5 p-2 rounded-md cursor-pointer",
+            sidebarMode === "feed" && "bg-muted font-medium"
+          )}
+        >
+          <Rss className={cn("size-4", sidebarMode === "feed" ? "text-primary" : "text-muted-foreground")} />
+          <span className="text-sm">Social Feed</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <Sidebar
       collapsible="none"
@@ -194,8 +249,29 @@ export function AppSidebar({
     >
       <SidebarHeader>
         {isMobile ? (
-          <div className="flex items-center justify-between px-2 pt-2 pb-1">
-            <span className="font-bold text-xl text-primary tracking-tight ml-1">{brand.name}</span>
+          <div className="flex items-center justify-between pt-1 pb-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+               <span className="font-bold text-xl text-primary tracking-tight ml-1 shrink-0">{brand.name}</span>
+               <div className="w-px h-4 bg-border/60 mx-0.5 shrink-0" />
+               <div className="flex items-center gap-0.5 min-w-0">
+                 <ModeSwitcher />
+                 {user && (
+                   <Tooltip>
+                     <TooltipTrigger asChild>
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-9 w-9 p-2 text-muted-foreground hover:bg-muted/50 rounded-lg shrink-0"
+                         onClick={() => setOpenGlobalSearch(true)}
+                       >
+                         <Search className="h-4 w-4" />
+                       </Button>
+                     </TooltipTrigger>
+                     <TooltipContent side="bottom">Pencarian</TooltipContent>
+                   </Tooltip>
+                 )}
+               </div>
+            </div>
             {user ? (
               <NavUser user={user} checkRole={checkRole} isMobileHeader={true} />
             ) : (
@@ -205,52 +281,54 @@ export function AppSidebar({
             )}
           </div>
         ) : (
-          <NavBrand brand={brand} />
-        )}
-        {user && (
-          <div className={cn("px-2 pb-0 mb-1", isMobile && "pb-2 mt-1")}>
-            {isMobile ? (
-              <div
-                onClick={() => setOpenGlobalSearch(true)}
-                className="relative flex items-center w-full h-10 px-3 cursor-text bg-muted/60 border rounded-full hover:bg-muted/80 transition-colors group"
-              >
-                <Search className="h-4 w-4 text-muted-foreground mr-2 group-hover:text-primary transition-colors" />
-                <span className="text-sm text-muted-foreground">Cari pesan atau pengguna...</span>
+          <div className="flex flex-col gap-1">
+            <NavBrand brand={brand} />
+            {state === "expanded" && (
+              <div className="pb-1 flex items-center justify-between gap-1">
+                 <ModeSwitcher />
+                 {user && (
+                   <Tooltip>
+                     <TooltipTrigger asChild>
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-9 w-9 p-2 text-muted-foreground hover:bg-muted/50 rounded-lg shrink-0"
+                         onClick={() => setOpenGlobalSearch(true)}
+                       >
+                         <Search className="h-4 w-4" />
+                       </Button>
+                     </TooltipTrigger>
+                     <TooltipContent side="right">Pencarian</TooltipContent>
+                   </Tooltip>
+                 )}
               </div>
-            ) : state === "expanded" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-2 h-8 text-[11px] text-muted-foreground bg-muted/30 border-dashed hover:bg-muted/50 transition-all rounded-lg group"
-                onClick={() => setOpenGlobalSearch(true)}
-              >
-                <Search className="h-3.5 w-3.5 group-hover:text-primary transition-colors" />
-                <span className="truncate">Pencarian Global...</span>
-              </Button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
-                    onClick={() => setOpenGlobalSearch(true)}
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Pencarian</TooltipContent>
-              </Tooltip>
             )}
+          </div>
+        )}
+        {!isMobile && state === "collapsed" && user && (
+          <div className="pb-2 mt-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
+                  onClick={() => setOpenGlobalSearch(true)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Pencarian</TooltipContent>
+            </Tooltip>
           </div>
         )}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden pt-2">
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
-            <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
-            <div className="h-px bg-border my-2 shrink-0 mx-2" />
-            {user ? (
+            {sidebarMode === "feed" ? (
+              <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
+            ) : user ? (
               mobileTab === "channels" ? (
                 <NavMain
                   groups={groups}
@@ -276,23 +354,21 @@ export function AppSidebar({
           </div>
         ) : (
           <Group orientation="vertical" className="w-full min-w-0 h-full">
-                <Panel
-                  minSize="15%"
-                  style={{
-                    overflowX: "hidden",
-                    overflowY: "auto",
-                    width: "100%",
-                    minWidth: "0",
-                  }}
-                  className="min-w-0"
-                >
-                  <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
-                </Panel>
-
-            {user ? (
+            {sidebarMode === "feed" ? (
+              <Panel
+                minSize="15%"
+                style={{
+                  overflowX: "hidden",
+                  overflowY: "auto",
+                  width: "100%",
+                  minWidth: "0",
+                }}
+                className="min-w-0"
+              >
+                <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
+              </Panel>
+            ) : user ? (
               <>
-                <div className="h-2 shrink-0" />
-
                 <Panel
                   minSize="20%"
                   style={{
