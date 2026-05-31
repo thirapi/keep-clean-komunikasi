@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Users, Bookmark, Bell } from "lucide-react";
+import { Globe, Users, Bookmark, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
 import { useState, useEffect } from "react";
 import { getUnreadNotificationsCountAction } from "./notifications/notifications.action";
 
-export function NavFeed() {
+export function NavFeed({ userName }: { userName?: string }) {
     const pathname = usePathname();
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -60,6 +60,11 @@ export function NavFeed() {
             name: "Bookmark",
             url: "/bookmarks",
             icon: Bookmark,
+        },
+        {
+            name: "Profil",
+            url: userName ? `/profile/${userName}` : "/signin",
+            icon: User,
         },
     ];
 

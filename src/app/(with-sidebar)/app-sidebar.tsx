@@ -326,7 +326,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
             {mobileTab === "social" ? (
-              <NavFeed />
+              <NavFeed userName={user?.name} />
             ) : user ? (
               mobileTab === "channels" ? (
                 <NavMain
@@ -364,7 +364,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                 }}
                 className="min-w-0"
               >
-                <NavFeed />
+                <NavFeed userName={user?.name} />
               </Panel>
             ) : user ? (
               <>

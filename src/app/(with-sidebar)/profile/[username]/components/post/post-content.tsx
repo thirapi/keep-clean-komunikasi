@@ -45,16 +45,38 @@ export function PostContent({
                                 const isHashtag = props.className?.includes("hashtag");
                                 const isMention = props.className?.includes("mention");
                                 
+                                // Check if it's a mailto link (Fediverse handle) and rewrite to profile route
+                                let href = props.href;
+                                let isInternal = false;
+                                
+                                if (href?.startsWith("mailto:")) {
+                                    const handle = href.replace("mailto:", "");
+                                    href = `/profile/${handle}`;
+                                    isInternal = true;
+                                } else if (href?.startsWith("/") || href?.startsWith(window.location.origin)) {
+                                    isInternal = true;
+                                }
+
                                 return (
                                     <a 
                                         {...props} 
+                                        href={href}
                                         className={cn(
                                             "text-sky-500 hover:underline",
                                             (isHashtag || isMention) && "font-medium"
                                         )} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        onClick={(e) => e.stopPropagation()} 
+                                        target={isInternal ? undefined : "_blank"} 
+                                        rel={isInternal ? undefined : "noopener noreferrer"} 
+                                        onClick={(e) => {
+                                            if (isInternal) {
+                                                e.stopPropagation();
+                                                // If it's internal, let next/link handle it if possible, 
+                                                // but since we are in ReactMarkdown's raw anchor, 
+                                                // standard href navigation is fine.
+                                            } else {
+                                                e.stopPropagation();
+                                            }
+                                        }}
                                     />
                                 );
                             },

@@ -285,7 +285,7 @@ async function handleCreate(userId: string, username: string, activity: any) {
             const parentPost = await postRepository.findByUri(object.inReplyTo);
             if (parentPost) {
                 parentPostId = parentPost.id;
-                originalPostAuthorId = parentPost.userId;
+                originalPostAuthorId = parentPost.userId ?? null;
                 console.log("[Inbox] Received reply from " + activity.actor + " to post " + parentPost.id);
             } else {
                 // If we don't have the parent post, we might want to fetch it, 
