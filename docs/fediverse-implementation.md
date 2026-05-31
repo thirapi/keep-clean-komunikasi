@@ -11,7 +11,8 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
     *   **RSA 2048-bit**: Standar industri untuk interoperabilitas dengan Mastodon dan instance Fediverse lainnya.
     *   **Authorized Fetch (Signed GET)**: Implementasi pengambilan data (aktor, koleksi, outbox) yang ditandatangani secara digital untuk kompatibilitas dengan instance yang mengaktifkan mode aman (seperti Misskey dan Mastodon Authorized Fetch).
 2.  **Protocol**: **ActivityPub** (W3C Standard) menggunakan format JSON-LD (`application/activity+json`).
-3.  **Persistence**: Drizzle ORM dengan tabel tambahan untuk `RemoteActor` dan modifikasi pada tabel `Follower`.
+3.  **Persistence**: Drizzle ORM dengan tabel tambahan untuk `RemoteActor` (mendukung kolom `jsonb` untuk metadata kaya) dan modifikasi pada tabel `Follower`.
+4.  **Content Parsing**: Pipeline transformasi konten kustom untuk menangani elemen unik Fediverse seperti emoji kustom dan tautan semantik.
 
 ## ✅ Fitur yang SUDAH Diimplementasikan
 
@@ -29,37 +30,39 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 *   **Signed WebFinger**: Resolusi handle via WebFinger kini menggunakan *signed fetch* sebagai standar, dengan *fallback* otomatis ke *unsigned fetch* jika diperlukan.
 
 ### 3. Interaction Layer (Bidirectional Activity)
-*   **Full Inbox processing**: Menangani aktivitas masuk: `Follow`, `Undo`, `Like`, `Create` (Note), dan `Delete`.
+*   **Full Inbox processing**: Menangani aktivitas masuk: `Follow`, `Undo`, `Like`, `Create` (Note), `Delete`, dan `Announce` (Repost).
 *   **Outgoing Interactions**: 
     *   **Likes**: Pengiriman aktivitas `Like` dan `Undo Like` ke server remote.
     *   **Reposts**: Pengiriman aktivitas `Announce` dan `Undo Announce` (Unrepost).
     *   **Replies**: Pengiriman aktivitas `Create` (Note) dengan kolom `inReplyTo` yang valid.
 *   **Direct Delivery**: Saat membalas postingan remote, aktivitas kini dikirimkan **langsung** ke inbox penulis aslinya (selain ke followers), memastikan notifikasi dan threading bekerja dengan benar di instance lawan.
 
-### 4. Synchronization Layer (Data Integrity)
+### 4. Synchronization & Interop Layer (Data Integrity)
+*   **Thread Healing (Chain Fetching)**: Saat menerima balasan ke postingan yang belum ada di database, sistem melakukan *signed fetch* secara rekursif ke URI induk untuk membangun pohon percakapan yang lengkap secara otomatis.
+*   **Remote Repost Handling**: Mendukung aktivitas `Announce`. Jika kita menerima repost untuk kiriman yang belum kita kenal, sistem otomatis menarik metadata kiriman asli tersebut agar dapat dirender dengan konteks yang benar.
+*   **Custom Emoji Mapping**: Mengekstrak metadata emoji dari field `tag` pada kiriman dan profil remote. Metadata disimpan di kolom `jsonb` dan dipetakan ke teks `:shortcode:` saat rendering.
 *   **Multi-ID Alias Support**: Mendukung identifikasi aktor remote melalui berbagai variasi URI (misal: Mastodon `/users/user` vs `/@user`). Feed profil akan menggabungkan semua postingan dari alias URI yang sama.
 *   **Deep Outbox Sync**: Sinkronisasi otomatis hingga 40 postingan terbaru saat profil remote dikunjungi, termasuk pemetaan relasi parent-child untuk balasan.
-*   **Visibility Mapping**: Mendukung tampilan postingan `public` dan `unlisted` dari instance remote di timeline dan profil.
-*   **Enhanced Stats Fetching**: Pengambilan jumlah pengikut (followers/following) kini memprioritaskan atribut asli Mastodon (`followersCount`, `followingCount`) untuk akurasi data yang lebih baik dibandingkan metode hitung koleksi manual.
+*   **Enhanced Stats Fetching**: Pengambilan jumlah pengikut (followers/following) kini memprioritaskan atribut asli Mastodon (`followersCount`, `followingCount`) untuk akurasi data yang lebih baik.
 
 ### 5. UI/UX Layer (User Interface)
-*   **HTML & Fediverse Rendering**: Implementasi `rehype-raw` pada pipeline konten untuk merender tag HTML secara aman (`<p>`, `<a>`, `<span>`) yang dikirim dari instance luar. Mendukung styling khusus untuk hashtag dan mention Fediverse.
-*   **Standardized Header**: Username (bold) dan Handle (muted) tampil dalam satu baris horizontal yang rapi di seluruh aplikasi.
-*   **Focused View**: Tampilan postingan detail menggunakan format vertikal yang lebih lega untuk keterbacaan, lengkap dengan timestamp detail dan status interaksi yang presisi.
+*   **Federated vs Local Timeline**: Header timeline kini memiliki tab untuk memisahkan antara feed "Federasi" (semua kiriman) dan "Lokal" (hanya user di instance kita).
+*   **Tab Persistence**: Posisi tab timeline (Lokal/Federasi) disimpan dalam URL `?tab=`, sehingga tidak hilang saat halaman di-refresh.
+*   **Emoji Rendering**: Integrasi `parseFediverseContent` yang merender emoji kustom di nama tampilan pengguna, bio, dan isi postingan secara proporsional.
+*   **HTML & Fediverse Rendering**: Implementasi `rehype-raw` pada pipeline konten untuk merender tag HTML secara aman (`<p>`, `<a>`, `<span>`) yang dikirim dari instance luar. 
+*   **Manual Refresh**: Tombol refresh (🔄) di header timeline untuk memperbarui data secara instan dengan indikator loading animasi.
 *   **Real-time Hover Cards**: Kartu profil yang muncul saat kursor berada di atas nama pengguna, menampilkan data real-time (bio, banner, stats) dan tombol Ikuti/Batal Ikuti yang sinkron.
-*   **Toploader Support**: Seluruh navigasi antar profil menggunakan komponen `<Link>` untuk memberikan feedback loading bar yang konsisten.
-*   **Action Menu**: Dropdown menu pada postingan menyediakan opsi "Salin Tautan", "Laporkan" (post remote), dan "Hapus" (post lokal).
 
 ## 🚧 Fitur yang BELUM Diimplementasikan (Roadmap)
 
 1.  **Background Queues**: Migrasi ke BullMQ untuk pengiriman aktivitas agar tidak membebani request utama dan mendukung retry otomatis.
 2.  **Shared Inbox**: Optimasi pengiriman ke instance besar untuk menghemat bandwidth.
-3.  **Media Proxy**: Menampilkan media dari instance luar dengan melewati batasan CSP/CORS melalui server proxy lokal.
+3.  **Media Proxy (Backend)**: Mengalihkan semua request gambar remote melalui endpoint proxy internal untuk privasi dan melewati restriksi CORS secara permanen.
 
 ## 🛠️ Perubahan Terbaru & Solusi Masalah
-*   **Fix Empty Remote Profile**: Masalah profil kosong diatasi dengan implementasi **Multi-ID Alias** dan pencarian **Case-Insensitive** di `PostRepository`.
-*   **Interaction Propagation**: Memperbaiki isu Like/Reply tidak muncul di Mastodon dengan mengaktifkan pengiriman aktivitas yang ditandatangani secara digital ke inbox remote.
-*   **UI Alignment**: Menyelaraskan layout header post agar username, handle, dan metadata waktu berada di posisi horizontal yang sejajar.
+*   **Thread Integrity**: Menambahkan logika *recursive fetch* di Inbox untuk mengatasi masalah percakapan yang terpotong saat berinteraksi dengan user dari instance baru.
+*   **Custom Emojis**: Mengatasi masalah emoji yang tampil sebagai teks mentah dengan mengimplementasikan parser regex-to-image di level komponen UI.
+*   **Timeline Filtering**: Memperbaiki kebingungan user antara kiriman lokal dan federasi dengan menambahkan tab navigasi yang persisten.
 
 ---
 *Dokumentasi diperbarui oleh Gemini CLI - Mei 2026*

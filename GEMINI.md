@@ -6,6 +6,8 @@
 - **Fediverse & ActivityPub**: Refer to [docs/fediverse-implementation.md](./docs/fediverse-implementation.md) for protocol standards and status.
 - **Mark as Read**: All changes related to message read status must adhere to the throttled and real-time synchronization strategy documented in [docs/mark-as-read.md](./docs/mark-as-read.md).
 - **Lexical Editor**: All chat input components use the Lexical rich text framework. Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for architecture decisions.
+- **Content Integrity**: All components rendering user content (posts, bios, usernames) MUST use `parseFediverseContent` to support custom emojis and maintain visual parity across the Fediverse.
+- **Thread Integrity**: Backend logic handling incoming activities MUST implement "Thread Healing" (recursive fetching of parent objects) to ensure conversational context is never lost.
 
 ## Architecture Constraints
 1. **Pusher for Microblog (Targeted Only)**: 

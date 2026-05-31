@@ -101,10 +101,13 @@ Fitur ini dirancang "Ready" untuk Fediverse melalui:
 
 6. **Phase 6: Fediverse Advanced**
    - [x] Quote Posts (Repost with commentary) — *Strictly separated from Reposts*.
-   - [x] ActivityPub Outbox/Inbox basic logic.
-   - [x] HTTP Signatures for cross-instance auth.
+   - [x] ActivityPub Outbox/Inbox full bidirectional support.
+   - [x] HTTP Signatures (RSA-SHA256) for cross-instance authentication.
    - [x] HTML & Fediverse Rendering (rehype-raw).
    - [x] Accurate Profile Stats (Mastodon Extensions).
+   - [x] **Custom Emoji Support**: Recursive shortcode parsing and visual parity.
+   - [x] **Thread Healing**: Automatic recursive fetching of parent posts from remote URI.
+   - [x] **Dual-Timeline Architecture**: Filterable feed (Lokal vs Federasi) with URL persistence.
 
 ## 📄 Source of Truth
 Untuk detail teknis terbaru mengenai interaksi dan integritas data, selalu rujuk pada:
@@ -118,7 +121,7 @@ src/app/
 ├── (with-sidebar)/          # Unified Hub (sidebar + content)
 │   ├── layout.tsx           # Session-optional layout (supports guest)
 │   ├── channels/[roomId]/   # Chat rooms
-│   ├── timeline/            # Global timeline
+│   ├── timeline/            # Dual Timeline (Lokal/Federasi)
 │   ├── discovery/           # Public discovery feed
 │   ├── following/           # Following-only feed
 │   └── posts/[postId]/      # Thread detail (public accessible)
