@@ -34,13 +34,13 @@ export const userRelations = relations(user, ({many}) => ({
 	followers_followingId: many(follower, {
 		relationName: "follower_followingId_user_id"
 	}),
-	posts: many(post),
 	notifications_recipientId: many(notification, {
 		relationName: "notification_recipientId_user_id"
 	}),
 	notifications_actorId: many(notification, {
 		relationName: "notification_actorId_user_id"
 	}),
+	posts: many(post),
 }));
 
 export const remoteActorRelations = relations(remoteActor, ({many}) => ({
@@ -54,8 +54,8 @@ export const remoteActorRelations = relations(remoteActor, ({many}) => ({
 	followers_remoteFollowingId: many(follower, {
 		relationName: "follower_remoteFollowingId_remoteActor_id"
 	}),
-	posts: many(post),
 	notifications: many(notification),
+	posts: many(post),
 }));
 
 export const pushSubscriptionRelations = relations(pushSubscription, ({one}) => ({

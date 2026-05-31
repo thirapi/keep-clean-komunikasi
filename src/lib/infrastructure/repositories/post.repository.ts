@@ -413,11 +413,12 @@ export class PostRepository implements IPostRepository {
         );
     }
 
-    async getGlobalFeed(limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
+    async getGlobalFeed(limit = 20, offset = 0, currentUserId?: string, filter: "all" | "local" = "all"): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
             where: and(
                 eq(posts.isDeleted, false),
-                eq(posts.visibility, "public")
+                eq(posts.visibility, "public"),
+                filter === "local" ? isNotNull(posts.userId) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,

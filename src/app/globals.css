@@ -261,3 +261,19 @@
 .hljs-link {
   text-decoration: underline;
 }
+/* Custom Fediverse Emoji Styles */
+.fediverse-emoji {
+  display: inline-block;
+  height: 1.25em;
+  width: 1.25em;
+  vertical-align: text-bottom;
+  margin: 0 0.1em;
+  object-fit: contain;
+}
+
+/* Ensure images in markdown content don't overflow */
+.fediverse-content img:not(.fediverse-emoji) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}

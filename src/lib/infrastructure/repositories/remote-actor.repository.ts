@@ -25,6 +25,7 @@ export class RemoteActorRepository implements IRemoteActorRepository {
                     followerCount: actor.followerCount,
                     followingCount: actor.followingCount,
                     published: actor.published,
+                    emojis: actor.emojis,
                     updatedAt: new Date(),
                 }
             });
@@ -32,7 +33,7 @@ export class RemoteActorRepository implements IRemoteActorRepository {
 
     async findById(id: string): Promise<RemoteActorRecord | null> {
         const result = await this.db.select().from(remoteActors).where(eq(remoteActors.id, id));
-        return result[0] || null;
+        return (result[0] as unknown as RemoteActorRecord) || null;
     }
 
     async findByUsernameAndDomain(username: string, domain: string): Promise<RemoteActorRecord | null> {
@@ -42,6 +43,6 @@ export class RemoteActorRepository implements IRemoteActorRepository {
                 eq(sql`lower(${remoteActors.username})`, username.toLowerCase()), 
                 eq(sql`lower(${remoteActors.domain})`, domain.toLowerCase())
             ));
-        return result[0] || null;
+        return (result[0] as unknown as RemoteActorRecord) || null;
     }
 }

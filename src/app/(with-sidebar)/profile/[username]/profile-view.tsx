@@ -33,11 +33,13 @@ import { Separator } from "@/components/ui/separator";
 import { FollowButton } from "./components/follow-button";
 import { UserListDialog } from "./components/user-list-dialog";
 import { getFollowersAction, getFollowingAction } from "../../user.action";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface ProfileViewProps {
     user: {
         id: string;
         username: string;
+        displayName?: string;
         avatar: string;
         bio?: string | null;
         banner?: string | null;
@@ -51,6 +53,7 @@ interface ProfileViewProps {
         isFollowing?: boolean;
         isRemote?: boolean;
         handle?: string;
+        emojis?: { name: string; url: string }[] | null;
     };
     currentUser: {
         id: string;
@@ -219,7 +222,10 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <div className="flex flex-col flex-1">
-                            <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
+                            <h1 
+                                className="text-xl font-bold tracking-tight"
+                                dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
+                            />
                             <p className="text-xs text-muted-foreground">{postCount} {activeTab}</p>
                         </div>
 
@@ -309,7 +315,10 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
                                 <div className="mt-4 space-y-3">
                                     <div>
-                                        <h2 className="text-2xl font-bold tracking-tight text-foreground">{user.username}</h2>
+                                        <h2 
+                                            className="text-2xl font-bold tracking-tight text-foreground"
+                                            dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
+                                        />
                                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                             {user.isRemote && user.handle 
                                                 ? user.handle 
@@ -327,9 +336,10 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     </div>
 
                                     {user.bio && (
-                                        <p className="text-sm text-foreground/90 leading-relaxed max-w-xl">
-                                            {user.bio}
-                                        </p>
+                                        <p 
+                                            className="text-sm text-foreground/90 leading-relaxed max-w-xl"
+                                            dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.bio, user.emojis) }}
+                                        />
                                     )}
 
                                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-1">

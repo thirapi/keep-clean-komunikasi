@@ -316,6 +316,61 @@ export class ActivityPubService implements IActivityPubService {
         });
     }
 
+    async fetchRemoteObject(url: string): Promise<any> {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    "Accept": "application/activity+json",
+                    "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
+                }
+            });
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (err) {
+            console.error(`Error fetching remote object ${url}:`, err);
+            return null;
+        }
+    }
+
+    async fetchRemoteObjectSigned(url: string, userId: string): Promise<any> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.privateKey) return this.fetchRemoteObject(url);
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const targetUrl = new URL(url);
+        const date = new Date().toUTCString();
+        const targetPath = targetUrl.pathname + targetUrl.search;
+
+        const headers: Record<string, string> = {
+            "Host": targetUrl.host,
+            "Date": date,
+            "Accept": "application/activity+json",
+            "User-Agent": "Mozilla/5.0 (compatible; Komunikasi/1.0; +https://komunikasi.qzz.io) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Mastodon/4.2.1"
+        };
+
+        const signature = HttpSignatureService.sign({
+            keyId: `${baseUrl}/api/users/${user.username}#main-key`,
+            privateKey: user.privateKey,
+            method: "GET",
+            target: targetPath,
+            headers: headers
+        });
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    ...headers,
+                    "Signature": signature
+                }
+            });
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (err) {
+            console.error(`Error fetching signed remote object ${url}:`, err);
+            return null;
+        }
+    }
+
     private async deliverToRemoteInbox(inboxUrl: string, activity: any, user: { username: string, privateKey: string }) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const body = JSON.stringify(activity);

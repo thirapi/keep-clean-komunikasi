@@ -5,6 +5,6 @@ import { db } from "@/lib/db";
 const postRepository = new PostRepository(db);
 const getGlobalFeedUseCase = new GetGlobalFeedUseCase(postRepository);
 
-export const getGlobalFeedController = async (limit: number = 20, offset: number = 0, currentUserId?: string) => {
-    return await getGlobalFeedUseCase.execute(limit, offset, currentUserId);
+export const getGlobalFeedController = async (limit: number = 20, offset: number = 0, currentUserId?: string, filter: "all" | "local" = "all") => {
+    return await getGlobalFeedUseCase.execute(limit, offset, currentUserId, filter);
 };

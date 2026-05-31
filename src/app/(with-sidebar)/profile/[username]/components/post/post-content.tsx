@@ -7,6 +7,7 @@ import { PostMedia } from "../post-media";
 import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/components/link-preview-card";
 import { cn } from "@/lib/utils";
 import { PostLinkPreview } from "@/lib/entities/models/post.model";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface PostContentProps {
     content?: string;
@@ -14,6 +15,7 @@ interface PostContentProps {
     onImageClick?: (index: number) => void;
     urls?: string[];
     linkPreviews?: PostLinkPreview[];
+    emojis?: { name: string; url: string }[] | null;
     isFocused?: boolean;
     isQuote?: boolean;
     className?: string;
@@ -25,13 +27,16 @@ export function PostContent({
     onImageClick,
     urls = [],
     linkPreviews = [],
+    emojis,
     isFocused = false,
     isQuote = false,
     className
 }: PostContentProps) {
+    const parsedContent = content ? parseFediverseContent(content, emojis) : content;
+
     return (
         <div className={cn("flex flex-col", className)}>
-            {content && (
+            {parsedContent && (
                 <div className={cn(
                     "text-foreground leading-normal whitespace-pre-wrap break-words fediverse-content",
                     isFocused ? "text-[19px] md:text-[21px] mb-3" : isQuote ? "text-[14px] line-clamp-3 mb-1" : "text-[15px] md:text-[16px] mb-2"
@@ -85,10 +90,20 @@ export function PostContent({
                             em: ({ node, ...props }) => <em {...props} className="italic" />,
                             code: ({ node, ...props }) => <code className="bg-muted px-1.5 py-0.5 rounded text-[0.9em] font-mono" {...props} />,
                             // Ensure spans (often used inside hashtags in Fediverse) render correctly
-                            span: ({ node, ...props }) => <span {...props} />
+                            span: ({ node, ...props }) => <span {...props} />,
+                            // Ensure fediverse-emoji class is allowed
+                            img: ({ node, ...props }) => (
+                                <img 
+                                    {...props} 
+                                    className={cn(
+                                        props.className,
+                                        props.className?.includes('fediverse-emoji') && "inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5"
+                                    )} 
+                                />
+                            )
                         }}
                     >
-                        {content}
+                        {parsedContent}
                     </ReactMarkdown>
                 </div>
             )}

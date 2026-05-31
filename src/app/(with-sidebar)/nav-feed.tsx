@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Users, Bookmark, Bell, User } from "lucide-react";
+import { Globe, Users, Bookmark, Bell, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,17 +41,17 @@ export function NavFeed({ userName }: { userName?: string }) {
 
     const pulseItems = [
         {
-            name: "Global",
+            name: "Timeline",
             url: "/timeline",
-            icon: Globe,
+            icon: Home,
         },
         {
-            name: "Mengikuti",
+            name: "Following",
             url: "/following",
             icon: Users,
         },
         {
-            name: "Notifikasi",
+            name: "Notifications",
             url: "/notifications",
             icon: Bell,
             count: unreadCount
@@ -62,7 +62,7 @@ export function NavFeed({ userName }: { userName?: string }) {
             icon: Bookmark,
         },
         {
-            name: "Profil",
+            name: "Profile",
             url: userName ? `/profile/${userName}` : "/signin",
             icon: User,
         },

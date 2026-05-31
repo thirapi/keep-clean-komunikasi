@@ -12,6 +12,7 @@ export interface RemoteActorRecord {
     followerCount: number;
     followingCount: number;
     published?: Date | null;
+    emojis?: { name: string; url: string }[] | null;
     createdAt: Date;
     updatedAt: Date;
 }

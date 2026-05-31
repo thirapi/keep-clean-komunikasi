@@ -1,4 +1,4 @@
-import { pgTable, foreignKey, unique, text, timestamp, boolean, integer } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, unique, text, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -315,33 +315,6 @@ export const follower = pgTable("Follower", {
 	unique("Follower_remoteFollowerId_followingId_unique").on(table.followingId, table.remoteFollowerId),
 ]);
 
-export const post = pgTable("Post", {
-	id: text().primaryKey().notNull(),
-	content: text().notNull(),
-	userId: text(),
-	uri: text(),
-	url: text(),
-	replyToId: text(),
-	repostOfId: text(),
-	visibility: text().default('public').notNull(),
-	isDeleted: boolean().default(false).notNull(),
-	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
-	remoteActorId: text(),
-}, (table) => [
-	foreignKey({
-			columns: [table.userId],
-			foreignColumns: [user.id],
-			name: "Post_userId_User_id_fk"
-		}),
-	foreignKey({
-			columns: [table.remoteActorId],
-			foreignColumns: [remoteActor.id],
-			name: "Post_remoteActorId_RemoteActor_id_fk"
-		}),
-	unique("Post_uri_unique").on(table.uri),
-]);
-
 export const remoteActor = pgTable("RemoteActor", {
 	id: text().primaryKey().notNull(),
 	username: text().notNull(),
@@ -358,6 +331,7 @@ export const remoteActor = pgTable("RemoteActor", {
 	followerCount: integer().default(0).notNull(),
 	followingCount: integer().default(0).notNull(),
 	published: timestamp({ mode: 'string' }),
+	emojis: jsonb(),
 });
 
 export const notification = pgTable("Notification", {
@@ -386,4 +360,32 @@ export const notification = pgTable("Notification", {
 			foreignColumns: [remoteActor.id],
 			name: "Notification_remoteActorId_RemoteActor_id_fk"
 		}),
+]);
+
+export const post = pgTable("Post", {
+	id: text().primaryKey().notNull(),
+	content: text().notNull(),
+	userId: text(),
+	uri: text(),
+	url: text(),
+	replyToId: text(),
+	repostOfId: text(),
+	visibility: text().default('public').notNull(),
+	isDeleted: boolean().default(false).notNull(),
+	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+	remoteActorId: text(),
+	emojis: jsonb(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [user.id],
+			name: "Post_userId_User_id_fk"
+		}),
+	foreignKey({
+			columns: [table.remoteActorId],
+			foreignColumns: [remoteActor.id],
+			name: "Post_remoteActorId_RemoteActor_id_fk"
+		}),
+	unique("Post_uri_unique").on(table.uri),
 ]);

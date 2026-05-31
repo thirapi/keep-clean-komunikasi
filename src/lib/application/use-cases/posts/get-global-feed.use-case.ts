@@ -6,7 +6,7 @@ export class GetGlobalFeedUseCase {
         private postRepository: IPostRepository
     ) { }
 
-    async execute(limit: number = 20, offset: number = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
-        return await this.postRepository.getGlobalFeed(limit, offset, currentUserId);
+    async execute(limit: number = 20, offset: number = 0, currentUserId?: string, filter: "all" | "local" = "all"): Promise<PostWithUserDTO[]> {
+        return await this.postRepository.getGlobalFeed(limit, offset, currentUserId, filter);
     }
 }

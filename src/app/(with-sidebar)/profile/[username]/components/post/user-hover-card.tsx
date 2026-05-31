@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPublicProfileAction, followUserAction, unfollowUserAction, followRemoteUserAction, unfollowRemoteUserAction } from "@/app/(with-sidebar)/user.action";
 import { Loader2, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface UserHoverCardProps {
     user: {
@@ -19,6 +20,7 @@ interface UserHoverCardProps {
         handle: string;
         profilePath: string;
         isRemote?: boolean;
+        emojis?: { name: string; url: string }[] | null;
     };
     currentUserId?: string;
     children: React.ReactNode;
@@ -40,7 +42,7 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
     const followMutation = useMutation({
         mutationFn: async () => {
             if (!currentUserId || !profile?.id) return;
-            
+
             if (profile.isFollowing) {
                 if (profile.isRemote) {
                     return await unfollowRemoteUserAction(currentUserId, profile.id);
@@ -83,7 +85,8 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
         stats: { followers: 0, following: 0 },
         isFollowing: false,
         bio: "",
-        banner: null
+        banner: null,
+        emojis: user.emojis
     };
 
     const isMe = currentUserId === profile?.id;
@@ -103,7 +106,7 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
                             <img src={displayData.banner} alt="" className="w-full h-full object-cover" />
                         )}
                     </div>
-                    
+
                     <div className="px-4 pb-4 -mt-8 flex flex-col gap-3 relative">
                         <div className="flex justify-between items-end">
                             <UserAvatar 
@@ -141,16 +144,19 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
                                 </Button>
                             )}
                         </div>
-                        
+
                         <div className="flex flex-col leading-tight">
-                            <Link href={user.profilePath} className="font-bold text-[18px] hover:underline" onClick={(e) => e.stopPropagation()}>
-                                {displayData.displayName || (displayData as any).name || user.username}
-                            </Link>
+                            <Link 
+                                href={user.profilePath} 
+                                className="font-bold text-[18px] hover:underline" 
+                                onClick={(e) => e.stopPropagation()}
+                                dangerouslySetInnerHTML={{ __html: parseFediverseContent(displayData.displayName || (displayData as any).name || user.username, (displayData as any).emojis) }}
+                            />
                             <span className="text-muted-foreground text-[14px]">
                                 {displayData.handle || user.handle}
                             </span>
                         </div>
-                        
+
                         {isLoading ? (
                             <div className="flex items-center gap-2 py-2">
                                 <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -158,12 +164,13 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
                             </div>
                         ) : (
                             displayData.bio && (
-                                <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap line-clamp-3">
-                                    {displayData.bio}
-                                </p>
+                                <p 
+                                    className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap line-clamp-3"
+                                    dangerouslySetInnerHTML={{ __html: parseFediverseContent(displayData.bio, (displayData as any).emojis) }}
+                                />
                             )
                         )}
-                        
+
                         {!isLoading && (
                             <div className="flex gap-4 text-[14px]">
                                 <div className="flex gap-1 items-baseline hover:underline cursor-pointer">
@@ -182,3 +189,4 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
         </HoverCard>
     );
 }
+

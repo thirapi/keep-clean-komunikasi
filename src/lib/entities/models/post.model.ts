@@ -11,6 +11,7 @@ export interface PostRecord {
     replyToId?: string | null;
     repostOfId?: string | null;
     visibility: "public" | "unlisted" | "private";
+    emojis?: { name: string; url: string }[] | null;
     isDeleted: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -42,6 +43,7 @@ export interface PostWithUserDTO extends PostRecord {
         domain: string;
         name?: string | null;
         avatar?: string | null;
+        emojis?: { name: string; url: string }[] | null;
     } | null;
     attachments?: AttachmentRecord[];
     reactions?: PostReactionWithUserDTO[];

@@ -55,7 +55,8 @@ export async function deletePostAction(postId: string, userId: string): Promise<
     }
 }
 
-export async function getFollowingFeedAction(userId: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+export async function getFollowingFeedAction(userId?: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+    if (!userId) return { status: "success", data: [], error: null };
     try {
         const feed = await getFollowingFeedController(userId, limit, offset);
         return {
@@ -167,9 +168,9 @@ export async function getProfileFeedCountAction(
     }
 }
 
-export async function getGlobalFeedAction(currentUserId?: string, limit = 20, offset = 0): Promise<ServerResponse<PostWithUserDTO[] | null>> {
+export async function getGlobalFeedAction(currentUserId?: string, limit = 20, offset = 0, filter: "all" | "local" = "all"): Promise<ServerResponse<PostWithUserDTO[] | null>> {
     try {
-        const feed = await getGlobalFeedController(limit, offset, currentUserId);
+        const feed = await getGlobalFeedController(limit, offset, currentUserId, filter);
         return {
             status: "success",
             data: feed,

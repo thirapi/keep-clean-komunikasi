@@ -33,6 +33,7 @@ import { PostStats } from "./post/post-stats";
 import { ReplyDialog } from "./reply-dialog";
 import { QuoteDialog } from "./quote-dialog";
 import { Repeat2 } from "lucide-react";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface PostItemProps {
     post: PostWithUserDTO;
@@ -94,7 +95,8 @@ export function PostItem({
             bio: (u as any)?.bio,
             banner: (u as any)?.banner,
             followersCount: (u as any)?.followersCount,
-            followingCount: (u as any)?.followingCount
+            followingCount: (u as any)?.followingCount,
+            emojis: (u as any)?.emojis
         };
     };
 
@@ -249,6 +251,7 @@ export function PostItem({
                     onImageClick={handleMediaClick}
                     urls={urls}
                     linkPreviews={targetPost.linkPreviews}
+                    emojis={targetPost.emojis}
                     isFocused
                 />
 
@@ -340,6 +343,7 @@ export function PostItem({
                         onImageClick={handleMediaClick}
                         urls={urls}
                         linkPreviews={targetPost.linkPreviews}
+                        emojis={targetPost.emojis}
                     />
 
                     {isQuotePost && post.repostOf && (
@@ -411,7 +415,7 @@ function QuotePreview({ post, getUserInfo, onImageClick }: { post: PostWithUserD
             <div className="flex items-center gap-2 mb-1">
                 <UserAvatar src={userInfo.avatar} className="h-5 w-5" />
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-bold text-[14px] line-clamp-1">{userInfo.displayName}</span>
+                    <span className="font-bold text-[14px] line-clamp-1" dangerouslySetInnerHTML={{ __html: parseFediverseContent(userInfo.displayName, userInfo.emojis) }} />
                     <span className="text-muted-foreground text-[13px]">{userInfo.handle}</span>
                 </div>
             </div>
@@ -420,6 +424,7 @@ function QuotePreview({ post, getUserInfo, onImageClick }: { post: PostWithUserD
                 attachments={post.attachments} 
                 onImageClick={onImageClick} 
                 className="pointer-events-none" 
+                emojis={post.emojis}
                 isQuote
             />
         </div>

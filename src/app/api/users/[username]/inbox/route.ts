@@ -109,9 +109,22 @@ export async function POST(
             return handleAccept(user.id, username, body);
         case "Delete":
             return handleDelete(body);
+        case "Announce":
+            return handleAnnounce(user.id, username, body);
         default:
             return NextResponse.json({ status: "ignored" }, { status: 202 });
     }
+}
+
+function extractEmojis(tag: any[] | undefined) {
+    if (!tag || !Array.isArray(tag)) return null;
+    const emojis = tag
+        .filter((t: any) => t.type === "Emoji")
+        .map((t: any) => ({
+            name: t.name,
+            url: t.icon?.url
+        }));
+    return emojis.length > 0 ? emojis : null;
 }
 
 async function handleDelete(activity: any) {
@@ -133,34 +146,40 @@ async function handleDelete(activity: any) {
     return NextResponse.json({ status: "deleted" }, { status: 202 });
 }
 
-async function ensureRemoteActor(actorUrl: string) {
+async function ensureRemoteActor(actorUrl: string, localUserIdForSignedFetch?: string) {
     const existing = await remoteActorRepository.findById(actorUrl);
     if (existing) return existing;
 
     // Fetch sender's actor object
-    const senderActorData = await fetch(actorUrl, {
-        headers: { 
-            "Accept": "application/activity+json",
-            "User-Agent": "Komunikasi/1.0 (+https://komunikasi.qzz.io)"
-        }    }).then(res => res.json());
+    let senderActorData;
+    if (localUserIdForSignedFetch) {
+        senderActorData = await activityPubService.fetchRemoteObjectSigned(actorUrl, localUserIdForSignedFetch);
+    } else {
+        senderActorData = await activityPubService.fetchRemoteObject(actorUrl);
+    }
 
-    if (!senderActorData.inbox) {
-        throw new Error("Sender actor has no inbox");
+    if (!senderActorData || !senderActorData.inbox) {
+        return null;
     }
 
     const domain = new URL(actorUrl).hostname;
+    const emojis = extractEmojis(senderActorData.tag);
 
     await remoteActorRepository.upsert({
         id: actorUrl,
         username: senderActorData.preferredUsername || senderActorData.name || "unknown",
         domain: domain,
         name: senderActorData.name,
+        bio: senderActorData.summary, // ActivityPub uses 'summary' for bio
         avatar: senderActorData.icon?.url,
+        banner: senderActorData.image?.url,
         inbox: senderActorData.inbox,
         sharedInbox: senderActorData.endpoints?.sharedInbox,
         publicKey: senderActorData.publicKey?.publicKeyPem,
-        followerCount: 0,
-        followingCount: 0,
+        followerCount: senderActorData.followersCount || 0,
+        followingCount: senderActorData.followingCount || 0,
+        published: senderActorData.published ? new Date(senderActorData.published) : null,
+        emojis: emojis as any,
         createdAt: new Date(),
         updatedAt: new Date()
     });
@@ -172,7 +191,7 @@ async function handleFollow(userId: string, username: string, activity: any) {
     console.log("[Inbox] Verified Follow: " + activity.actor + " wants to follow " + username);
     
     try {
-        const actor = await ensureRemoteActor(activity.actor);
+        const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
         // Record follow relationship (Remote Follower -> Local User)
@@ -231,7 +250,7 @@ async function handleLike(userId: string, username: string, activity: any) {
     }
 
     try {
-        const actor = await ensureRemoteActor(activity.actor);
+        const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
         console.log("[Inbox] Post " + post.id + " liked by remote actor " + actor.id);
@@ -274,7 +293,7 @@ async function handleCreate(userId: string, username: string, activity: any) {
     if (existingPost) return NextResponse.json({ status: "already_exists" }, { status: 202 });
 
     try {
-        const actor = await ensureRemoteActor(activity.actor);
+        const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
         // Determine parent post if it's a reply
@@ -282,20 +301,47 @@ async function handleCreate(userId: string, username: string, activity: any) {
         let originalPostAuthorId: string | null = null;
 
         if (object.inReplyTo) {
-            const parentPost = await postRepository.findByUri(object.inReplyTo);
+            let parentPost = await postRepository.findByUri(object.inReplyTo);
+            
+            if (!parentPost) {
+                // Thread Healing: Fetch parent post if not found
+                console.log("[Inbox] Parent post not found, fetching: " + object.inReplyTo);
+                const fetchedParent = await activityPubService.fetchRemoteObjectSigned(object.inReplyTo, userId);
+                if (fetchedParent && fetchedParent.type === "Note") {
+                    const parentActor = await ensureRemoteActor(fetchedParent.attributedTo, userId);
+                    if (parentActor) {
+                        const parentEmojis = extractEmojis(fetchedParent.tag);
+                        
+                        const newParentId = createId();
+                        parentPost = await postRepository.create({
+                            id: newParentId,
+                            content: fetchedParent.content || "",
+                            userId: null as any,
+                            remoteActorId: parentActor.id,
+                            uri: fetchedParent.id,
+                            url: fetchedParent.url,
+                            visibility: "public",
+                            emojis: parentEmojis as any,
+                            isDeleted: false,
+                            createdAt: new Date(fetchedParent.published || Date.now()),
+                            updatedAt: new Date(),
+                        });
+                    }
+                }
+            }
+
             if (parentPost) {
                 parentPostId = parentPost.id;
                 originalPostAuthorId = parentPost.userId ?? null;
                 console.log("[Inbox] Received reply from " + activity.actor + " to post " + parentPost.id);
             } else {
-                // If we don't have the parent post, we might want to fetch it, 
-                // but for now we just store it as a top-level post or ignore the reply context
-                console.log("[Inbox] Received reply to unknown post: " + object.inReplyTo);
+                console.log("[Inbox] Received reply to unknown post and could not fetch: " + object.inReplyTo);
             }
         } else {
             console.log("[Inbox] Received new post from " + activity.actor);
         }
 
+        const emojis = extractEmojis(object.tag);
         const newPostId = createId();
         await postRepository.create({
             id: newPostId,
@@ -306,6 +352,7 @@ async function handleCreate(userId: string, username: string, activity: any) {
             url: object.url,
             replyToId: parentPostId as any,
             visibility: "public",
+            emojis: emojis as any,
             isDeleted: false,
             createdAt: new Date(object.published || Date.now()),
             updatedAt: new Date(),
@@ -338,5 +385,90 @@ async function handleCreate(userId: string, username: string, activity: any) {
     } catch (err) {
         console.error("Error creating local post from remote activity:", err);
         return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
+}
+
+async function handleAnnounce(userId: string, username: string, activity: any) {
+    const objectUri = typeof activity.object === 'string' ? activity.object : activity.object?.id;
+    if (!objectUri) return NextResponse.json({ status: "ignored" }, { status: 202 });
+
+    try {
+        const actor = await ensureRemoteActor(activity.actor, userId);
+        if (!actor) throw new Error("Could not ensure remote actor");
+
+        // Find or fetch the original post
+        let originalPost = await postRepository.findByUri(objectUri);
+        if (!originalPost) {
+            console.log("[Inbox] Original post not found for Announce, fetching: " + objectUri);
+            const fetched = await activityPubService.fetchRemoteObjectSigned(objectUri, userId);
+            if (fetched && fetched.type === "Note") {
+                const originalActor = await ensureRemoteActor(fetched.attributedTo, userId);
+                if (originalActor) {
+                    const originalEmojis = extractEmojis(fetched.tag);
+                    
+                    const originalPostId = createId();
+                    originalPost = await postRepository.create({
+                        id: originalPostId,
+                        content: fetched.content || "",
+                        userId: null as any,
+                        remoteActorId: originalActor.id,
+                        uri: fetched.id,
+                        url: fetched.url,
+                        visibility: "public",
+                        emojis: originalEmojis as any,
+                        isDeleted: false,
+                        createdAt: new Date(fetched.published || Date.now()),
+                        updatedAt: new Date(),
+                    });
+                }
+            }
+        }
+
+        if (originalPost) {
+            // Avoid duplicate reposts
+            const existingRepost = await postRepository.findByUri(activity.id);
+            if (existingRepost) return NextResponse.json({ status: "already_exists" }, { status: 202 });
+
+            const repostId = createId();
+            await postRepository.create({
+                id: repostId,
+                content: "", // Pure repost
+                userId: null as any,
+                remoteActorId: actor.id,
+                uri: activity.id,
+                repostOfId: originalPost.id,
+                visibility: "public",
+                isDeleted: false,
+                createdAt: new Date(activity.published || Date.now()),
+                updatedAt: new Date(),
+            });
+
+            // Notification: Remote repost
+            if (originalPost.userId) {
+                const notificationId = createId();
+                await notificationRepository.create({
+                    id: notificationId,
+                    recipientId: originalPost.userId,
+                    remoteActorId: actor.id,
+                    type: "repost",
+                    targetId: originalPost.id,
+                    targetType: "post",
+                    isRead: false,
+                    createdAt: new Date()
+                });
+
+                // Trigger Pusher
+                await pusherService.trigger(`user-${originalPost.userId}`, "new-notification", {
+                    id: notificationId,
+                    type: "repost",
+                    remoteActorId: actor.id
+                });
+            }
+        }
+
+        return NextResponse.json({ status: "announced" }, { status: 202 });
+    } catch (err) {
+        console.error("Error handling Announce activity:", err);
+        return NextResponse.json({ error: "Internal error but acknowledged" }, { status: 202 });
     }
 }

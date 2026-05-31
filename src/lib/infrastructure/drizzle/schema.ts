@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, unique, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, unique, integer, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const users = pgTable("User", {
@@ -84,6 +84,7 @@ export const posts = pgTable("Post", {
     repostOfId: text("repostOfId"),
 
     visibility: text("visibility").default("public").notNull(),
+    emojis: jsonb("emojis"),
     isDeleted: boolean("isDeleted").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
@@ -294,6 +295,7 @@ export const remoteActors = pgTable("RemoteActor", {
     followerCount: integer("followerCount").default(0).notNull(),
     followingCount: integer("followingCount").default(0).notNull(),
     published: timestamp("published"), // Joining date from the remote instance
+    emojis: jsonb("emojis"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });

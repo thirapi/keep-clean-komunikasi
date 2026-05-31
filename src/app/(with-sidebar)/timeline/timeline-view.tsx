@@ -2,7 +2,7 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, RotateCw } from "lucide-react";
 import { PostInput } from "@/app/(with-sidebar)/profile/[username]/components/post-input";
 import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
@@ -13,13 +13,16 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface TimelineViewProps {
     initialPosts: PostWithUserDTO[];
     currentUser: any;
     title?: string;
     queryKey?: string[];
-    feedAction?: (userId: string, limit?: number, offset?: number) => Promise<any>;
+    feedAction?: (userId: string | undefined, limit?: number, offset?: number, filter?: any) => Promise<any>;
+    initialTab?: "all" | "local";
 }
 
 export default function TimelineView({
@@ -27,15 +30,31 @@ export default function TimelineView({
     currentUser,
     title = "Timeline",
     queryKey: propQueryKey,
-    feedAction: propFeedAction
+    feedAction: propFeedAction,
+    initialTab = "all"
 }: TimelineViewProps) {
-    const QUERY_KEY = propQueryKey || ["posts", "feed", "global"];
-    const FETCH_ACTION = (propFeedAction || getGlobalFeedAction) as (userId: string, limit?: number, offset?: number) => Promise<any>;
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const queryClient = useQueryClient();
+
+    // Sync tab with URL
+    const tabFromUrl = searchParams.get("tab") as "all" | "local" | null;
+    const [activeTab, setActiveTab] = useState<"all" | "local">(tabFromUrl || initialTab);
+
+    const handleTabChange = (tabId: "all" | "local") => {
+        setActiveTab(tabId);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", tabId);
+        router.replace(`${pathname}?${params.toString()}`);
+    };
+
+    const QUERY_KEY = propQueryKey || ["posts", "feed", "global", activeTab];
+    const FETCH_ACTION = (propFeedAction || getGlobalFeedAction) as (userId: string | undefined, limit?: number, offset?: number, filter?: any) => Promise<any>;
 
     const { toggleSidebar } = useSidebar();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const queryClient = useQueryClient();
 
     const [newPostsCount, setNewPostsCount] = useState(0);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -44,7 +63,7 @@ export default function TimelineView({
     const { data: posts, refetch, isFetching, isLoading } = useFeedWithOptimistic(
         QUERY_KEY,
         async () => {
-            const res = await FETCH_ACTION(currentUser?.id);
+            const res = await FETCH_ACTION(currentUser?.id, 20, 0, activeTab);
             const data = res.data || [];
             setHasMore(data.length === 20);
             return data;
@@ -56,7 +75,7 @@ export default function TimelineView({
         if (isFetching || isLoadingMore || !hasMore) return;
         setIsLoadingMore(true);
         try {
-            const res = await FETCH_ACTION(currentUser?.id, 20, posts.length);
+            const res = await FETCH_ACTION(currentUser?.id, 20, posts.length, activeTab);
             if (res.status === "success" && res.data) {
                 const newPosts = res.data;
                 queryClient.setQueryData(QUERY_KEY, (old: any) => [...(old || []), ...newPosts]);
@@ -83,11 +102,12 @@ export default function TimelineView({
         }
 
         return () => observer.disconnect();
-    }, [hasMore, isLoadingMore, isFetching, posts.length]);
+    }, [hasMore, isLoadingMore, isFetching, posts.length, activeTab]);
+
     const { data: latestData } = useQuery({
         queryKey: ["posts", "poll", QUERY_KEY[QUERY_KEY.length - 1]],
         queryFn: async () => {
-            const res = await FETCH_ACTION(currentUser?.id);
+            const res = await FETCH_ACTION(currentUser?.id, 20, 0, activeTab);
             return res.data || [];
         },
         refetchInterval: 25000, // 25 seconds poll
@@ -117,7 +137,7 @@ export default function TimelineView({
                 setNewPostsCount(0);
             }
         }
-    }, [latestData, posts, currentUser?.id]);
+    }, [latestData, posts, currentUser?.id, activeTab]);
 
     const handleRefresh = async () => {
         setNewPostsCount(0);
@@ -142,36 +162,74 @@ export default function TimelineView({
         }
     };
 
+    const tabs = [
+        { id: "all", label: "Federasi" },
+        { id: "local", label: "Lokal" }
+    ];
+
     return (
         <div className="flex flex-col h-full bg-background/50">
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-4 shrink-0">
-                        <div className="md:hidden">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Back to channels"
-                            >
-                                <Link href="/channels/default">
-                                    <ChevronLeft strokeWidth="4" className="h-7 w-7" />
-                                </Link>
-                            </Button>
-                        </div>
-                        <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>
-                        {isFetching && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="h-1 w-1 rounded-full bg-current animate-ping" />
-                                <span className="animate-pulse">Memperbarui...</span>
+                    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/10 shrink-0">
+                        <div className="px-4 py-3 md:px-6 md:py-4 flex items-center gap-4">
+                            <div className="md:hidden">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    asChild
+                                    className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
+                                    aria-label="Back to channels"
+                                >
+                                    <Link href="/channels/default">
+                                        <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                    </Link>
+                                </Button>
                             </div>
-                        )}
+                            <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>
+                            
+                            <div className="flex items-center gap-2">
+                                {isFetching && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
+                                        <div className="h-1 w-1 rounded-full bg-current animate-ping" />
+                                        <span className="animate-pulse hidden sm:inline">Memperbarui...</span>
+                                    </div>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleRefresh}
+                                    className="rounded-full hover:bg-sky-500/10 hover:text-sky-500 transition-colors h-9 w-9"
+                                    disabled={isFetching}
+                                >
+                                    <RotateCw className={cn("h-5 w-5", isFetching && "animate-spin")} />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex w-full">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => handleTabChange(tab.id as any)}
+                                    className={cn(
+                                        "flex-1 py-3.5 text-sm font-bold transition-all relative",
+                                        activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
+                                    )}
+                                >
+                                    {tab.label}
+                                    {activeTab === tab.id && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-sky-500 rounded-full mx-8" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* New Post Indicator */}
                     {newPostsCount > 0 && (
-                        <div className="absolute top-[70px] left-1/2 -translate-x-1/2 z-30 transition-all animate-in slide-in-from-top-2 fade-in duration-300">
+                        <div className="absolute top-[115px] left-1/2 -translate-x-1/2 z-30 transition-all animate-in slide-in-from-top-2 fade-in duration-300">
                             <Button
                                 onClick={handleRefresh}
                                 size="sm"

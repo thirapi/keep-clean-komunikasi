@@ -14,6 +14,17 @@ export class GetProfileUseCase {
         private postRepository: IPostRepository
     ) { }
 
+    private extractEmojis(tag: any[] | undefined) {
+        if (!tag || !Array.isArray(tag)) return null;
+        const emojis = tag
+            .filter((t: any) => t.type === "Emoji")
+            .map((t: any) => ({
+                name: t.name,
+                url: t.icon?.url
+            }));
+        return emojis.length > 0 ? emojis : null;
+    }
+
     async execute(username: string, currentUserId?: string) {
         // Decode username just in case it's double-encoded
         const decodedUsername = decodeURIComponent(username);
@@ -69,7 +80,8 @@ export class GetProfileUseCase {
                             const actorData = await response.json();
                             
                             // Map bio (ActivityPub summary is often HTML)
-                            const bio = actorData.summary ? actorData.summary.replace(/<[^>]*>?/gm, '') : `User from ${domain}`;
+                            const bio = actorData.summary || `User from ${domain}`;
+                            const emojis = this.extractEmojis(actorData.tag);
                             
                             // Try to get follower/following counts (Mastodon extensions or collection totalItems)
                             let followersCount = actorData.followersCount || 0;
@@ -114,6 +126,7 @@ export class GetProfileUseCase {
                                 followerCount: followersCount,
                                 followingCount: followingsCount,
                                 published: actorData.published ? new Date(actorData.published) : (remoteActor?.published || new Date()),
+                                emojis: emojis as any,
                                 createdAt: remoteActor?.createdAt || new Date(),
                                 updatedAt: new Date()
                             };
@@ -140,6 +153,7 @@ export class GetProfileUseCase {
                     return {
                         id: remoteActor.id,
                         username: handle,
+                        displayName: remoteActor.name,
                         avatar: remoteActor.avatar || "/avatars/avatar1.png",
                         bio: remoteActor.bio,
                         banner: remoteActor.banner,
@@ -150,6 +164,7 @@ export class GetProfileUseCase {
                             followers: remoteActor.followerCount, 
                             following: remoteActor.followingCount,
                         },
+                        emojis: remoteActor.emojis,
                         isFollowing,
                         isRemote: true,
                         domain: remoteActor.domain,
@@ -202,6 +217,8 @@ export class GetProfileUseCase {
                 const existing = await this.postRepository.findByUri(object.id);
                 if (existing) continue;
 
+                const emojis = this.extractEmojis(object.tag);
+
                 await this.postRepository.create({
                     id: createId(),
                     content: object.content || "",
@@ -211,6 +228,7 @@ export class GetProfileUseCase {
                     url: object.url || object.id,
                     replyToId: null as any,
                     visibility: "public",
+                    emojis: emojis as any,
                     isDeleted: false,
                     createdAt: new Date(object.published || activity.published || Date.now()),
                     updatedAt: new Date(),

@@ -23,17 +23,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UserHoverCard } from "./user-hover-card";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface PostHeaderProps {
     user: {
         username: string;
-        identifier: string; // Add this
+        identifier: string;
         displayName?: string;
         avatar?: string;
         handle: string;
         profilePath: string;
         isRemote?: boolean;
         domain?: string;
+        emojis?: { name: string; url: string }[] | null;
     };
     createdAt: Date;
     visibility: "public" | "unlisted" | "private";
@@ -62,6 +64,8 @@ export function PostHeader({
         return <Globe className={cn("h-3 w-3", className)} />;
     };
 
+    const displayNameWithEmojis = parseFediverseContent(user.displayName || user.username, user.emojis);
+
     if (isFocused) {
         return (
             <div className="flex items-start justify-between mb-4 relative w-full">
@@ -72,9 +76,12 @@ export function PostHeader({
                     <div className="flex flex-col min-w-0 pr-10">
                         <div className="flex flex-col leading-tight">
                             <UserHoverCard user={user} currentUserId={currentUserId}>
-                                <Link href={user.profilePath} className="font-bold text-[17px] text-foreground hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
-                                    {user.displayName || user.username}
-                                </Link>
+                                <Link 
+                                    href={user.profilePath} 
+                                    className="font-bold text-[17px] text-foreground hover:underline line-clamp-1" 
+                                    onClick={(e) => e.stopPropagation()}
+                                    dangerouslySetInnerHTML={{ __html: displayNameWithEmojis }}
+                                />
                             </UserHoverCard>
                             <span className="text-muted-foreground text-[14px] line-clamp-1">
                                 {user.handle}
@@ -99,9 +106,12 @@ export function PostHeader({
             <div className="flex flex-col min-w-0 flex-1 pr-8">
                 <div className="flex items-center gap-1.5 min-w-0 leading-tight mb-0.5">
                     <UserHoverCard user={user} currentUserId={currentUserId}>
-                        <Link href={user.profilePath} className="font-bold text-[15px] text-foreground hover:underline line-clamp-1 shrink-0 max-w-full" onClick={(e) => e.stopPropagation()}>
-                            {user.displayName || user.username}
-                        </Link>
+                        <Link 
+                            href={user.profilePath} 
+                            className="font-bold text-[15px] text-foreground hover:underline line-clamp-1 shrink-0 max-w-full" 
+                            onClick={(e) => e.stopPropagation()}
+                            dangerouslySetInnerHTML={{ __html: displayNameWithEmojis }}
+                        />
                     </UserHoverCard>
                     <span className="text-muted-foreground text-[13px] shrink-0">·</span>
                     <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0 hover:underline" title={createdAt.toLocaleString()}>
