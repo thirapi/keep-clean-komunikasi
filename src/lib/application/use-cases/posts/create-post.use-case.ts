@@ -1,5 +1,6 @@
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
+import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { IPusherService } from "@/lib/application/services/pusher.service.interface";
 import { ILinkPreviewRepository } from "@/lib/application/repositories/link-preview.repository.interface";
 import { ILinkPreviewService } from "@/lib/application/services/link-preview.service.interface";
@@ -13,6 +14,7 @@ import { extractHashtags } from "@/lib/extract-hashtags";
 export class CreatePostUseCase {
     constructor(
         private postRepository: IPostRepository,
+        private userRepository: IUserRepository,
         private pusherService: IPusherService,
         private linkPreviewRepository: ILinkPreviewRepository,
         private linkPreviewService: ILinkPreviewService,
@@ -28,13 +30,16 @@ export class CreatePostUseCase {
         replyToId?: string,
         repostOfId?: string,
         attachments?: { url: string; key: string; fileType: string; size?: number }[],
-        predefinedId?: string
+        predefinedId?: string,
+        quoteOfId?: string
     ): Promise<PostWithUserDTO> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new Error("User not found");
+
         const id = predefinedId || createId();
 
-        // In a real implementation, we'd get the base URL from env
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
-        const uri = `${baseUrl}/users/${userId}/posts/${id}`;
+        const uri = `${baseUrl}/users/${user.username}/posts/${id}`;
 
         const postRecord: PostRecord = {
             id,
@@ -45,6 +50,7 @@ export class CreatePostUseCase {
             visibility,
             replyToId,
             repostOfId,
+            quoteOfId,
             isDeleted: false,
             createdAt: new Date(),
             updatedAt: new Date(),

@@ -26,6 +26,7 @@ const notificationRepository = new NotificationRepository(db);
 
 const createPostUseCase = new CreatePostUseCase(
     postRepository, 
+    userRepository,
     pusherService,
     linkPreviewRepository,
     linkPreviewService,
@@ -40,6 +41,7 @@ const createPostSchema = z.object({
     visibility: z.enum(["public", "unlisted", "private"]).default("public"),
     replyToId: z.string().optional(),
     repostOfId: z.string().optional(),
+    quoteOfId: z.string().optional(),
     attachments: z.array(z.object({
         url: z.string(),
         key: z.string(),
@@ -62,6 +64,7 @@ export const createPostController = async (
         visibility?: "public" | "unlisted" | "private";
         replyToId?: string;
         repostOfId?: string;
+        quoteOfId?: string;
         attachments?: { url: string; key: string; fileType: string; size?: number }[];
     }
 ) => {
@@ -78,6 +81,7 @@ export const createPostController = async (
         parsed.data.replyToId,
         parsed.data.repostOfId,
         parsed.data.attachments,
-        parsed.data.id
+        parsed.data.id,
+        parsed.data.quoteOfId
     );
 };

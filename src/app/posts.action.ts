@@ -89,7 +89,8 @@ export async function createPostAction(
     replyToId?: string,
     repostOfId?: string,
     id?: string,
-    visibility?: "public" | "unlisted" | "private"
+    visibility?: "public" | "unlisted" | "private",
+    quoteOfId?: string
 ): Promise<ServerResponse<PostWithUserDTO | null>> {
     try {
         const post = await createPostController(userId, {
@@ -99,6 +100,7 @@ export async function createPostAction(
             replyToId,
             repostOfId,
             visibility,
+            quoteOfId,
         });
 
         return {

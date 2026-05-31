@@ -288,102 +288,65 @@ async function handleCreate(userId: string, username: string, activity: any) {
     const object = activity.object;
     if (!object || object.type !== "Note") return NextResponse.json({ status: "ignored" }, { status: 202 });
 
-    // Avoid duplicate processing if we already have this post
-    const existingPost = await postRepository.findByUri(object.id);
-    if (existingPost) return NextResponse.json({ status: "already_exists" }, { status: 202 });
-
+    // Use unified resolution logic from ActivityPubService
     try {
-        const actor = await ensureRemoteActor(activity.actor, userId);
-        if (!actor) throw new Error("Could not ensure remote actor");
+        const post = await activityPubService.resolveRemotePost(object.id, userId);
+        
+        if (post) {
+            // Notification logic (only if it's a new association established)
+            if (post.replyToId) {
+                const parent = await postRepository.findById(post.replyToId);
+                if (parent?.userId) {
+                    const notificationId = createId();
+                    await notificationRepository.create({
+                        id: notificationId,
+                        recipientId: parent.userId,
+                        remoteActorId: post.remoteActorId,
+                        type: "reply",
+                        targetId: post.id,
+                        targetType: "post",
+                        isRead: false,
+                        createdAt: new Date()
+                    });
 
-        // Determine parent post if it's a reply
-        let parentPostId: string | undefined = undefined;
-        let originalPostAuthorId: string | null = null;
-
-        if (object.inReplyTo) {
-            let parentPost = await postRepository.findByUri(object.inReplyTo);
-            
-            if (!parentPost) {
-                // Thread Healing: Fetch parent post if not found
-                console.log("[Inbox] Parent post not found, fetching: " + object.inReplyTo);
-                const fetchedParent = await activityPubService.fetchRemoteObjectSigned(object.inReplyTo, userId);
-                if (fetchedParent && fetchedParent.type === "Note") {
-                    const parentActor = await ensureRemoteActor(fetchedParent.attributedTo, userId);
-                    if (parentActor) {
-                        const parentEmojis = extractEmojis(fetchedParent.tag);
-                        
-                        const newParentId = createId();
-                        parentPost = await postRepository.create({
-                            id: newParentId,
-                            content: fetchedParent.content || "",
-                            userId: null as any,
-                            remoteActorId: parentActor.id,
-                            uri: fetchedParent.id,
-                            url: fetchedParent.url,
-                            visibility: "public",
-                            emojis: parentEmojis as any,
-                            isDeleted: false,
-                            createdAt: new Date(fetchedParent.published || Date.now()),
-                            updatedAt: new Date(),
-                        });
-                    }
+                    await pusherService.trigger(`user-${parent.userId}`, "new-notification", {
+                        id: notificationId,
+                        type: "reply",
+                        remoteActorId: post.remoteActorId,
+                        postId: post.id
+                    });
                 }
             }
 
-            if (parentPost) {
-                parentPostId = parentPost.id;
-                originalPostAuthorId = parentPost.userId ?? null;
-                console.log("[Inbox] Received reply from " + activity.actor + " to post " + parentPost.id);
-            } else {
-                console.log("[Inbox] Received reply to unknown post and could not fetch: " + object.inReplyTo);
+            // Quote Notification
+            if (post.quoteOfId) {
+                const quoted = await postRepository.findById(post.quoteOfId);
+                if (quoted?.userId) {
+                    const notificationId = createId();
+                    await notificationRepository.create({
+                        id: notificationId,
+                        recipientId: quoted.userId,
+                        remoteActorId: post.remoteActorId,
+                        type: "quote",
+                        targetId: post.id,
+                        targetType: "post",
+                        isRead: false,
+                        createdAt: new Date()
+                    });
+
+                    await pusherService.trigger(`user-${quoted.userId}`, "new-notification", {
+                        id: notificationId,
+                        type: "quote",
+                        remoteActorId: post.remoteActorId,
+                        postId: post.id
+                    });
+                }
             }
-        } else {
-            console.log("[Inbox] Received new post from " + activity.actor);
-        }
-
-        const emojis = extractEmojis(object.tag);
-        const newPostId = createId();
-        await postRepository.create({
-            id: newPostId,
-            content: object.content || "",
-            userId: null as any,
-            remoteActorId: actor.id,
-            uri: object.id,
-            url: object.url,
-            replyToId: parentPostId as any,
-            visibility: "public",
-            emojis: emojis as any,
-            isDeleted: false,
-            createdAt: new Date(object.published || Date.now()),
-            updatedAt: new Date(),
-        });
-
-        // Notification: Remote reply
-        if (originalPostAuthorId) {
-            const notificationId = createId();
-            await notificationRepository.create({
-                id: notificationId,
-                recipientId: originalPostAuthorId,
-                remoteActorId: actor.id,
-                type: "reply",
-                targetId: newPostId,
-                targetType: "post",
-                isRead: false,
-                createdAt: new Date()
-            });
-
-            // Trigger Pusher
-            await pusherService.trigger(`user-${originalPostAuthorId}`, "new-notification", {
-                id: notificationId,
-                type: "reply",
-                remoteActorId: actor.id,
-                postId: newPostId
-            });
         }
         
-        return NextResponse.json({ status: "created" }, { status: 201 });
+        return NextResponse.json({ status: "received" }, { status: 201 });
     } catch (err) {
-        console.error("Error creating local post from remote activity:", err);
+        console.error("Error handling Create activity via resolveRemotePost:", err);
         return NextResponse.json({ error: "Internal error" }, { status: 500 });
     }
 }
@@ -396,33 +359,8 @@ async function handleAnnounce(userId: string, username: string, activity: any) {
         const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
-        // Find or fetch the original post
-        let originalPost = await postRepository.findByUri(objectUri);
-        if (!originalPost) {
-            console.log("[Inbox] Original post not found for Announce, fetching: " + objectUri);
-            const fetched = await activityPubService.fetchRemoteObjectSigned(objectUri, userId);
-            if (fetched && fetched.type === "Note") {
-                const originalActor = await ensureRemoteActor(fetched.attributedTo, userId);
-                if (originalActor) {
-                    const originalEmojis = extractEmojis(fetched.tag);
-                    
-                    const originalPostId = createId();
-                    originalPost = await postRepository.create({
-                        id: originalPostId,
-                        content: fetched.content || "",
-                        userId: null as any,
-                        remoteActorId: originalActor.id,
-                        uri: fetched.id,
-                        url: fetched.url,
-                        visibility: "public",
-                        emojis: originalEmojis as any,
-                        isDeleted: false,
-                        createdAt: new Date(fetched.published || Date.now()),
-                        updatedAt: new Date(),
-                    });
-                }
-            }
-        }
+        // Use resolveRemotePost to ensure full thread context for the announced post
+        const originalPost = await activityPubService.resolveRemotePost(objectUri, userId);
 
         if (originalPost) {
             // Avoid duplicate reposts
@@ -457,7 +395,6 @@ async function handleAnnounce(userId: string, username: string, activity: any) {
                     createdAt: new Date()
                 });
 
-                // Trigger Pusher
                 await pusherService.trigger(`user-${originalPost.userId}`, "new-notification", {
                     id: notificationId,
                     type: "repost",

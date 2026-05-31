@@ -4,6 +4,7 @@ import { IFollowerRepository } from "@/lib/application/repositories/follower.rep
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { IRemoteActorRepository } from "@/lib/application/repositories/remote-actor.repository.interface";
 import { HttpSignatureService } from "./http-signature.service";
+import { createId } from "@paralleldrive/cuid2";
 
 export class ActivityPubService implements IActivityPubService {
     constructor(
@@ -48,6 +49,45 @@ export class ActivityPubService implements IActivityPubService {
             }
         }
 
+        // Handle Quote
+        let quoteUrl: string | null = null;
+        if (post.quoteOfId) {
+            const quotedPost = await this.postRepository.findById(post.quoteOfId);
+            if (quotedPost && quotedPost.uri) {
+                quoteUrl = quotedPost.uri;
+                
+                // Add quoted author to cc
+                if (quotedPost.remoteActorId) {
+                    cc.push(quotedPost.remoteActorId);
+                } else if (quotedPost.userId) {
+                    const quotedUser = await this.userRepository.findById(quotedPost.userId);
+                    if (quotedUser) {
+                        cc.push(`${baseUrl}/api/users/${quotedUser.username}`);
+                    }
+                }
+            }
+        }
+
+        const uniqueCc = Array.from(new Set(cc));
+
+        const note: any = {
+            "id": post.uri,
+            "type": "Note",
+            "published": post.createdAt.toISOString(),
+            "attributedTo": actorUri,
+            "inReplyTo": inReplyTo,
+            "content": post.content,
+            "url": post.url,
+            "to": ["https://www.w3.org/ns/activitystreams#Public"],
+            "cc": uniqueCc,
+            "attachment": apAttachments
+        };
+
+        if (quoteUrl) {
+            note.quoteUrl = quoteUrl;
+            note._misskey_quote = quoteUrl;
+        }
+
         return {
             "@context": "https://www.w3.org/ns/activitystreams",
             "id": `${post.uri}/activity`,
@@ -55,19 +95,8 @@ export class ActivityPubService implements IActivityPubService {
             "actor": actorUri,
             "published": post.createdAt.toISOString(),
             "to": ["https://www.w3.org/ns/activitystreams#Public"],
-            "cc": cc,
-            "object": {
-                "id": post.uri,
-                "type": "Note",
-                "published": post.createdAt.toISOString(),
-                "attributedTo": actorUri,
-                "inReplyTo": inReplyTo,
-                "content": post.content,
-                "url": post.url,
-                "to": ["https://www.w3.org/ns/activitystreams#Public"],
-                "cc": cc,
-                "attachment": apAttachments
-            }
+            "cc": uniqueCc,
+            "object": note
         };
     }
 
@@ -95,12 +124,26 @@ export class ActivityPubService implements IActivityPubService {
                         if (actor?.inbox) {
                             remoteInboxes.add(actor.inbox);
                         }
-                    } else if (parentPost.userId) {
-                        // Local user parent, no need to deliver via AP
                     }
                 }
             } catch (err) {
                 console.error("Error resolving target inbox for reply delivery:", err);
+            }
+        }
+
+        // 3. If it's a quote, find the target inbox
+        if (object && (object.quoteUrl || object._misskey_quote)) {
+            try {
+                const quoteUri = object.quoteUrl || object._misskey_quote;
+                const quotedPost = await this.postRepository.findByUri(quoteUri);
+                if (quotedPost && quotedPost.remoteActorId) {
+                    const actor = await this.remoteActorRepository.findById(quotedPost.remoteActorId);
+                    if (actor?.inbox) {
+                        remoteInboxes.add(actor.inbox);
+                    }
+                }
+            } catch (err) {
+                console.error("Error resolving target inbox for quote delivery:", err);
             }
         }
         
@@ -369,6 +412,176 @@ export class ActivityPubService implements IActivityPubService {
             console.error(`Error fetching signed remote object ${url}:`, err);
             return null;
         }
+    }
+
+    async resolveRemotePost(uri: string, localUserId: string, forceRefresh = false): Promise<any | null> {
+        // 1. Universal ID Extractor (Improved)
+        const idRegex = /\/([a-z0-9_-]{20,})$/i;
+        const match = uri.match(idRegex);
+        
+        const isLikelyLocal = uri.includes("localhost") || 
+                              uri.includes("komunikasi.qzz.io") || 
+                              uri.includes("komunikasi.verdi");
+
+        if (match && isLikelyLocal) {
+            const postId = match[1];
+            console.log("[ActivityPubService] Self-resolving local ID: " + postId);
+            
+            const localPost = await this.postRepository.findById(postId);
+            if (localPost) return localPost;
+            
+            const byUri = await this.postRepository.findByUri(uri);
+            if (byUri) return byUri;
+        }
+
+        // 2. Robust Resolution & Hydration Strategy
+        const existing = await this.postRepository.findByUri(uri);
+        
+        // If it's local and not forced, return immediately
+        if (existing && isLikelyLocal && !forceRefresh) return existing;
+
+        // Dereference if missing or if remote post lacks crucial quote metadata (Hydration)
+        const needsHydration = existing && !existing.quoteOfId && !existing.repostOfId && !isLikelyLocal;
+
+        if (!existing || needsHydration || forceRefresh) {
+            console.log(`[ActivityPubService] Resolving/Hydrating remote post: ${uri}`);
+            const fetched = await this.fetchRemoteObjectSigned(uri, localUserId);
+            if (!fetched || (fetched.type !== "Note" && fetched.type !== "Page")) return existing;
+
+            const actor = await this.ensureRemoteActor(fetched.attributedTo, localUserId);
+            if (!actor) return existing;
+
+            // Recursive Resolution: Parent Post (Reply)
+            let parentPostId: string | null = null;
+            if (fetched.inReplyTo) {
+                const parent = await this.resolveRemotePost(fetched.inReplyTo, localUserId);
+                if (parent) parentPostId = parent.id;
+            }
+
+            // Recursive Resolution: Quoted Post
+            let quoteOfId: string | null = null;
+            const quoteUri = fetched.quoteUrl || fetched._misskey_quote;
+            if (quoteUri) {
+                console.log("[ActivityPubService] Detected quote metadata for: " + quoteUri);
+                const quoted = await this.resolveRemotePost(quoteUri, localUserId);
+                if (quoted) quoteOfId = quoted.id;
+            }
+
+            const emojis = this.extractEmojis(fetched.tag);
+            // Context-aware cleaning: Only strip RE: if we successfully resolved a quote
+            const finalContent = this.getCleanContent(fetched, !!quoteOfId);
+            
+            if (existing) {
+                console.log(`[ActivityPubService] Patching existing post with new metadata: ${existing.id}`);
+                return await this.postRepository.update(existing.id, {
+                    content: finalContent,
+                    replyToId: parentPostId || existing.replyToId,
+                    quoteOfId: quoteOfId || existing.quoteOfId,
+                    emojis: emojis as any,
+                    updatedAt: new Date()
+                });
+            } else {
+                const newId = createId();
+                console.log("[ActivityPubService] Saving new remote post with quoteOfId: " + quoteOfId);
+                return await this.postRepository.create({
+                    id: newId,
+                    content: finalContent,
+                    userId: null as any,
+                    remoteActorId: actor.id,
+                    uri: fetched.id,
+                    url: fetched.url,
+                    replyToId: parentPostId,
+                    repostOfId: null,
+                    quoteOfId: quoteOfId,
+                    visibility: "public",
+                    emojis: emojis as any,
+                    isDeleted: false,
+                    createdAt: new Date(fetched.published || Date.now()),
+                    updatedAt: new Date(),
+                });
+            }
+        }
+
+        return existing;
+    }
+
+    private getCleanContent(object: any, hasQuote: boolean = false): string {
+        // 1. Priority: Misskey-specific clean field
+        if (object._misskey_content) return object._misskey_content;
+
+        // 2. Agnostic stripping of redundant reply/quote indicators
+        let content = object.summary || object.content || "";
+
+        // Only strip RE: markers if we actually have the quote metadata resolved
+        // This prevents data loss if we can't find the quoted post
+        if (hasQuote) {
+            const wrappers = [
+                /<span class="quote-inline">RE:.*?<\/span>/gi,
+                /<p>RE:.*?<\/p>/gi,
+                /<blockquote>RE:.*?<\/blockquote>/gi,
+                /RE:\s*https?:\/\/\S+/gi
+            ];
+            
+            wrappers.forEach(regex => {
+                content = content.replace(regex, "");
+            });
+        }
+
+        // Clean up remaining dangling breaks or whitespace
+        content = content.replace(/^(?:<br\s*\/?>\s*)+|(?:<br\s*\/?>\s*)+$/gi, "").trim();
+
+        return content;
+    }
+
+    private extractEmojis(tag: any[] | undefined) {
+        if (!tag || !Array.isArray(tag)) return null;
+        const emojis = tag
+            .filter((t: any) => t.type === "Emoji")
+            .map((t: any) => ({
+                name: t.name,
+                url: t.icon?.url
+            }));
+        return emojis.length > 0 ? emojis : null;
+    }
+
+    private async ensureRemoteActor(actorUrl: string, localUserIdForSignedFetch?: string) {
+        const existing = await this.remoteActorRepository.findById(actorUrl);
+        if (existing) return existing;
+
+        let senderActorData;
+        if (localUserIdForSignedFetch) {
+            senderActorData = await this.fetchRemoteObjectSigned(actorUrl, localUserIdForSignedFetch);
+        } else {
+            senderActorData = await this.fetchRemoteObject(actorUrl);
+        }
+
+        if (!senderActorData || !senderActorData.inbox) {
+            return null;
+        }
+
+        const domain = new URL(actorUrl).hostname;
+        const emojis = this.extractEmojis(senderActorData.tag);
+
+        await this.remoteActorRepository.upsert({
+            id: actorUrl,
+            username: senderActorData.preferredUsername || senderActorData.name || "unknown",
+            domain: domain,
+            name: senderActorData.name,
+            bio: senderActorData.summary,
+            avatar: senderActorData.icon?.url,
+            banner: senderActorData.image?.url,
+            inbox: senderActorData.inbox,
+            sharedInbox: senderActorData.endpoints?.sharedInbox,
+            publicKey: senderActorData.publicKey?.publicKeyPem,
+            followerCount: senderActorData.followersCount || 0,
+            followingCount: senderActorData.followingCount || 0,
+            published: senderActorData.published ? new Date(senderActorData.published) : null,
+            emojis: emojis as any,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        return await this.remoteActorRepository.findById(actorUrl);
     }
 
     private async deliverToRemoteInbox(inboxUrl: string, activity: any, user: { username: string, privateKey: string }) {

@@ -3,7 +3,7 @@ export interface NotificationRecord {
     recipientId: string;
     actorId?: string | null;
     remoteActorId?: string | null;
-    type: "like" | "repost" | "reply" | "mention" | "follow";
+    type: "like" | "repost" | "reply" | "mention" | "follow" | "quote";
     targetId?: string | null;
     targetType?: "post" | "message" | "user" | null;
     isRead: boolean;

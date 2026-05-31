@@ -10,4 +10,5 @@ export interface IActivityPubService {
     sendUndoAnnounceActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
     fetchRemoteObject(url: string): Promise<any>;
     fetchRemoteObjectSigned(url: string, userId: string): Promise<any>;
+    resolveRemotePost(uri: string, localUserId: string): Promise<any | null>;
 }

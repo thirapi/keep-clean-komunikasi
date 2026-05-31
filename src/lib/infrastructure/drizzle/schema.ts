@@ -82,6 +82,7 @@ export const posts = pgTable("Post", {
     // Interactions (Threads & Reposts)
     replyToId: text("replyToId"),
     repostOfId: text("repostOfId"),
+    quoteOfId: text("quoteOfId"),
 
     visibility: text("visibility").default("public").notNull(),
     emojis: jsonb("emojis"),
@@ -107,6 +108,12 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
         relationName: "reposts",
     }),
     reposts: many(posts, { relationName: "reposts" }),
+    quoteOf: one(posts, {
+        fields: [posts.quoteOfId],
+        references: [posts.id],
+        relationName: "quotes",
+    }),
+    quotes: many(posts, { relationName: "quotes" }),
     bookmarks: many(bookmarks),
     linkPreviews: many(postLinkPreviews),
 }));
@@ -370,7 +377,7 @@ export const notifications = pgTable("Notification", {
     actorId: text("actorId").references(() => users.id), // Nullable for remote/system
     remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     
-    type: text("type").notNull(), // 'like', 'repost', 'reply', 'mention', 'follow'
+    type: text("type").notNull(), // 'like', 'repost', 'reply', 'mention', 'follow', 'quote'
     
     targetId: text("targetId"), // Post ID, Message ID, etc.
     targetType: text("targetType"), // 'post', 'message', 'user'

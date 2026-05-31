@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
     request: Request,
-    { params }: { params: Promise<{ userId: string, postId: string }> }
+    { params }: { params: Promise<{ username: string, postId: string }> }
 ) {
     const { postId } = await params;
     const postRepository = new PostRepository(db);

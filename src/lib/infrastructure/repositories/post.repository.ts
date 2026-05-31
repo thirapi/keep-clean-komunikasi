@@ -102,6 +102,23 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
                 reposts: {
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
@@ -450,6 +467,23 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
                 reposts: {
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
                     columns: { id: true, userId: true }
@@ -493,6 +527,23 @@ export class PostRepository implements IPostRepository {
                     with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
                 },
                 repostOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                quoteOf: {
                     with: {
                         user: { columns: { username: true, avatar: true } },
                         remoteActor: true,
@@ -595,6 +646,18 @@ export class PostRepository implements IPostRepository {
                     replyCount: mappedPost.repostOf.replies?.length || 0,
                     repostCount: mappedPost.repostOf.reposts?.length || 0,
                     reactionCount: mappedPost.repostOf.reactions?.length || 0,
+                };
+            }
+
+            if (mappedPost.quoteOf) {
+                mappedPost.quoteOf = {
+                    ...mappedPost.quoteOf,
+                    isLikedByCurrentUser: currentUserId ? mappedPost.quoteOf.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
+                    isRepostedByCurrentUser: currentUserId ? mappedPost.quoteOf.reposts?.some((r: any) => r.userId === currentUserId) : false,
+                    isBookmarkedByCurrentUser: currentUserId ? mappedPost.quoteOf.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
+                    replyCount: mappedPost.quoteOf.replies?.length || 0,
+                    repostCount: mappedPost.quoteOf.reposts?.length || 0,
+                    reactionCount: mappedPost.quoteOf.reactions?.length || 0,
                 };
             }
 

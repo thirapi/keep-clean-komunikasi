@@ -10,6 +10,7 @@ export interface PostRecord {
     url?: string | null;
     replyToId?: string | null;
     repostOfId?: string | null;
+    quoteOfId?: string | null;
     visibility: "public" | "unlisted" | "private";
     emojis?: { name: string; url: string }[] | null;
     isDeleted: boolean;
@@ -49,6 +50,7 @@ export interface PostWithUserDTO extends PostRecord {
     reactions?: PostReactionWithUserDTO[];
     replyTo?: PostWithUserDTO | null;
     repostOf?: PostWithUserDTO | null;
+    quoteOf?: PostWithUserDTO | null;
     linkPreviews?: PostLinkPreview[];
     // UI metadata
     isLikedByCurrentUser?: boolean;

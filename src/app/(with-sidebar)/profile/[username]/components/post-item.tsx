@@ -70,7 +70,7 @@ export function PostItem({
 
     // Logic for Reposts and Quotes
     const isPureRepost = !post.content && !!post.repostOf && !post.attachments?.length;
-    const isQuotePost = (!!post.content || !!post.attachments?.length) && !!post.repostOf;
+    const isQuotePost = (!!post.content || !!post.attachments?.length) && (!!post.repostOf || !!post.quoteOf);
     const targetPost = isPureRepost && post.repostOf ? post.repostOf : post;
 
     // Derived Data
@@ -117,6 +117,7 @@ export function PostItem({
                     if (!item) return item;
                     if (item.id === postId) return updateFn(item);
                     if (item.repostOf?.id === postId) return { ...item, repostOf: updateFn(item.repostOf) };
+                    if (item.quoteOf?.id === postId) return { ...item, quoteOf: updateFn(item.quoteOf) };
                     if (item.replyTo?.id === postId) return { ...item, replyTo: updateFn(item.replyTo) };
                     return item;
                 };
@@ -255,8 +256,8 @@ export function PostItem({
                     isFocused
                 />
 
-                {isQuotePost && post.repostOf && (
-                    <QuotePreview post={post.repostOf} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
+                {isQuotePost && (post.repostOf || post.quoteOf) && (
+                    <QuotePreview post={(post.repostOf || post.quoteOf)!} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
                 )}
 
                 <div className="py-4 text-muted-foreground text-[15px] flex items-center gap-1 cursor-default">
@@ -346,8 +347,8 @@ export function PostItem({
                         emojis={targetPost.emojis}
                     />
 
-                    {isQuotePost && post.repostOf && (
-                        <QuotePreview post={post.repostOf} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
+                    {isQuotePost && (post.repostOf || post.quoteOf) && (
+                        <QuotePreview post={(post.repostOf || post.quoteOf)!} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
                     )}
 
                     <PostActions 

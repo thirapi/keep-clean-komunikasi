@@ -58,7 +58,7 @@ export function PostContent({
                                     const handle = href.replace("mailto:", "");
                                     href = `/profile/${handle}`;
                                     isInternal = true;
-                                } else if (href?.startsWith("/") || href?.startsWith(window.location.origin)) {
+                                } else if (href?.startsWith("/") || (typeof window !== 'undefined' && href?.startsWith(window.location.origin))) {
                                     isInternal = true;
                                 }
 
@@ -75,9 +75,6 @@ export function PostContent({
                                         onClick={(e) => {
                                             if (isInternal) {
                                                 e.stopPropagation();
-                                                // If it's internal, let next/link handle it if possible, 
-                                                // but since we are in ReactMarkdown's raw anchor, 
-                                                // standard href navigation is fine.
                                             } else {
                                                 e.stopPropagation();
                                             }

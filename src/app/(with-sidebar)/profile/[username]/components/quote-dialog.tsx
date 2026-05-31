@@ -118,7 +118,16 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                 attachments = await Promise.all(uploadPromises);
             }
 
-            const response = await createPostAction(currentUser.id, content, attachments, undefined, targetPost.id);
+            const response = await createPostAction(
+                currentUser.id, 
+                content, 
+                attachments, 
+                undefined, 
+                undefined, 
+                undefined, 
+                undefined, 
+                targetPost.id
+            );
             if (response.status === "success" && response.data) {
                 onQuoteCreated(response.data);
                 setContent("");
