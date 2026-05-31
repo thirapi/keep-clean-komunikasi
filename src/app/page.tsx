@@ -30,7 +30,7 @@ export default async function Home() {
 
   // If user is already logged in, redirect to the app immediately
   if (session) {
-    redirect("/channels/default");
+    redirect("/timeline");
   }
 
   return (

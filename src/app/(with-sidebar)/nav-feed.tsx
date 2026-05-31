@@ -19,7 +19,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function NavFeed({ onRemoteFollow }: { onRemoteFollow?: () => void }) {
+export function NavFeed() {
     const pathname = usePathname();
 
     const pulseItems = [
@@ -42,29 +42,12 @@ export function NavFeed({ onRemoteFollow }: { onRemoteFollow?: () => void }) {
 
     return (
         <SidebarGroup>
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50 flex items-center justify-between">
+            {/* <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50">
                 Feed
-                {onRemoteFollow && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
-                                    onClick={onRemoteFollow}
-                                >
-                                    <SearchIcon className="size-3.5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p>Cari Pengguna</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-            </SidebarGroupLabel>
-            <SidebarMenu>
+            </SidebarGroupLabel> */}
+            
+            {/* gap-1 memberikan ruang bernapas antar item navigasi */}
+            <SidebarMenu className="gap-1">
                 {pulseItems.map((item) => {
                     const isActive = pathname === item.url;
 
@@ -75,15 +58,21 @@ export function NavFeed({ onRemoteFollow }: { onRemoteFollow?: () => void }) {
                                 tooltip={item.name}
                                 isActive={isActive}
                                 className={cn(
-                                    "transition-all duration-200",
+                                    "transition-all duration-200 ease-in-out h-10 px-3 rounded-xl JSON",
+                                    // Style ketika aktif vs tidak aktif khas microblog modern
                                     isActive
-                                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                                        : "text-sidebar-foreground/70"
+                                        ? "bg-primary/10 text-primary font-bold hover:bg-primary/15"
+                                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                                 )}
                             >
-                                <Link href={item.url} className="flex items-center gap-3">
-                                    <item.icon className={cn("size-4", isActive && "text-primary")} />
-                                    <span>{item.name}</span>
+                                <Link href={item.url} className="flex items-center gap-3.5 w-full">
+                                    {/* Menaikkan ukuran ikon ke size-5 dan menebal saat aktif */}
+                                    <item.icon 
+                                        className={cn("size-5 transition-transform", isActive && "scale-105")} 
+                                        strokeWidth={isActive ? 2.5 : 2}
+                                    />
+                                    {/* Sedikit menyesuaikan ukuran teks agar pas dengan ikon */}
+                                    <span className="text-[14px]">{item.name}</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Hash, Lock, Globe } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -75,82 +75,85 @@ export function CreateChannelDialog({
             }
         }}
     >
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Hash className="w-5 h-5 text-primary" />
-            Buat Channel Baru
+      <DialogContent className="sm:max-w-[425px] rounded-2xl border-border/40">
+        <DialogHeader className="space-y-1.5">
+          <DialogTitle className="text-lg font-semibold tracking-tight">
+            buat channel baru
           </DialogTitle>
-          <DialogDescription>
-            Channel adalah tempat anggota berkomunikasi. Gunakan nama yang mencerminkan topik obrolan.
+          <DialogDescription className="text-sm">
+            channel adalah tempat anggota berkomunikasi. gunakan nama yang mencerminkan topik obrolan.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-5 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Nama Channel</Label>
-            <div className="relative">
-              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="name"
-                placeholder="misal: pengumuman"
-                value={name}
-                onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                className="pl-9"
-                disabled={isSubmitting}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Hanya huruf kecil, angka, dan tanda hubung.
+            <Label htmlFor="name" className="text-xs font-medium text-muted-foreground ml-1">Nama channel</Label>
+            <Input
+              id="name"
+              placeholder="misal: pengumuman"
+              value={name}
+              onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+              className="h-10 rounded-xl bg-muted/30 border-border/50 focus-visible:ring-primary/20"
+              disabled={isSubmitting}
+            />
+            <p className="text-[10px] text-muted-foreground ml-1">
+              hanya huruf kecil, angka, dan tanda hubung.
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Deskripsi (Opsional)</Label>
+            <Label htmlFor="description" className="text-xs font-medium text-muted-foreground ml-1">Deskripsi (opsional)</Label>
             <Textarea
               id="description"
-              placeholder="Jelaskan tentang apa channel ini..."
+              placeholder="jelaskan tentang apa channel ini..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isSubmitting}
-              className="resize-none"
+              className="resize-none rounded-xl bg-muted/30 border-border/50 focus-visible:ring-primary/20 min-h-[100px]"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                {isPublic ? <Globe className="w-4 h-4 text-emerald-500" /> : <Lock className="w-4 h-4 text-amber-500" />}
-                <Label className="text-sm font-medium">
-                  {isPublic ? "Channel Publik" : "Channel Privat"}
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between rounded-xl border border-border/50 p-4 bg-muted/10">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">
+                {isPublic ? "channel publik" : "channel privat"}
+              </Label>
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {isPublic 
-                  ? "Semua orang bisa menemukan dan bergabung." 
-                  : "Hanya orang yang diundang yang bisa melihat."}
+                  ? "semua orang bisa menemukan dan bergabung." 
+                  : "hanya orang yang diundang yang bisa melihat."}
               </p>
             </div>
             <Switch
               checked={isPublic}
               onCheckedChange={setIsPublic}
               disabled={isSubmitting}
+              className="data-[state=checked]:bg-primary"
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Batal
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button 
+            variant="ghost" 
+            onClick={() => onOpenChange(false)} 
+            disabled={isSubmitting}
+            className="rounded-xl hover:bg-muted"
+          >
+            batal
           </Button>
-          <Button onClick={handleCreate} disabled={isSubmitting}>
+          <Button 
+            onClick={handleCreate} 
+            disabled={isSubmitting}
+            className="rounded-xl shadow-none font-medium px-6"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Dibuat...
+                memproses...
               </>
             ) : (
-              "Buat Channel"
+              "buat channel"
             )}
           </Button>
         </DialogFooter>

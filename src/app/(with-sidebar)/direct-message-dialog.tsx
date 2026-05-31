@@ -99,69 +99,63 @@ export function DirectMessageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Mulai Percakapan Langsung</DialogTitle>
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl border-border/40 bg-background">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl font-semibold tracking-tight">
+            mulai percakapan
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="px-6 py-2">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
             <Input
-              placeholder="Cari pengguna..."
+              placeholder="cari pengguna..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-10 h-10 rounded-xl bg-muted/30 border-border/50 focus-visible:ring-primary/20"
               autoFocus
             />
           </div>
+        </div>
 
-          {/* Results Area */}
-          <div className="min-h-[200px]">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">
-                  Mencari pengguna...
-                </span>
+        <div className="max-h-[350px] overflow-hidden flex flex-col mt-2 px-3 pb-4">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
+              <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+              <p className="text-sm font-medium">mencari pengguna...</p>
+            </div>
+          ) : searchQuery && users.length === 0 ? (
+            <div className="py-20 text-center text-muted-foreground/60 italic text-sm">
+              tidak ada pengguna yang cocok.
+            </div>
+          ) : users.length > 0 ? (
+            <ScrollArea className="h-full">
+              <div className="space-y-1 p-1">
+                {users.map((user) => (
+                  <Button
+                    key={user.id}
+                    variant="ghost"
+                    className="w-full justify-start h-auto p-3 rounded-xl hover:bg-accent/40 active:bg-accent/60 transition-all border border-transparent hover:border-border/40"
+                    onClick={() => handleUserSelect(user.id)}
+                  >
+                    <UserAvatar 
+                      src={user.avatar} 
+                      alt={user.username}
+                      className="h-10 w-10 border border-border/50 transition-all mr-3"
+                    />
+                    <span className="text-sm font-bold">
+                      {user.username}
+                    </span>
+                  </Button>
+                ))}
               </div>
-            ) : searchQuery && users.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-sm text-muted-foreground">
-                  Tidak ada pengguna yang cocok
-                </p>
-              </div>
-            ) : users.length > 0 ? (
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-1">
-                  {users.map((user) => (
-                    <Button
-                      key={user.id}
-                      variant="ghost"
-                      className="w-full justify-start h-auto p-3 hover:bg-accent"
-                      onClick={() => handleUserSelect(user.id)}
-                    >
-                      <UserAvatar 
-                        src={user.avatar} 
-                        alt={user.username}
-                        className="h-8 w-8 mr-3 rounded-lg ring-4 ring-primary/20"
-                      />
-                      <span className="text-sm font-medium">
-                        {user.username}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-sm text-muted-foreground">
-                  Ketik untuk mencari pengguna
-                </p>
-              </div>
-            )}
-          </div>
+            </ScrollArea>
+          ) : (
+            <div className="py-20 text-center text-muted-foreground/40 text-sm font-medium">
+              ketik untuk mencari pengguna
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

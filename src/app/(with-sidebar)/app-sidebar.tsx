@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash, Search, MessageCircle, ChevronDown, Rss } from "lucide-react";
+import { User, Hash, Search, MessageCircle, ChevronDown, Rss, ArrowDownUp } from "lucide-react";
 import Link from "next/link";
 
 import { NavMain } from "./nav-main";
@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const brand = {
-  name: "komunikasi",
+  name: "komunikasi.qzz.io",
   logo: K,
   description: "webchat sederhana",
 };
@@ -95,7 +95,6 @@ export function AppSidebar({
   const [openSearchUser, setOpenSearchUser] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"channels" | "dms" | "social">("channels");
-  const [sidebarMode, setSidebarMode] = React.useState<"chat" | "feed">("chat");
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -103,17 +102,36 @@ export function AppSidebar({
   }, []);
 
   const isMobile = isMobileFromHook ?? false;
-
-  // Sync sidebarMode with mobileTab when on mobile
+  
+  // Prefetch main routes for seamless transitions
   React.useEffect(() => {
-    if (isMobile) {
-      if (mobileTab === "social") {
-        setSidebarMode("feed");
-      } else {
-        setSidebarMode("chat");
-      }
+    router.prefetch("/timeline");
+    router.prefetch("/channels/default");
+  }, [router]);
+
+  // Derive sidebarMode from pathname
+  const sidebarMode = React.useMemo(() => {
+    const feedPaths = ["/timeline", "/following", "/bookmarks", "/notifications", "/profile", "/posts"];
+    if (feedPaths.some(p => pathname.startsWith(p))) return "feed";
+    return "chat";
+  }, [pathname]);
+
+  // Sync mobileTab with sidebarMode/pathname
+  React.useEffect(() => {
+    if (sidebarMode === "feed") {
+      setMobileTab("social");
+    } else {
+      // If in chat mode, try to determine if it's a DM or Channel based on current room
+      const currentRoomId = pathname.split("/").pop();
+      const isDM = directRooms.some(r => r.id === currentRoomId);
+      const isChannel = groupRooms.some(r => r.id === currentRoomId);
+      
+      if (isDM) setMobileTab("dms");
+      else if (isChannel) setMobileTab("channels");
+      // Default to channels if we can't determine (e.g. /channels/default)
+      else if (mobileTab === "social") setMobileTab("channels");
     }
-  }, [isMobile, mobileTab]);
+  }, [sidebarMode, pathname, directRooms, groupRooms]);
 
   React.useEffect(() => {
     initializeUnread(
@@ -191,6 +209,17 @@ export function AppSidebar({
 
   const isDefaultRoom = pathname === "/channels/default" || pathname === "/channels";
 
+  // Centralized search handler
+  const handleSearchClick = () => {
+    if (sidebarMode === "chat") {
+      setOpenGlobalSearch(true);
+    } else {
+      setOpenSearchUser(true);
+    }
+  };
+
+  const searchTooltip = sidebarMode === "chat" ? "Cari Pesan" : "Cari Pengguna";
+
   // Prevent layout shift by rendering a static/skeleton state or null until mounted
   if (!isMounted) {
     return (
@@ -200,52 +229,35 @@ export function AppSidebar({
     );
   }
 
+const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
+  
   const ModeSwitcher = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 px-2 hover:bg-muted/50 rounded-lg h-9 transition-all group min-w-0"
-        >
-          <div className="flex items-center gap-1.5 min-w-0">
-            {sidebarMode === "chat" ? (
-              <>
-                <MessageCircle className="size-4 text-primary shrink-0" />
-                <span className="font-bold text-sm truncate">Chat</span>
-              </>
-            ) : (
-              <>
-                <Rss className="size-4 text-primary shrink-0" />
-                <span className="font-bold text-sm truncate">Social Feed</span>
-              </>
-            )}
-          </div>
-          <ChevronDown className="size-3 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52 mt-1 p-1">
-        <DropdownMenuItem
-          onClick={() => setSidebarMode("chat")}
-          className={cn(
-            "flex items-center gap-2.5 p-2 rounded-md cursor-pointer",
-            sidebarMode === "chat" && "bg-muted font-medium"
+    <Button
+      asChild
+      variant="outline" // Diganti dari ghost agar memiliki base background & border bawaan
+      className="flex items-center justify-between gap-3 px-3 h-10 rounded-xl bg-background border-sidebar-border/60 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-border transition-all group w-full"
+    >
+      <Link href={targetUrl}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {sidebarMode === "chat" ? (
+            <>
+              {/* Ikon Chat */}
+              <MessageCircle className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
+              <span className="font-bold text-[14px] truncate tracking-wide">Chat</span>
+            </>
+          ) : (
+            <>
+              {/* Ikon Social Feed */}
+              <Rss className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
+              <span className="font-bold text-[14px] truncate tracking-wide">Social Feed</span>
+            </>
           )}
-        >
-          <MessageCircle className={cn("size-4", sidebarMode === "chat" ? "text-primary" : "text-muted-foreground")} />
-          <span className="text-sm">Chat</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setSidebarMode("feed")}
-          className={cn(
-            "flex items-center gap-2.5 p-2 rounded-md cursor-pointer",
-            sidebarMode === "feed" && "bg-muted font-medium"
-          )}
-        >
-          <Rss className={cn("size-4", sidebarMode === "feed" ? "text-primary" : "text-muted-foreground")} />
-          <span className="text-sm">Social Feed</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+        
+        {/* Ikon Dua Panah (Atas-Bawah) khas Switcher */}
+        <ArrowDownUp className="size-3.5 text-sidebar-foreground/50 group-hover:text-primary transition-colors shrink-0 duration-200" />
+      </Link>
+    </Button>
   );
 
   return (
@@ -265,19 +277,19 @@ export function AppSidebar({
                <span className="font-bold text-xl text-primary tracking-tight ml-1 shrink-0">{brand.name}</span>
                <div className="w-px h-4 bg-border/60 mx-0.5 shrink-0" />
                <div className="flex items-center gap-0.5 min-w-0">
-                 {user && sidebarMode === "chat" && (
+                 {user && (
                    <Tooltip>
                      <TooltipTrigger asChild>
                        <Button
                          variant="ghost"
                          size="icon"
                          className="h-9 w-9 p-2 text-muted-foreground hover:bg-muted/50 rounded-lg shrink-0"
-                         onClick={() => setOpenGlobalSearch(true)}
+                         onClick={handleSearchClick}
                        >
                          <Search className="h-4 w-4" />
                        </Button>
                      </TooltipTrigger>
-                     <TooltipContent side="bottom">Pencarian</TooltipContent>
+                     <TooltipContent side="bottom">{searchTooltip}</TooltipContent>
                    </Tooltip>
                  )}
                </div>
@@ -294,28 +306,30 @@ export function AppSidebar({
           <div className="flex flex-col gap-1">
             <NavBrand brand={brand} />
             {state === "expanded" && (
-              <div className="pb-1 flex items-center justify-between gap-1">
-                 <ModeSwitcher />
-                 {user && sidebarMode === "chat" && (
+              <div className="pb-1 flex items-center justify-between gap-1.5">
+                 <div className="flex-1 min-w-0">
+                   <ModeSwitcher />
+                 </div>
+                 {user && (
                    <Tooltip>
                      <TooltipTrigger asChild>
                        <Button
                          variant="ghost"
                          size="icon"
-                         className="h-9 w-9 p-2 text-muted-foreground hover:bg-muted/50 rounded-lg shrink-0"
-                         onClick={() => setOpenGlobalSearch(true)}
+                         className="h-10 w-10 p-2 text-muted-foreground hover:bg-muted/50 rounded-xl shrink-0"
+                         onClick={handleSearchClick}
                        >
-                         <Search className="h-4 w-4" />
+                         <Search className="h-4.5 w-4.5" />
                        </Button>
                      </TooltipTrigger>
-                     <TooltipContent side="right">Pencarian</TooltipContent>
+                     <TooltipContent side="right">{searchTooltip}</TooltipContent>
                    </Tooltip>
                  )}
               </div>
             )}
           </div>
         )}
-        {!isMobile && state === "collapsed" && user && sidebarMode === "chat" && (
+        {!isMobile && state === "collapsed" && user && (
           <div className="pb-2 mt-1">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -323,12 +337,12 @@ export function AppSidebar({
                   variant="ghost"
                   size="icon"
                   className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
-                  onClick={() => setOpenGlobalSearch(true)}
+                  onClick={handleSearchClick}
                 >
                   <Search className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Pencarian</TooltipContent>
+              <TooltipContent side="right">{searchTooltip}</TooltipContent>
             </Tooltip>
           </div>
         )}
@@ -337,7 +351,7 @@ export function AppSidebar({
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
             {mobileTab === "social" ? (
-              <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
+              <NavFeed />
             ) : user ? (
               mobileTab === "channels" ? (
                 <NavMain
@@ -375,7 +389,7 @@ export function AppSidebar({
                 }}
                 className="min-w-0"
               >
-                <NavFeed onRemoteFollow={() => setOpenSearchUser(true)} />
+                <NavFeed />
               </Panel>
             ) : user ? (
               <>
@@ -433,7 +447,10 @@ export function AppSidebar({
             <Button
               variant="ghost"
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "channels" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => setMobileTab("channels")}
+              onClick={() => {
+                if (sidebarMode === "feed") router.push("/channels/default");
+                setMobileTab("channels");
+              }}
             >
               <Hash className="h-[22px] w-[22px]" strokeWidth={mobileTab === "channels" ? 3 : 2} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "channels" ? "font-bold" : "font-medium")}>Channels</span>
@@ -441,7 +458,10 @@ export function AppSidebar({
             <Button
               variant="ghost"
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "dms" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => setMobileTab("dms")}
+              onClick={() => {
+                if (sidebarMode === "feed") router.push("/channels/default");
+                setMobileTab("dms");
+              }}
             >
               <MessageCircle className="h-[22px] w-[22px]" fill={mobileTab === "dms" ? "currentColor" : "none"} strokeWidth={mobileTab === "dms" ? 0 : 2} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
@@ -449,7 +469,7 @@ export function AppSidebar({
             <Button
               variant="ghost"
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "social" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => setMobileTab("social")}
+              onClick={() => router.push("/timeline")}
             >
               <Rss className="h-[22px] w-[22px]" strokeWidth={mobileTab === "social" ? 3 : 2} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "social" ? "font-bold" : "font-medium")}>Social</span>
