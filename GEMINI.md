@@ -8,10 +8,12 @@
 - **Lexical Editor**: All chat input components use the Lexical rich text framework. Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for architecture decisions.
 
 ## Architecture Constraints
-1. **No Pusher for Microblog**: 
-    - NEVER use Pusher for real-time updates in the `posts` or `feed` domains. 
-    - Use optimistic UI updates and local cache management instead. 
-    - Pusher is strictly reserved for the `chat` / `rooms` domain only.
+1. **Pusher for Microblog (Targeted Only)**: 
+    - NEVER use Pusher for public real-time state updates (e.g., live like counts, live feed refresh). 
+    - Use Pusher ONLY for private, targeted notifications (e.g., "User X liked your post", "User Y replied to you").
+    - Broadcast targeted events to the recipient's private channel (`user-${userId}`).
+    - For public state, continue using optimistic UI updates and local cache management.
+    - Pusher remains the primary real-time engine for the `chat` / `rooms` domain.
 
 2. **Interaction Integrity**:
     - **No-Null User**: All local interactions (Like, Repost, Bookmark) MUST have a valid `userId`. Backend must reject any action where `userId` is null/undefined.

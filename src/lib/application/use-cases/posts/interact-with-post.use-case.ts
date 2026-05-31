@@ -1,6 +1,8 @@
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { IActivityPubService } from "@/lib/application/services/activitypub.service.interface";
 import { IRemoteActorRepository } from "@/lib/application/repositories/remote-actor.repository.interface";
+import { INotificationRepository } from "@/lib/application/repositories/notification.repository.interface";
+import { IPusherService } from "@/lib/application/services/pusher.service.interface";
 import { createId } from "@paralleldrive/cuid2";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { and, eq } from "drizzle-orm";
@@ -11,7 +13,9 @@ export class InteractWithPostUseCase {
     constructor(
         private postRepository: IPostRepository,
         private activityPubService: IActivityPubService,
-        private remoteActorRepository: IRemoteActorRepository
+        private remoteActorRepository: IRemoteActorRepository,
+        private notificationRepository: INotificationRepository,
+        private pusherService: IPusherService
     ) { }
 
     async toggleLike(postId: string, userId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
@@ -48,6 +52,28 @@ export class InteractWithPostUseCase {
                     userId,
                     emoji: "❤️"
                 }).onConflictDoNothing();
+
+                // Notification: Only if the recipient is a local user and not the actor
+                if (post.userId && post.userId !== userId) {
+                    const notificationId = createId();
+                    await tx.insert((await import("@/lib/infrastructure/drizzle/schema")).notifications).values({
+                        id: notificationId,
+                        recipientId: post.userId,
+                        actorId: userId,
+                        type: "like",
+                        targetId: postId,
+                        targetType: "post",
+                        isRead: false,
+                        createdAt: new Date()
+                    });
+
+                    // Trigger Pusher
+                    await this.pusherService.trigger(`user-${post.userId}`, "new-notification", {
+                        id: notificationId,
+                        type: "like",
+                        actorId: userId
+                    });
+                }
             }
         });
 
@@ -121,6 +147,29 @@ export class InteractWithPostUseCase {
             };
 
             await tx.insert(posts).values(repostRecord);
+
+            // Notification: Only if recipient is a local user and not the actor
+            if (originalPost.userId && originalPost.userId !== userId) {
+                const notificationId = createId();
+                await tx.insert((await import("@/lib/infrastructure/drizzle/schema")).notifications).values({
+                    id: notificationId,
+                    recipientId: originalPost.userId,
+                    actorId: userId,
+                    type: "repost",
+                    targetId: originalPostId,
+                    targetType: "post",
+                    isRead: false,
+                    createdAt: new Date()
+                });
+
+                // Trigger Pusher
+                await this.pusherService.trigger(`user-${originalPost.userId}`, "new-notification", {
+                    id: notificationId,
+                    type: "repost",
+                    actorId: userId
+                });
+            }
+
             return { type: "repost" as const, id: id, repostUri: uri };
         });
 

@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "db:push": "drizzle-kit push",
+    "db:migrate": "tsx src/lib/infrastructure/drizzle/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "db:reset": "tsx --env-file=.env src/lib/infrastructure/drizzle/reset.ts",
     "db:seed": "tsx --env-file=.env src/lib/infrastructure/drizzle/seed.ts",

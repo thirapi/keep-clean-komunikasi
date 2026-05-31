@@ -4,6 +4,8 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
 import { PostRepository } from "@/lib/infrastructure/repositories/post.repository";
+import { NotificationRepository } from "@/lib/infrastructure/repositories/notification.repository";
+import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { SignatureVerificationService } from "@/lib/infrastructure/services/signature-verification.service";
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
 import { createId } from "@paralleldrive/cuid2";
@@ -12,6 +14,8 @@ const userRepository = new UserRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db as any);
 const followerRepository = new FollowerRepository(db);
 const postRepository = new PostRepository(db);
+const notificationRepository = new NotificationRepository(db);
+const pusherService = new PusherService();
 const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
 
 /**
@@ -174,6 +178,25 @@ async function handleFollow(userId: string, username: string, activity: any) {
         // Record follow relationship (Remote Follower -> Local User)
         await followerRepository.followRemote(activity.actor, userId);
 
+        // Notification: Remote follow
+        const notificationId = createId();
+        await notificationRepository.create({
+            id: notificationId,
+            recipientId: userId,
+            remoteActorId: actor.id,
+            type: "follow",
+            targetType: "user",
+            isRead: false,
+            createdAt: new Date()
+        });
+
+        // Trigger Pusher
+        await pusherService.trigger(`user-${userId}`, "new-notification", {
+            id: notificationId,
+            type: "follow",
+            remoteActorId: actor.id
+        });
+
         // Send Accept activity back
         await activityPubService.sendAcceptActivity(userId, activity, actor.inbox);
 
@@ -213,6 +236,28 @@ async function handleLike(userId: string, username: string, activity: any) {
 
         console.log("[Inbox] Post " + post.id + " liked by remote actor " + actor.id);
         await postRepository.addReaction(post.id, null, "❤️", actor.id);
+
+        // Notification: Remote like
+        if (post.userId) {
+            const notificationId = createId();
+            await notificationRepository.create({
+                id: notificationId,
+                recipientId: post.userId,
+                remoteActorId: actor.id,
+                type: "like",
+                targetId: post.id,
+                targetType: "post",
+                isRead: false,
+                createdAt: new Date()
+            });
+
+            // Trigger Pusher
+            await pusherService.trigger(`user-${post.userId}`, "new-notification", {
+                id: notificationId,
+                type: "like",
+                remoteActorId: actor.id
+            });
+        }
     } catch (err) {
         console.error("Error handling Like activity:", err);
     }
@@ -234,10 +279,13 @@ async function handleCreate(userId: string, username: string, activity: any) {
 
         // Determine parent post if it's a reply
         let parentPostId: string | undefined = undefined;
+        let originalPostAuthorId: string | null = null;
+
         if (object.inReplyTo) {
             const parentPost = await postRepository.findByUri(object.inReplyTo);
             if (parentPost) {
                 parentPostId = parentPost.id;
+                originalPostAuthorId = parentPost.userId;
                 console.log("[Inbox] Received reply from " + activity.actor + " to post " + parentPost.id);
             } else {
                 // If we don't have the parent post, we might want to fetch it, 
@@ -248,8 +296,9 @@ async function handleCreate(userId: string, username: string, activity: any) {
             console.log("[Inbox] Received new post from " + activity.actor);
         }
 
+        const newPostId = createId();
         await postRepository.create({
-            id: createId(),
+            id: newPostId,
             content: object.content || "",
             userId: null as any,
             remoteActorId: actor.id,
@@ -261,6 +310,29 @@ async function handleCreate(userId: string, username: string, activity: any) {
             createdAt: new Date(object.published || Date.now()),
             updatedAt: new Date(),
         });
+
+        // Notification: Remote reply
+        if (originalPostAuthorId) {
+            const notificationId = createId();
+            await notificationRepository.create({
+                id: notificationId,
+                recipientId: originalPostAuthorId,
+                remoteActorId: actor.id,
+                type: "reply",
+                targetId: newPostId,
+                targetType: "post",
+                isRead: false,
+                createdAt: new Date()
+            });
+
+            // Trigger Pusher
+            await pusherService.trigger(`user-${originalPostAuthorId}`, "new-notification", {
+                id: notificationId,
+                type: "reply",
+                remoteActorId: actor.id,
+                postId: newPostId
+            });
+        }
         
         return NextResponse.json({ status: "created" }, { status: 201 });
     } catch (err) {

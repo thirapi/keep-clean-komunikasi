@@ -8,6 +8,7 @@ import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.se
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
 import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
+import { NotificationRepository } from "@/lib/infrastructure/repositories/notification.repository";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { InputParsedError } from "@/lib/entities/errors/common";
@@ -21,6 +22,7 @@ const userRepository = new UserRepository(db);
 const followerRepository = new FollowerRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db as any);
 const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
+const notificationRepository = new NotificationRepository(db);
 
 const createPostUseCase = new CreatePostUseCase(
     postRepository, 
@@ -28,7 +30,8 @@ const createPostUseCase = new CreatePostUseCase(
     linkPreviewRepository,
     linkPreviewService,
     hashtagRepository,
-    activityPubService
+    activityPubService,
+    notificationRepository
 );
 
 const createPostSchema = z.object({

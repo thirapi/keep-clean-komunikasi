@@ -182,31 +182,6 @@ export function AppSidebar({
     }
   }
 
-  React.useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = pusher.subscribe(`user-${user.id}`);
-
-    channel.bind("new-message-notification", (data: { roomId: string }) => {
-      try {
-        const audio = new Audio("/sounds/message-notification.mp3");
-        audio.play().catch((e) => console.warn("Audio play failed", e));
-      } catch (e) {
-        console.warn("Audio context failed", e);
-      }
-
-      router.refresh();
-    });
-
-    channel.bind("message-deleted-notification", () => {
-      router.refresh();
-    });
-
-    return () => {
-      pusher.unsubscribe(`user-${user?.id}`);
-    };
-  }, [user?.id, router]);
-
   const isDefaultRoom = pathname === "/channels/default" || pathname === "/channels";
 
   // Centralized search handler

@@ -26,6 +26,8 @@ export const usersRelations = relations(users, ({ many }) => ({
     postReactions: many(postReactions),
     pushSubscriptions: many(pushSubscriptions),
     bookmarks: many(bookmarks),
+    receivedNotifications: many(notifications, { relationName: "receivedNotifications" }),
+    triggeredNotifications: many(notifications, { relationName: "triggeredNotifications" }),
 }));
 
 export const pushSubscriptions = pgTable("PushSubscription", {
@@ -358,4 +360,26 @@ export const postHashtags = pgTable("PostHashtag", {
 export const postHashtagsRelations = relations(postHashtags, ({ one }) => ({
     post: one(posts, { fields: [postHashtags.postId], references: [posts.id] }),
     hashtag: one(hashtags, { fields: [postHashtags.hashtagId], references: [hashtags.id] }),
+}));
+
+export const notifications = pgTable("Notification", {
+    id: text("id").primaryKey(),
+    recipientId: text("recipientId").notNull().references(() => users.id),
+    actorId: text("actorId").references(() => users.id), // Nullable for remote/system
+    remoteActorId: text("remoteActorId").references(() => remoteActors.id),
+    
+    type: text("type").notNull(), // 'like', 'repost', 'reply', 'mention', 'follow'
+    
+    targetId: text("targetId"), // Post ID, Message ID, etc.
+    targetType: text("targetType"), // 'post', 'message', 'user'
+    
+    isRead: boolean("isRead").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+    recipient: one(users, { fields: [notifications.recipientId], references: [users.id], relationName: "receivedNotifications" }),
+    actor: one(users, { fields: [notifications.actorId], references: [users.id], relationName: "triggeredNotifications" }),
+    remoteActor: one(remoteActors, { fields: [notifications.remoteActorId], references: [remoteActors.id] }),
+    post: one(posts, { fields: [notifications.targetId], references: [posts.id] }),
 }));
