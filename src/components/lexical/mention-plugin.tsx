@@ -246,7 +246,7 @@ export function MentionPlugin({
             ref={menuRef}
             className="absolute bottom-[calc(100%+8px)] left-0 w-56 sm:w-64 bg-background/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.1)] border border-border/50 rounded-xl overflow-hidden z-[60] flex flex-col py-1"
         >
-            <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">
+            <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground tracking-widest border-b border-border/40">
                 Pilih Anggota
             </div>
             <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin">

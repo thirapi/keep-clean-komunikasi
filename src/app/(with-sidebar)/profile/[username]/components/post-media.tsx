@@ -26,6 +26,7 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
 
     return (
         <div
+            onClick={(e) => e.stopPropagation()}
             className={cn(
                 "grid gap-1 mt-3 rounded-2xl overflow-hidden border border-border bg-muted/20",
                 gridClass,

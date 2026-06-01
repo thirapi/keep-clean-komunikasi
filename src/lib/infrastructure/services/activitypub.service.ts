@@ -749,6 +749,35 @@ export class ActivityPubService implements IActivityPubService {
         return await this.remoteActorRepository.findById(actorUrl);
     }
 
+    async sendDeleteActivity(userId: string, postUri: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.privateKey) return;
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const deleteActivity = {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": `${actorUri}#delete-${createId()}`,
+            "type": "Delete",
+            "actor": actorUri,
+            "to": ["https://www.w3.org/ns/activitystreams#Public"],
+            "object": postUri
+        };
+
+        // Broadcast to followers
+        const remoteInboxes = await this.followerRepository.getRemoteFollowersInboxes(userId);
+        
+        console.log(`Broadcasting Delete activity to ${remoteInboxes.length} remote inboxes...`);
+
+        for (const inboxUrl of remoteInboxes) {
+            this.deliverToRemoteInbox(inboxUrl, deleteActivity, {
+                username: user.username,
+                privateKey: user.privateKey
+            }).catch(err => console.error(`Failed to deliver delete to ${inboxUrl}:`, err));
+        }
+    }
+
     private async deliverToRemoteInbox(inboxUrl: string, activity: any, user: { username: string, privateKey: string }) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const body = JSON.stringify(activity);

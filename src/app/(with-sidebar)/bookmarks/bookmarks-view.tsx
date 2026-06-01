@@ -94,7 +94,7 @@ export default function BookmarksView({
                             <h1 className="text-lg font-bold tracking-tight truncate">Bookmarks</h1>
                         </div>
                         {isFetching && (
-                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/80 animate-pulse">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-primary/80 animate-pulse">
                                 <div className="h-1 w-1 rounded-full bg-current" />
                                 <span>Syncing</span>
                             </div>

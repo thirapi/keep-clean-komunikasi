@@ -44,13 +44,23 @@ export class PostRepository implements IPostRepository {
         await this.client.update(posts).set({ isDeleted: true }).where(eq(posts.id, id));
     }
 
-    async findById(id: string): Promise<PostRecord | null> {
-        const [result] = await this.client.select().from(posts).where(eq(posts.id, id));
+    async findById(id: string, includeDeleted = false): Promise<PostRecord | null> {
+        const [result] = await this.client.select().from(posts).where(
+            and(
+                eq(posts.id, id),
+                includeDeleted ? undefined : eq(posts.isDeleted, false)
+            )
+        );
         return (result as unknown as PostRecord) || null;
     }
 
-    async findByUri(uri: string): Promise<PostRecord | null> {
-        const [result] = await this.client.select().from(posts).where(eq(posts.uri, uri));
+    async findByUri(uri: string, includeDeleted = false): Promise<PostRecord | null> {
+        const [result] = await this.client.select().from(posts).where(
+            and(
+                eq(posts.uri, uri),
+                includeDeleted ? undefined : eq(posts.isDeleted, false)
+            )
+        );
         return (result as unknown as PostRecord) || null;
     }
 
@@ -139,7 +149,7 @@ export class PostRepository implements IPostRepository {
 
     async findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null> {
         const result = await this.client.query.posts.findFirst({
-            where: eq(posts.id, id),
+            where: and(eq(posts.id, id), eq(posts.isDeleted, false)),
             with: {
                 user: {
                     columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },

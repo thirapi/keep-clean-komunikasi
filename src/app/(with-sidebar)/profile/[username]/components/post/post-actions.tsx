@@ -70,7 +70,11 @@ export function PostActions({
                             />
                         </div>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 shadow-xl">
+                    <DropdownMenuContent 
+                        onClick={(e) => e.stopPropagation()} 
+                        align="start" 
+                        className="w-48 shadow-xl"
+                    >
                         <DropdownMenuItem 
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -125,7 +129,10 @@ export function PostActions({
     }
 
     return (
-        <div className="flex items-center justify-between mt-3 w-full max-w-md -ml-2">
+        <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="flex items-center justify-between mt-3 w-full max-w-md -ml-2"
+        >
             <ActionButton 
                 icon={MessageSquare} 
                 label={replyCount}
@@ -146,7 +153,11 @@ export function PostActions({
                         />
                     </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 shadow-lg">
+                <DropdownMenuContent 
+                    onClick={(e) => e.stopPropagation()} 
+                    align="start" 
+                    className="w-48 shadow-lg"
+                >
                     <DropdownMenuItem 
                         onClick={(e) => {
                             e.stopPropagation();

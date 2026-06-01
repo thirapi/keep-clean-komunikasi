@@ -293,11 +293,29 @@ export function PostItem({
         );
     }
 
+    const handleContainerClick = (e: React.MouseEvent) => {
+        // Prevent navigation if the user is selecting text
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) {
+            return;
+        }
+        
+        // Find the hidden link and click it to trigger NextTopLoader
+        const link = (e.currentTarget as HTMLElement).querySelector(".post-item-link") as HTMLAnchorElement;
+        if (link) {
+            link.click();
+        } else {
+            router.push(`/posts/${post.id}`);
+        }
+    };
+
     return (
         <div 
-            onClick={() => router.push(`/posts/${post.id}`)} 
+            onClick={handleContainerClick} 
             className="flex flex-col border-b border-border/50 hover:bg-muted/10 transition-colors relative cursor-pointer"
         >
+            {/* Hidden link for triggering NextTopLoader via programatic click */}
+            <Link href={`/posts/${post.id}`} className="post-item-link hidden" aria-hidden="true" />
 
             {showConnector && (
                 <div className={cn("absolute w-[2px] bg-border z-0", lineX, isFirstInChain ? "top-[56px] bottom-0" : isLastInChain ? "top-0 h-[36px]" : "top-0 bottom-0")} />
@@ -377,7 +395,7 @@ export function PostItem({
 
     function renderModals() {
         return (
-            <>
+            <div onClick={(e) => e.stopPropagation()}>
                 {currentUser && isReplyOpen && <ReplyDialog isOpen={isReplyOpen} onClose={() => setIsReplyOpen(false)} parentPost={targetPost} currentUser={currentUser} onReplyCreated={(reply) => { if (onUpdate) onUpdate(reply); }} />}
                 {currentUser && isQuoteOpen && <QuoteDialog isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} targetPost={targetPost} currentUser={currentUser} onQuoteCreated={(quote) => { if (onUpdate) onUpdate(quote); }} />}
                 
@@ -402,19 +420,19 @@ export function PostItem({
                         onOpenChange={setIsLightboxOpen} 
                     />
                 )}
-            </>
+            </div>
         );
     }
 }
 
 function QuotePreview({ post, getUserInfo, onImageClick }: { post: PostWithUserDTO, getUserInfo: any, onImageClick: any }) {
     const userInfo = getUserInfo(post);
-    const router = useRouter();
 
     return (
-        <div
-            onClick={(e) => { e.stopPropagation(); router.push(`/posts/${post.id}`); }}
-            className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-2 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer overflow-hidden"
+        <Link
+            href={`/posts/${post.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-2 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer overflow-hidden block"
         >
             <div className="flex items-center gap-2 mb-1">
                 <UserAvatar src={userInfo.avatar} className="h-5 w-5" />
@@ -431,6 +449,6 @@ function QuotePreview({ post, getUserInfo, onImageClick }: { post: PostWithUserD
                 emojis={post.emojis}
                 isQuote
             />
-        </div>
+        </Link>
     );
 }

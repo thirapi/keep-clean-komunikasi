@@ -226,7 +226,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                 className="text-lg font-bold tracking-tight truncate"
                                 dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
                             />
-                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                            <p className="text-[11px] font-bold text-muted-foreground tracking-tight">
                                 {postCount} {activeTab}
                             </p>
                         </div>

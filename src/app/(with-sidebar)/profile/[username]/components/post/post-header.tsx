@@ -182,7 +182,11 @@ function PostMenu({
                     <MoreHorizontal className={size === "small" ? "h-4 w-4" : "h-5 w-5"} />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 shadow-xl">
+            <DropdownMenuContent 
+                onClick={(e) => e.stopPropagation()} 
+                align="end" 
+                className="w-48 shadow-xl"
+            >
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopyLink?.(); }} className="gap-2 py-2.5">
                     <Share2 className="h-4 w-4" />
                     <span>Salin Tautan</span>
