@@ -77,25 +77,26 @@ export default function BookmarksView({
         <div className="flex flex-col h-full bg-background/50">
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-4 shrink-0">
-                        <div className="md:hidden">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Back to channels"
-                            >
-                                <Link href="/channels/default">
-                                    <ChevronLeft strokeWidth="4" className="h-7 w-7" />
-                                </Link>
-                            </Button>
+                    <div className="px-4 py-2 md:px-6 md:py-3 sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="md:hidden">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    asChild
+                                    className="h-9 w-9 text-foreground rounded-full hover:bg-muted"
+                                >
+                                    <Link href="/channels/default">
+                                        <ChevronLeft className="h-5 w-5" />
+                                    </Link>
+                                </Button>
+                            </div>
+                            <h1 className="text-lg font-bold tracking-tight truncate">Bookmarks</h1>
                         </div>
-                        <h1 className="text-xl font-bold tracking-tight flex-1">Bookmark</h1>
                         {isFetching && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="h-1 w-1 rounded-full bg-current animate-ping" />
-                                <span className="animate-pulse">Memperbarui...</span>
+                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/80 animate-pulse">
+                                <div className="h-1 w-1 rounded-full bg-current" />
+                                <span>Syncing</span>
                             </div>
                         )}
                     </div>
@@ -107,7 +108,7 @@ export default function BookmarksView({
                         <div className="flex flex-col">
                             {isLoading ? (
                                 <div className="p-20 flex flex-col items-center justify-center gap-3 text-muted-foreground select-none">
-                                    <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                     <span className="text-sm font-medium">Memuat bookmark...</span>
                                 </div>
                             ) : posts.length > 0 ? (
@@ -126,7 +127,9 @@ export default function BookmarksView({
                                 ))
                             ) : (
                                 <div className="p-20 flex flex-col items-center justify-center gap-4 text-center opacity-40 select-none">
-                                    <Bookmark className="h-12 w-12 text-muted-foreground" />
+                                    <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                                        <Bookmark className="h-8 w-8 text-muted-foreground" />
+                                    </div>
                                     <div className="flex flex-col gap-1">
                                         <p className="font-bold text-lg text-foreground">Belum ada bookmark</p>
                                         <p className="text-sm italic text-muted-foreground max-w-xs">
@@ -139,7 +142,7 @@ export default function BookmarksView({
                             {hasMore && (
                                 <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
                                     {isLoadingMore && (
-                                        <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                     )}
                                 </div>
                             )}

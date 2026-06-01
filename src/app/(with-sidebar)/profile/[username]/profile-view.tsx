@@ -204,7 +204,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative overflow-hidden">
                     {/* Header */}
-                    <div className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/10 flex items-center gap-4 shrink-0">
+                    <div className="px-4 py-2 md:px-6 md:py-3 sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 flex items-center gap-4 shrink-0">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -217,16 +217,18 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     router.push("/");
                                 }
                             }}
-                            className="rounded-full hover:bg-muted -ml-1"
+                            className="rounded-full hover:bg-muted"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <div className="flex flex-col flex-1">
+                        <div className="flex flex-col flex-1 min-w-0">
                             <h1 
-                                className="text-xl font-bold tracking-tight"
+                                className="text-lg font-bold tracking-tight truncate"
                                 dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
                             />
-                            <p className="text-xs text-muted-foreground">{postCount} {activeTab}</p>
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                                {postCount} {activeTab}
+                            </p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -237,7 +239,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="rounded-full hover:bg-muted"
+                                            className="rounded-xl hover:bg-muted h-9 w-9"
                                             title="Edit Profil"
                                         >
                                             <UserPen className="h-4 w-4" />
@@ -250,7 +252,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     size="icon"
                                     onClick={handleStartDM}
                                     disabled={isRedirecting}
-                                    className="rounded-full hover:bg-muted text-primary"
+                                    className="rounded-xl hover:bg-muted text-primary h-9 w-9"
                                     title="Kirim Pesan"
                                 >
                                     <MessageSquare className="h-4 w-4" />

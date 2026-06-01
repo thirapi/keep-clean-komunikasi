@@ -171,56 +171,59 @@ export default function TimelineView({
         <div className="flex flex-col h-full bg-background/50">
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/10 shrink-0">
-                        <div className="px-4 py-3 md:px-6 md:py-4 flex items-center gap-4">
-                            <div className="md:hidden">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    asChild
-                                    className="mr-1 -ml-2 -my-2 h-10 w-10 text-foreground rounded-full hover:bg-accent transition-colors duration-200 flex-shrink-0"
-                                    aria-label="Back to channels"
-                                >
-                                    <Link href="/channels/default">
-                                        <ChevronLeft className="h-6 w-6" />
-                                    </Link>
-                                </Button>
+                    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shrink-0">
+                        <div className="px-4 py-2 md:px-6 md:py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="md:hidden">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        asChild
+                                        className="h-9 w-9 text-foreground rounded-full hover:bg-muted"
+                                    >
+                                        <Link href="/channels/default">
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                                <h1 className="text-lg font-bold tracking-tight truncate">{title}</h1>
                             </div>
-                            <h1 className="text-xl font-bold tracking-tight flex-1">{title}</h1>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 {isFetching && (
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
-                                        <div className="h-1 w-1 rounded-full bg-current animate-ping" />
-                                        <span className="animate-pulse hidden sm:inline">Memperbarui...</span>
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary/80 animate-pulse">
+                                        <div className="h-1 w-1 rounded-full bg-current" />
+                                        <span>Updating</span>
                                     </div>
                                 )}
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleRefresh}
-                                    className="rounded-full hover:bg-sky-500/10 hover:text-sky-500 transition-colors h-9 w-9"
+                                    className="rounded-xl hover:bg-muted transition-all h-9 w-9"
                                     disabled={isFetching}
                                 >
-                                    <RotateCw className={cn("h-5 w-5", isFetching && "animate-spin")} />
+                                    <RotateCw className={cn("h-4 w-4 text-muted-foreground", isFetching && "animate-spin text-primary")} />
                                 </Button>
                             </div>
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex w-full border-b border-border">
+                        <div className="flex w-full px-2">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => handleTabChange(tab.id as any)}
                                     className={cn(
-                                        "flex-1 py-3.5 text-sm font-bold transition-all relative",
-                                        activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
+                                        "flex-1 py-3 text-sm font-bold transition-all relative group",
+                                        activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
-                                    {tab.label}
-                                    {activeTab === tab.id && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-sky-500 rounded-full mx-8" />
+                                    <span className="relative z-10">{tab.label}</span>
+                                    {activeTab === tab.id ? (
+                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />
+                                    ) : (
+                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 bg-muted rounded-full group-hover:w-8 transition-all duration-300" />
                                     )}
                                 </button>
                             ))}

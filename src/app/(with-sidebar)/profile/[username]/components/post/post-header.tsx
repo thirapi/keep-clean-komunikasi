@@ -123,10 +123,16 @@ export function PostHeader({
                     <VisibilityIcon visibility={visibility} className="h-3 w-3 opacity-60" />
                     {user.isRemote && (
                         <span 
-                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[10px] font-medium text-zinc-700 dark:text-zinc-300"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 
+                                    bg-gradient-to-r from-violet-100 to-indigo-100 
+                                    dark:from-violet-950 dark:to-indigo-950 
+                                    border border-violet-200 dark:border-violet-800 
+                                    rounded-xl text-[10px] font-medium 
+                                    text-violet-700 dark:text-violet-300
+                                    shadow-sm"
                         title="Post dari instance lain (Fediverse)"
                         >
-                        <span className="text-base leading-none opacity-70">⁂</span>
+                        <span className="text-base leading-none opacity-75">⁂</span>
                         Remote
                         </span>
                     )}
