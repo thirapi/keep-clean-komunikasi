@@ -38,14 +38,23 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 *   **Direct Delivery**: Saat membalas postingan remote, aktivitas kini dikirimkan **langsung** ke inbox penulis aslinya (selain ke followers), memastikan notifikasi dan threading bekerja dengan benar di instance lawan.
 
 ### 4. Synchronization & Interop Layer (Data Integrity)
-*   **Thread Healing (Chain Fetching)**: Saat menerima balasan ke postingan yang belum ada di database, sistem melakukan *signed fetch* secara rekursif ke URI induk untuk membangun pohon percakapan yang lengkap secara otomatis.
+*   **Thread Healing (Chain Fetching)**: Saat menerima balasan ke postingan yang belum ada di database, sistem melakukan *signed fetch* secara rekursif ke URI induk (hingga 10 level) untuk membangun pohon percakapan yang lengkap secara otomatis.
+*   **Conversation Context Tracking**: Menyimpan properti `context` atau `conversation` dari ActivityPub untuk memungkinkan pengelompokan utas yang cepat dan efisien tanpa kueri rekursif berat.
+*   **Modern Quote Post Support (FEP-e232 & Misskey)**: 
+    *   Mendukung standar **FEP-e232 (Object Links)** yang digunakan oleh Mastodon 4.3+ melalui pemindaian array `tag` untuk relasi `quote`.
+    *   Dukungan penuh untuk properti `quoteUrl` dan `_misskey_quote` dari ekosistem Misskey/Firefish.
+    *   Integrasi properti `quoteOf` untuk kompatibilitas dengan Fedibird dan Pleroma.
 *   **Remote Repost Handling**: Mendukung aktivitas `Announce`. Jika kita menerima repost untuk kiriman yang belum kita kenal, sistem otomatis menarik metadata kiriman asli tersebut agar dapat dirender dengan konteks yang benar.
 *   **Custom Emoji Mapping**: Mengekstrak metadata emoji dari field `tag` pada kiriman dan profil remote. Metadata disimpan di kolom `jsonb` dan dipetakan ke teks `:shortcode:` saat rendering.
-*   **Multi-ID Alias Support**: Mendukung identifikasi aktor remote melalui berbagai variasi URI (misal: Mastodon `/users/user` vs `/@user`). Feed profil akan menggabungkan semua postingan dari alias URI yang sama.
-*   **Deep Outbox Sync**: Sinkronisasi otomatis hingga 40 postingan terbaru saat profil remote dikunjungi, termasuk pemetaan relasi parent-child untuk balasan.
-*   **Enhanced Stats Fetching**: Pengambilan jumlah pengikut (followers/following) kini memprioritaskan atribut asli Mastodon (`followersCount`, `followingCount`) untuk akurasi data yang lebih baik.
+*   **Surgical Content Cleaning**: Pipeline pembersihan konten yang agresif menggunakan regex multiline-safe untuk menghapus penanda fallback "RE: [URL]" yang redundan, memastikan UI tetap bersih dan hanya menampilkan konten asli pengguna.
 
-### 5. UI/UX Layer (User Interface)
+### 5. Security Hardening (Outbound Protection)
+*   **SSRF Protection**: Setiap request outbound divalidasi secara ketat untuk mencegah serangan *Server-Side Request Forgery*. Sistem memblokir akses ke IP privat (127.0.0.1, 192.168.x.x, dll), hostname `localhost`, dan hanya mengizinkan protokol `https:`.
+*   **Recursion Depth Limiting**: Resolusi thread otomatis dibatasi maksimal hingga 10 level kedalaman untuk mencegah serangan *infinite loop* utas dan penggunaan resource berlebih.
+*   **Concurrent Fetch Locking**: Mekanisme *in-memory lock* untuk mencegah pengambilan data duplikat secara simultan untuk URI yang sama, mengoptimalkan bandwidth dan beban pada server remote.
+*   **Strict Content-Type Validation**: Memastikan setiap respons dari server luar adalah valid JSON-LD (`application/activity+json`) sebelum melakukan pemrosesan data.
+
+### 6. UI/UX Layer (User Interface)
 *   **Federated vs Local Timeline**: Header timeline kini memiliki tab untuk memisahkan antara feed "Federasi" (semua kiriman) dan "Lokal" (hanya user di instance kita).
 *   **Tab Persistence**: Posisi tab timeline (Lokal/Federasi) disimpan dalam URL `?tab=`, sehingga tidak hilang saat halaman di-refresh.
 *   **Emoji Rendering**: Integrasi `parseFediverseContent` yang merender emoji kustom di nama tampilan pengguna, bio, dan isi postingan secara proporsional.
@@ -60,9 +69,10 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 3.  **Media Proxy (Backend)**: Mengalihkan semua request gambar remote melalui endpoint proxy internal untuk privasi dan melewati restriksi CORS secara permanen.
 
 ## 🛠️ Perubahan Terbaru & Solusi Masalah
-*   **Thread Integrity**: Menambahkan logika *recursive fetch* di Inbox untuk mengatasi masalah percakapan yang terpotong saat berinteraksi dengan user dari instance baru.
-*   **Custom Emojis**: Mengatasi masalah emoji yang tampil sebagai teks mentah dengan mengimplementasikan parser regex-to-image di level komponen UI.
-*   **Timeline Filtering**: Memperbaiki kebingungan user antara kiriman lokal dan federasi dengan menambahkan tab navigasi yang persisten.
+*   **Modern Interaction Standards**: Mengadopsi **FEP-e232** dan **_misskey_quote** untuk mendukung *Quote Post* secara native, menghilangkan sisa teks fallback yang mengganggu.
+*   **Advanced Thread Healing**: Menambahkan resolusi rekursif berbasis **Conversation Context** yang jauh lebih cepat dan akurat dalam membangun pohon percakapan dari instance luar.
+*   **Security First**: Mengimplementasikan proteksi **SSRF**, batas kedalaman rekursi, dan *locking* request untuk menjaga integritas sistem dan mencegah penyalahgunaan resource.
+*   **Robust Content Cleaning**: Memperbarui regex parser untuk membersihkan sisa HTML redundan dari instance Misskey/Mastodon, memastikan konten federasi tampil setara dengan konten lokal.
 
 ---
 *Dokumentasi diperbarui oleh Gemini CLI - Mei 2026*

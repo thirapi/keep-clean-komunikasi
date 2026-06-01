@@ -4,23 +4,35 @@ This document defines the strict architectural standards for post interactions (
 
 ## 1. Interaction Definitions
 
-### Pure Repost
+### Pure Repost (Announce)
 *   **Definition**: A post that purely shares another post without adding new content.
-*   **Data Criteria**: `repostOfId` is present AND `content` is empty (`""`) AND `attachments` is empty.
+*   **Data Criteria**: `repostOfId` is present AND `content` is empty (`""`).
+*   **ActivityPub Mapping**: Corresponds to an `Announce` activity.
 *   **Behavior**:
     *   Toggleable: Clicking "Repost" again removes it (Undo Repost).
     *   Unique: A user can only have **one** active Pure Repost for a specific post.
     *   Impact: Increases `repostCount`.
     *   UI: Makes the Repost button **active** (Emerald color).
 
-### Quote Post
+### Quote Post (FEP-e232 / Misskey)
 *   **Definition**: A post that shares another post but adds its own commentary or media.
-*   **Data Criteria**: `repostOfId` is present AND (`content` is NOT empty OR `attachments` is NOT empty).
+*   **Data Criteria**: `quoteOfId` is present. (Legacy quotes may still use `repostOfId` with content, but `quoteOfId` is the new standard).
+*   **ActivityPub Mapping**: Corresponds to a `Create` activity with `tag` links (FEP-e232) or `quoteUrl` (Misskey).
 *   **Behavior**:
     *   Additive: Can be performed multiple times by the same user.
     *   Independent: Does NOT trigger "Undo Repost".
-    *   Impact: Does NOT increase `repostCount` (handled as a separate post or "Quote" metric).
-    *   UI: Does NOT make the Repost button active.
+    *   Impact: Handled as a separate post with a `quoteOf` relationship.
+    *   UI: Renders the quoted post as a native preview card.
+
+## 2. Thread Backfilling & Data Integrity
+
+### context URI Tracking
+*   Every federated post MUST save the `context` (or `conversation`) URI from ActivityPub.
+*   This allows fetching the entire conversation branch in a single query, ensuring thread indicators ("Membalas @user") are always accurate.
+
+### Recursive Healing
+*   When receiving a post with `inReplyTo` or `quoteOf` that is missing from the local DB, the system MUST perform a **Signed GET** fetch to reconstruct the chain.
+*   Recursion is strictly capped at **10 levels** for security.
 
 ### Like & Bookmark
 *   **Behavior**: Strictly toggleable and unique per user/post.

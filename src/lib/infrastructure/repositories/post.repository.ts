@@ -293,17 +293,6 @@ export class PostRepository implements IPostRepository {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
                 },
-                replyTo: { 
-                    with: { 
-                        user: { columns: { username: true } }, 
-                        remoteActor: true, 
-                        bookmarks: true,
-                        reposts: { 
-                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
-                        },
-                    } 
-                },
                 bookmarks: true,
                 linkPreviews: true,
             },
@@ -389,17 +378,6 @@ export class PostRepository implements IPostRepository {
                 replies: {
                     where: eq(posts.isDeleted, false),
                     columns: { id: true }
-                },
-                replyTo: { 
-                    with: { 
-                        user: { columns: { username: true } }, 
-                        remoteActor: true, 
-                        bookmarks: true,
-                        reposts: { 
-                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
-                        },
-                    } 
                 },
                 bookmarks: true,
                 linkPreviews: true,
