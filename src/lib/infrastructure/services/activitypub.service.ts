@@ -597,6 +597,7 @@ export class ActivityPubService implements IActivityPubService {
                 // Robust tag and attachment parsing
                 const tags = Array.isArray(fetched.tag) ? fetched.tag : (fetched.tag ? [fetched.tag] : []);
                 const apAttachments = Array.isArray(fetched.attachment) ? fetched.attachment : (fetched.attachment ? [fetched.attachment] : []);
+                const summary = fetched.summary || null; // Content Warning (CW)
                 
                 const emojis = this.extractEmojis(tags);
                 const attachments = apAttachments
@@ -605,7 +606,8 @@ export class ActivityPubService implements IActivityPubService {
                         url: typeof a.url === 'string' ? a.url : a.url.href,
                         key: a.name || createId(),
                         fileType: a.mediaType || "application/octet-stream",
-                        size: a.size
+                        size: a.size,
+                        description: a.name || a.summary || null // Map remote name/summary to description
                     }));
 
                 const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
@@ -624,7 +626,8 @@ export class ActivityPubService implements IActivityPubService {
                             emojis: emojis as any || existing.emojis,
                             apMetadata: {
                                 originalTags: tags,
-                                isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote
+                                isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote,
+                                summary: summary || (existing.apMetadata as any)?.summary
                             } as any,
                             updatedAt: new Date()
                         });
@@ -646,7 +649,8 @@ export class ActivityPubService implements IActivityPubService {
                         visibility: "public",
                         emojis: emojis as any,
                         apMetadata: {
-                            originalTags: tags
+                            originalTags: tags,
+                            summary: summary
                         } as any,
                         isDeleted: false,
                         createdAt: new Date(fetched.published || Date.now()),

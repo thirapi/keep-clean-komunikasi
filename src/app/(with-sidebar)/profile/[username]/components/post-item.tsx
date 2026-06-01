@@ -224,7 +224,7 @@ export function PostItem({
 
     if (isFocused) {
         return (
-            <div className="flex flex-col px-4 pt-4 pb-1 border-b border-border bg-background select-none">
+            <div className="flex flex-col px-4 pt-4 pb-1 border-b border-border bg-background">
                 <PostHeader 
                     user={displayUserInfo} 
                     createdAt={createdAt} 
@@ -253,6 +253,7 @@ export function PostItem({
                     urls={urls}
                     linkPreviews={targetPost.linkPreviews}
                     emojis={targetPost.emojis}
+                    apMetadata={targetPost.apMetadata}
                     isFocused
                 />
 
@@ -295,7 +296,7 @@ export function PostItem({
     return (
         <div 
             onClick={() => router.push(`/posts/${post.id}`)} 
-            className="flex flex-col border-b border-border/50 hover:bg-muted/10 transition-colors relative cursor-pointer select-none"
+            className="flex flex-col border-b border-border/50 hover:bg-muted/10 transition-colors relative cursor-pointer"
         >
 
             {showConnector && (
@@ -346,6 +347,7 @@ export function PostItem({
                         urls={urls}
                         linkPreviews={targetPost.linkPreviews}
                         emojis={targetPost.emojis}
+                        apMetadata={targetPost.apMetadata}
                     />
 
                     {isQuotePost && (post.repostOf || post.quoteOf) && (

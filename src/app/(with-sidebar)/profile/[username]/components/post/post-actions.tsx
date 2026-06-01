@@ -49,7 +49,7 @@ export function PostActions({
 }: PostActionsProps) {
     if (isFocused) {
         return (
-            <div className="flex items-center justify-around py-1 border-b border-border mb-1">
+            <div className="flex items-center justify-around py-1 mb-1">
                 <ActionButton 
                     icon={MessageSquare} 
                     onClick={onReply} 

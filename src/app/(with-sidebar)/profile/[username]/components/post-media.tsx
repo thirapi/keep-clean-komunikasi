@@ -9,6 +9,7 @@ interface Attachment {
     key: string;
     fileType: string;
     size?: number | null;
+    description?: string | null;
 }
 
 interface PostMediaProps {
@@ -64,15 +65,23 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
                                 </div>
                             </div>
                         ) : (
-                            <img
-                                src={att.url}
-                                alt="Post attachment"
-                                className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity pointer-events-auto"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onImageClick) onImageClick(idx);
-                                }}
-                            />
+                            <>
+                                <img
+                                    src={att.url}
+                                    alt={att.description || "Post attachment"}
+                                    title={att.description || undefined}
+                                    className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity pointer-events-auto"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onImageClick) onImageClick(idx);
+                                    }}
+                                />
+                                {att.description && (
+                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold backdrop-blur-md select-none pointer-events-none">
+                                        ALT
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 );

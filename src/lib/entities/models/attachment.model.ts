@@ -4,7 +4,9 @@ export interface AttachmentRecord {
   key: string;
   fileType: string;
   size?: number | null;
+  description?: string | null; // Alt text
   messageId?: string | null;
+  postId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

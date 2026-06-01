@@ -83,9 +83,11 @@ export function PostHeader({
                                     dangerouslySetInnerHTML={{ __html: displayNameWithEmojis }}
                                 />
                             </UserHoverCard>
-                            <span className="text-muted-foreground text-[14px] line-clamp-1">
-                                {user.handle}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-muted-foreground text-[14px]">
+                                <span className="line-clamp-1">{user.handle}</span>
+                                <span className="shrink-0">·</span>
+                                <VisibilityIcon visibility={visibility} className="h-3.5 w-3.5 opacity-60" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -117,6 +119,8 @@ export function PostHeader({
                     <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0 hover:underline" title={createdAt.toLocaleString()}>
                         {formatDistanceToNow(createdAt, { addSuffix: true, locale: id })}
                     </span>
+                    <span className="text-muted-foreground text-[13px] shrink-0">·</span>
+                    <VisibilityIcon visibility={visibility} className="h-3 w-3 opacity-60" />
                     {user.isRemote && (
                         <span 
                         className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[10px] font-medium text-zinc-700 dark:text-zinc-300"

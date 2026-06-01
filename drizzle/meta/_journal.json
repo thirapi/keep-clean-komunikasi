@@ -120,6 +120,13 @@
       "when": 1780331105698,
       "tag": "0016_talented_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780338761929,
+      "tag": "0017_mature_misty_knight",
+      "breakpoints": true
     }
   ]
 }

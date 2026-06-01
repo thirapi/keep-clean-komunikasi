@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -16,6 +17,7 @@ interface PostContentProps {
     urls?: string[];
     linkPreviews?: PostLinkPreview[];
     emojis?: { name: string; url: string }[] | null;
+    apMetadata?: any;
     isFocused?: boolean;
     isQuote?: boolean;
     className?: string;
@@ -28,17 +30,40 @@ export function PostContent({
     urls = [],
     linkPreviews = [],
     emojis,
+    apMetadata,
     isFocused = false,
     isQuote = false,
     className
 }: PostContentProps) {
+    const [isCWHidden, setIsCWHidden] = useState(!!apMetadata?.summary);
+
+    const summary = apMetadata?.summary;
     const parsedContent = content ? parseFediverseContent(content, emojis) : content;
+    const parsedSummary = summary ? parseFediverseContent(summary, emojis) : null;
 
     return (
         <div className={cn("flex flex-col", className)}>
-            {parsedContent && (
+            {summary && (
+                <div className="mb-2 p-3 bg-muted/30 border border-border/50 rounded-xl flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-4">
+                        <div 
+                            className="text-sm font-medium text-foreground flex-1 break-words"
+                            dangerouslySetInnerHTML={{ __html: parsedSummary || "" }}
+                        />
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsCWHidden(!isCWHidden); }}
+                            className="px-3 py-1 text-xs font-bold bg-muted hover:bg-muted/80 rounded-full transition-colors shrink-0"
+                        >
+                            {isCWHidden ? "Tampilkan" : "Sembunyikan"}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!isCWHidden && parsedContent && (
                 <div className={cn(
-                    "text-foreground leading-normal whitespace-pre-wrap break-words fediverse-content",
+                    "text-foreground leading-normal whitespace-pre-wrap break-words fediverse-content select-text",
+...
                     isFocused ? "text-[19px] md:text-[21px] mb-3" : isQuote ? "text-[14px] line-clamp-3 mb-1" : "text-[15px] md:text-[16px] mb-2"
                 )}>
                     <ReactMarkdown 
