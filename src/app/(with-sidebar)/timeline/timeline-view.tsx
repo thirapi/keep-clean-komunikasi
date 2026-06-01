@@ -2,19 +2,21 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft, RotateCw } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { PostInput } from "@/app/(with-sidebar)/profile/[username]/components/post-input";
 import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
 import { getGlobalFeedAction } from "@/app/posts.action";
 import { useCreatePost } from "@/hooks/use-create-post";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import K from "@/components/icons/k";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TimelineViewProps {
     initialPosts: PostWithUserDTO[];
@@ -28,7 +30,7 @@ interface TimelineViewProps {
 export default function TimelineView({
     initialPosts,
     currentUser,
-    title = "Timeline",
+    title = "timeline",
     queryKey: propQueryKey,
     feedAction: propFeedAction,
     initialTab = "all"
@@ -52,7 +54,6 @@ export default function TimelineView({
     const QUERY_KEY = propQueryKey || ["posts", "feed", "global", activeTab];
     const FETCH_ACTION = (propFeedAction || getGlobalFeedAction) as (userId: string | undefined, limit?: number, offset?: number, filter?: any) => Promise<any>;
 
-    const { toggleSidebar } = useSidebar();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -117,20 +118,15 @@ export default function TimelineView({
     // Check for new posts whenever poll completes
     useEffect(() => {
         if (latestData && posts && posts.length > 0) {
-            // Find the first post in latestData that we ALREADY have in our local posts list
-            // We check both ID and content/timestamp as fallback for optimistic posts
             const firstKnownIndex = latestData.findIndex((lp: any) =>
                 posts.some((p: any) => p.id === lp.id || (p as any).optimisticId === lp.id)
             );
 
             if (firstKnownIndex > 0) {
-                // There are posts newer than our newest known post
                 const newPosts = latestData.slice(0, firstKnownIndex);
                 const filteredNewCount = newPosts.filter((p: any) => p.userId !== currentUser?.id).length;
                 setNewPostsCount(filteredNewCount);
             } else if (firstKnownIndex === -1) {
-                // We are very far behind or something went wrong, 
-                // but let's still filter out our own posts if we can
                 const filteredNewCount = latestData.filter((p: any) => p.userId !== currentUser?.id).length;
                 setNewPostsCount(filteredNewCount > 0 ? filteredNewCount : 0);
             } else {
@@ -150,18 +146,6 @@ export default function TimelineView({
 
     const { mutate: createPost } = useCreatePost(QUERY_KEY);
 
-    const handlePostCreated = (content: string) => {
-        createPost({
-            userId: currentUser.id,
-            content,
-            username: currentUser.username,
-            avatar: currentUser.avatar
-        });
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        }
-    };
-
     const tabs = [
         { id: "all", label: "Federasi" },
         { id: "local", label: "Lokal" }
@@ -171,10 +155,15 @@ export default function TimelineView({
         <div className="flex flex-col h-full bg-background/50">
             <div className="flex justify-center flex-1 overflow-hidden">
                 <div className="w-full max-w-2xl border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shrink-0">
-                        <div className="px-4 py-2 md:px-6 md:py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="md:hidden">
+                    
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex-1 overflow-y-auto custom-scrollbar relative scroll-smooth"
+                    >
+                        {/* Logo Row - Scrolls away */}
+                        <div className="shrink-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/5">
+                        <div className="px-4 pt-2 pb-0 flex items-center justify-center relative">
+                                <div className="absolute left-4 md:hidden">
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -186,68 +175,70 @@ export default function TimelineView({
                                         </Link>
                                     </Button>
                                 </div>
-                                <h1 className="text-lg font-bold tracking-tight truncate">{title}</h1>
+                                
+                                <div className="flex flex-col items-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={handleRefresh}
+                                                    disabled={isFetching}
+                                                    className={cn(
+                                                        "transition-opacity duration-300 outline-none",
+                                                        isFetching ? "opacity-40 cursor-default" : "hover:opacity-80"
+                                                    )}
+                                                >
+                                                    <K className="size-10 text-primary" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                                                <p>{isFetching ? "Memperbarui..." : "Segarkan"}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                             </div>
-                            
-                            <div className="flex items-center gap-3">
-                                {isFetching && (
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary/80 animate-pulse">
-                                        <div className="h-1 w-1 rounded-full bg-current" />
-                                        <span>Updating</span>
-                                    </div>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleRefresh}
-                                    className="rounded-xl hover:bg-muted transition-all h-9 w-9"
-                                    disabled={isFetching}
-                                >
-                                    <RotateCw className={cn("h-4 w-4 text-muted-foreground", isFetching && "animate-spin text-primary")} />
-                                </Button>
+                        </div>
+
+                        {/* Tabs Row - Sticky */}
+                        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shrink-0">
+                            <div className="flex w-full px-2">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => handleTabChange(tab.id as any)}
+                                        className={cn(
+                                            "flex-1 py-3 text-sm font-bold transition-all relative group",
+                                            activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <span className="relative z-10">{tab.label}</span>
+                                        {activeTab === tab.id ? (
+                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full" />
+                                        ) : (
+                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-muted rounded-full group-hover:w-8 transition-all duration-300" />
+                                        )}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="flex w-full px-2">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => handleTabChange(tab.id as any)}
-                                    className={cn(
-                                        "flex-1 py-3 text-sm font-bold transition-all relative group",
-                                        activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <span className="relative z-10">{tab.label}</span>
-                                    {activeTab === tab.id ? (
-                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />
-                                    ) : (
-                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 bg-muted rounded-full group-hover:w-8 transition-all duration-300" />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                        {/* New Post Indicator */}
+                        {newPostsCount > 0 && (
+                            <div className="sticky top-[52px] left-0 right-0 z-30 flex justify-center h-0 overflow-visible pointer-events-none">
+                                <div className="mt-4 pointer-events-auto transition-all animate-in slide-in-from-top-2 fade-in duration-300">
+                                    <Button
+                                        onClick={handleRefresh}
+                                        size="sm"
+                                        className="bg-sky-500 hover:bg-sky-600 text-white rounded-full shadow-lg h-9 px-4 flex items-center gap-2 border-none"
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        <span className="font-bold">{newPostsCount} postingan baru</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
 
-                    {/* New Post Indicator */}
-                    {newPostsCount > 0 && (
-                        <div className="absolute top-[115px] left-1/2 -translate-x-1/2 z-30 transition-all animate-in slide-in-from-top-2 fade-in duration-300">
-                            <Button
-                                onClick={handleRefresh}
-                                size="sm"
-                                className="bg-sky-500 hover:bg-sky-600 text-white rounded-full shadow-lg h-9 px-4 flex items-center gap-2 border-none"
-                            >
-                                <Sparkles className="h-4 w-4" />
-                                <span className="font-bold">{newPostsCount} Postingan Baru</span>
-                            </Button>
-                        </div>
-                    )}
-
-                    <div
-                        ref={scrollContainerRef}
-                        className="flex-1 overflow-y-auto custom-scrollbar relative"
-                    >
                         {currentUser && (
                             <div className="border-b border-border/10 bg-background/20 backdrop-blur-sm">
                                 <PostInput

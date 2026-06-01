@@ -20,6 +20,12 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { 
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UserHoverCard } from "./user-hover-card";
@@ -59,9 +65,31 @@ export function PostHeader({
     currentUserId
 }: PostHeaderProps) {
     const VisibilityIcon = ({ visibility, className }: { visibility?: string, className?: string }) => {
-        if (visibility === "unlisted") return <Users className={cn("h-3 w-3", className)} />;
-        if (visibility === "private") return <Lock className={cn("h-3 w-3", className)} />;
-        return <Globe className={cn("h-3 w-3", className)} />;
+        let icon = <Globe className={cn("h-3 w-3", className)} />;
+        let label = "Publik";
+        
+        if (visibility === "unlisted") {
+            icon = <Users className={cn("h-3 w-3", className)} />;
+            label = "Tidak Terdaftar";
+        } else if (visibility === "private") {
+            icon = <Lock className={cn("h-3 w-3", className)} />;
+            label = "Hanya Pengikut";
+        }
+
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="flex items-center cursor-default">
+                            {icon}
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                        <p>{label}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
     };
 
     const displayNameWithEmojis = parseFediverseContent(user.displayName || user.username, user.emojis);
@@ -116,25 +144,42 @@ export function PostHeader({
                         />
                     </UserHoverCard>
                     <span className="text-muted-foreground text-[13px] shrink-0">·</span>
-                    <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0 hover:underline" title={createdAt.toLocaleString()}>
-                        {formatDistanceToNow(createdAt, { addSuffix: true, locale: id })}
-                    </span>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0 hover:underline cursor-default">
+                                    {formatDistanceToNow(createdAt, { addSuffix: true, locale: id })}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                                <p>{createdAt.toLocaleString()}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <span className="text-muted-foreground text-[13px] shrink-0">·</span>
                     <VisibilityIcon visibility={visibility} className="h-3 w-3 opacity-60" />
                     {user.isRemote && (
-                        <span 
-                        className="inline-flex items-center gap-1 px-2 py-0.5 
-                                    bg-gradient-to-r from-violet-100 to-indigo-100 
-                                    dark:from-violet-950 dark:to-indigo-950 
-                                    border border-violet-200 dark:border-violet-800 
-                                    rounded-xl text-[10px] font-medium 
-                                    text-violet-700 dark:text-violet-300
-                                    shadow-sm"
-                        title="Post dari instance lain (Fediverse)"
-                        >
-                        <span className="text-base leading-none opacity-75">⁂</span>
-                        Remote
-                        </span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span 
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 
+                                                    bg-gradient-to-r from-violet-100 to-indigo-100 
+                                                    dark:from-violet-950 dark:to-indigo-950 
+                                                    border border-violet-200 dark:border-violet-800 
+                                                    rounded-xl text-[10px] font-medium 
+                                                    text-violet-700 dark:text-violet-300
+                                                    shadow-sm cursor-default"
+                                    >
+                                        <span className="text-base leading-none opacity-75">⁂</span>
+                                        Remote
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                                    <p>Post dari instance lain (Fediverse)</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     )}
                 </div>
                 <Link href={user.profilePath} className="text-muted-foreground text-[13px] line-clamp-1 leading-none mb-1.5" onClick={(e) => e.stopPropagation()}>
@@ -169,19 +214,28 @@ function PostMenu({
 }) {
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={cn(
-                        "text-muted-foreground rounded-full hover:bg-sky-500/10 hover:text-sky-500 transition-colors",
-                        size === "small" ? "h-8 w-8" : "h-9 w-9"
-                    )}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                >
-                    <MoreHorizontal className={size === "small" ? "h-4 w-4" : "h-5 w-5"} />
-                </Button>
-            </DropdownMenuTrigger>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className={cn(
+                                    "text-muted-foreground rounded-full hover:bg-sky-500/10 hover:text-sky-500 transition-colors",
+                                    size === "small" ? "h-8 w-8" : "h-9 w-9"
+                                )}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            >
+                                <MoreHorizontal className={size === "small" ? "h-4 w-4" : "h-5 w-5"} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                        <p>Lainnya</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <DropdownMenuContent 
                 onClick={(e) => e.stopPropagation()} 
                 align="end" 

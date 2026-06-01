@@ -15,6 +15,12 @@ import {
     DropdownMenuItem, 
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PostActionsProps {
     replyCount?: number;
@@ -56,6 +62,7 @@ export function PostActions({
                     hoverColor="hover:text-sky-500" 
                     hoverBg="hover:bg-sky-500/10"
                     size="large"
+                    tooltip="Balas"
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -67,6 +74,7 @@ export function PostActions({
                                 hoverColor="hover:text-emerald-500" 
                                 hoverBg="hover:bg-emerald-500/10"
                                 size="large"
+                                tooltip="Bagikan Ulang"
                             />
                         </div>
                     </DropdownMenuTrigger>
@@ -106,6 +114,7 @@ export function PostActions({
                     hoverColor="hover:text-rose-500" 
                     hoverBg="hover:bg-rose-500/10"
                     size="large"
+                    tooltip={isLiked ? "Batal Suka" : "Suka"}
                 />
                 <ActionButton 
                     icon={Bookmark} 
@@ -116,6 +125,7 @@ export function PostActions({
                     hoverColor="hover:text-amber-500" 
                     hoverBg="hover:bg-amber-500/10"
                     size="large"
+                    tooltip={isBookmarked ? "Hapus dari Bookmark" : "Simpan ke Bookmark"}
                 />
                 <ActionButton 
                     icon={Share2} 
@@ -123,6 +133,7 @@ export function PostActions({
                     hoverColor="hover:text-sky-500" 
                     hoverBg="hover:bg-sky-500/10"
                     size="large"
+                    tooltip="Bagikan"
                 />
             </div>
         );
@@ -139,6 +150,7 @@ export function PostActions({
                 onClick={onReply} 
                 hoverColor="hover:text-sky-500" 
                 hoverBg="hover:bg-sky-500/10" 
+                tooltip="Balas"
             />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -150,6 +162,7 @@ export function PostActions({
                             activeColor="text-emerald-500"
                             hoverColor="hover:text-emerald-500" 
                             hoverBg="hover:bg-emerald-500/10" 
+                            tooltip="Bagikan Ulang"
                         />
                     </div>
                 </DropdownMenuTrigger>
@@ -189,6 +202,7 @@ export function PostActions({
                 onClick={onLike} 
                 hoverColor="hover:text-rose-500" 
                 hoverBg="hover:bg-rose-500/10" 
+                tooltip={isLiked ? "Batal Suka" : "Suka"}
             />
             <ActionButton 
                 icon={Bookmark} 
@@ -198,12 +212,14 @@ export function PostActions({
                 onClick={onBookmark} 
                 hoverColor="hover:text-amber-500" 
                 hoverBg="hover:bg-amber-500/10" 
+                tooltip={isBookmarked ? "Hapus dari Bookmark" : "Simpan ke Bookmark"}
             />
             <ActionButton 
                 icon={Share2} 
                 onClick={onShare} 
                 hoverColor="hover:text-sky-500" 
                 hoverBg="hover:bg-sky-500/10" 
+                tooltip="Bagikan"
             />
         </div>
     );
@@ -219,6 +235,7 @@ function ActionButton({
     activeColor, 
     fillActive,
     size = "normal",
+    tooltip,
     className 
 }: { 
     icon: any, 
@@ -230,12 +247,13 @@ function ActionButton({
     activeColor?: string, 
     fillActive?: boolean,
     size?: "normal" | "large",
+    tooltip?: string,
     className?: string 
 }) {
     const iconSize = size === "large" ? "h-[22px] w-[22px]" : "h-[18px] w-[18px]";
     const padding = size === "large" ? "p-2.5" : "p-2";
 
-    return (
+    const button = (
         <button 
             onClick={(e) => {
                 e.stopPropagation();
@@ -269,4 +287,21 @@ function ActionButton({
             )}
         </button>
     );
+
+    if (tooltip) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {button}
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                        <p>{tooltip}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    }
+
+    return button;
 }
