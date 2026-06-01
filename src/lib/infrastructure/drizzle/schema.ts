@@ -78,6 +78,8 @@ export const posts = pgTable("Post", {
     // Fediverse Compatibility
     uri: text("uri").unique(),        // Canonical URI
     url: text("url"),                 // Web URL
+    context: text("context"),         // ActivityPub conversation context URI
+    apMetadata: jsonb("apMetadata"), // Fediverse-specific raw metadata
 
     // Interactions (Threads & Reposts)
     replyToId: text("replyToId"),

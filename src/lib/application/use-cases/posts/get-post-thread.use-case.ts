@@ -41,6 +41,15 @@ export class GetPostThreadUseCase {
         // Deep Healing: If the post is remote, ensure we have its full context
         if (post.uri && post.remoteActorId && currentUserId) {
             await this.ensureRemoteContextRecursive(post, currentUserId);
+            // Re-fetch to get updated metadata (replyToId, quoteOfId, cleaned content, context)
+            const updated = await this.postRepository.findByIdWithDetails(post.id, currentUserId);
+            if (updated) post = updated;
+        }
+
+        // Context-based Fetching: If we have a conversation context, use it to get everything
+        let contextPosts: PostWithUserDTO[] = [];
+        if (post.context) {
+            contextPosts = await this.postRepository.findByContext(post.context, currentUserId);
         }
 
         const [replies, parents, thread] = await Promise.all([
@@ -48,6 +57,26 @@ export class GetPostThreadUseCase {
             this.postRepository.findParentChain(post.id, currentUserId),
             post.userId ? this.postRepository.findThreadDescendants(post.id, post.userId, currentUserId) : Promise.resolve([])
         ]);
+
+        // Merge context posts if not already present
+        const existingIds = new Set([
+            ...replies.map(r => r.id),
+            ...parents.map(p => p.id),
+            ...thread.map(t => t.id),
+            post.id
+        ]);
+
+        const extraFromContext = contextPosts.filter(cp => !existingIds.has(cp.id));
+        
+        // Distribute extra context posts
+        extraFromContext.forEach(cp => {
+            if (cp.replyToId === post.id) {
+                replies.push(cp);
+            } else {
+                // If it's a descendant but not a direct reply, add to thread
+                thread.push(cp);
+            }
+        });
 
         const threadIds = new Set(thread.map(t => t.id));
         const filteredReplies = replies.filter(r => !threadIds.has(r.id));
@@ -61,17 +90,10 @@ export class GetPostThreadUseCase {
         try {
             const fetched = await this.activityPubService.fetchRemoteObjectSigned(post.uri, currentUserId);
             if (fetched) {
-                if (fetched.inReplyTo) {
-                    await this.activityPubService.resolveRemotePost(fetched.inReplyTo, currentUserId);
-                }
-                
-                // Quote support
-                const quoteUri = fetched.quoteUrl || fetched._misskey_quote;
-                if (quoteUri) {
-                    await this.activityPubService.resolveRemotePost(quoteUri, currentUserId);
-                }
+                // This will recursively resolve parents and quotes, and update the current post if needed
+                await this.activityPubService.resolveRemotePost(post.uri, currentUserId, false, fetched);
 
-                // Discovery of replies
+                // Discovery of replies (resolveRemotePost doesn't handle children discovery)
                 if (fetched.replies) {
                     const repliesUrl = typeof fetched.replies === 'string' ? fetched.replies : fetched.replies.first?.id || fetched.replies.id;
                     if (repliesUrl) {

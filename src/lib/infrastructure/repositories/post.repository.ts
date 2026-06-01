@@ -58,6 +58,73 @@ export class PostRepository implements IPostRepository {
         await this.client.update(posts).set({ isDeleted: true }).where(eq(posts.uri, uri));
     }
 
+    async findByContext(context: string, currentUserId?: string): Promise<PostWithUserDTO[]> {
+        const results = await this.client.query.posts.findMany({
+            where: and(eq(posts.context, context), eq(posts.isDeleted, false)),
+            orderBy: [asc(posts.createdAt)],
+            with: {
+                user: {
+                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                },
+                remoteActor: true,
+                attachments: true,
+                reactions: true,
+                replyTo: {
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
+                },
+                repostOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                reposts: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true, userId: true }
+                },
+                replies: {
+                    where: eq(posts.isDeleted, false),
+                    columns: { id: true }
+                },
+                bookmarks: true,
+                linkPreviews: true,
+            },
+        });
+        return this.mapPostsWithStates(results as any, currentUserId);
+    }
+
     async findRepost(userId: string, originalPostId: string): Promise<PostRecord | null> {
         const result = await this.client.query.posts.findFirst({
             where: and(
@@ -83,11 +150,15 @@ export class PostRepository implements IPostRepository {
                     with: { user: { columns: { username: true } } },
                 },
                 replyTo: {
-                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
                 },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -104,7 +175,7 @@ export class PostRepository implements IPostRepository {
                 },
                 quoteOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -173,9 +244,33 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: true,
+                replyTo: {
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
+                },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -246,9 +341,33 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: true,
+                replyTo: {
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
+                },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -448,11 +567,15 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
                 },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -469,7 +592,7 @@ export class PostRepository implements IPostRepository {
                 },
                 quoteOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -524,11 +647,15 @@ export class PostRepository implements IPostRepository {
                 attachments: true,
                 reactions: true,
                 replyTo: {
-                    with: { user: { columns: { username: true } }, remoteActor: true, bookmarks: true },
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
                 },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -545,7 +672,7 @@ export class PostRepository implements IPostRepository {
                 },
                 quoteOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,
@@ -593,9 +720,33 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: true,
+                replyTo: {
+                    with: { 
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
+                        remoteActor: true, 
+                        bookmarks: true 
+                    },
+                },
                 repostOf: {
                     with: {
-                        user: { columns: { username: true, avatar: true } },
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
+                        remoteActor: true,
+                        attachments: true,
+                        reactions: true,
+                        reposts: { 
+                            where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
+                            columns: { id: true, userId: true }
+                        },
+                        replies: { 
+                            where: eq(posts.isDeleted, false),
+                            columns: { id: true }
+                        },
+                        bookmarks: true,
+                    },
+                },
+                quoteOf: {
+                    with: {
+                        user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } },
                         remoteActor: true,
                         attachments: true,
                         reactions: true,

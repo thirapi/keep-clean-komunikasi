@@ -12,6 +12,7 @@ export interface IPostRepository {
     countByUserId(userId: string, filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     countByRemoteActorId(remoteActorId: string | string[], filter?: "threads" | "replies" | "reposts" | "media"): Promise<number>;
     findReplies(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    findByContext(context: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findByUri(uri: string): Promise<PostRecord | null>;
     deleteByUri(uri: string): Promise<void>;
     findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;

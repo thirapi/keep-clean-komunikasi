@@ -7,12 +7,51 @@ import { HttpSignatureService } from "./http-signature.service";
 import { createId } from "@paralleldrive/cuid2";
 
 export class ActivityPubService implements IActivityPubService {
+    private pendingResolutions = new Set<string>();
+
     constructor(
         private userRepository: IUserRepository,
         private followerRepository: IFollowerRepository,
         private postRepository: IPostRepository,
         private remoteActorRepository: IRemoteActorRepository
     ) { }
+
+    private validateRemoteUrl(urlStr: string): boolean {
+        try {
+            const url = new URL(urlStr);
+            if (url.protocol !== 'https:') return false;
+            
+            const hostname = url.hostname.toLowerCase();
+            // SSRF Protection: Block localhost and common private IP ranges
+            const isPrivate = 
+                hostname === 'localhost' || 
+                hostname === '127.0.0.1' || 
+                hostname.startsWith('192.168.') || 
+                hostname.startsWith('10.') || 
+                hostname.startsWith('172.16.') || 
+                hostname.startsWith('172.17.') ||
+                hostname.startsWith('172.18.') ||
+                hostname.startsWith('172.19.') ||
+                hostname.startsWith('172.20.') ||
+                hostname.startsWith('172.21.') ||
+                hostname.startsWith('172.22.') ||
+                hostname.startsWith('172.23.') ||
+                hostname.startsWith('172.24.') ||
+                hostname.startsWith('172.25.') ||
+                hostname.startsWith('172.26.') ||
+                hostname.startsWith('172.27.') ||
+                hostname.startsWith('172.28.') ||
+                hostname.startsWith('172.29.') ||
+                hostname.startsWith('172.30.') ||
+                hostname.startsWith('172.31.') ||
+                hostname.endsWith('.local') ||
+                hostname === '0.0.0.0';
+
+            return !isPrivate;
+        } catch {
+            return false;
+        }
+    }
 
     async createNoteActivity(userId: string, post: any, attachments?: any[]): Promise<any> {
         const user = await this.userRepository.findById(userId);
@@ -360,6 +399,7 @@ export class ActivityPubService implements IActivityPubService {
     }
 
     async fetchRemoteObject(url: string): Promise<any> {
+        if (!this.validateRemoteUrl(url)) return null;
         try {
             const response = await fetch(url, {
                 headers: {
@@ -368,6 +408,12 @@ export class ActivityPubService implements IActivityPubService {
                 }
             });
             if (!response.ok) return null;
+
+            const contentType = response.headers.get("content-type") || "";
+            if (!contentType.includes("json") && !contentType.includes("activity")) {
+                return null;
+            }
+
             return await response.json();
         } catch (err) {
             console.error(`Error fetching remote object ${url}:`, err);
@@ -376,6 +422,8 @@ export class ActivityPubService implements IActivityPubService {
     }
 
     async fetchRemoteObjectSigned(url: string, userId: string): Promise<any> {
+        if (!this.validateRemoteUrl(url)) return null;
+
         const user = await this.userRepository.findById(userId);
         if (!user || !user.privateKey) return this.fetchRemoteObject(url);
 
@@ -407,6 +455,12 @@ export class ActivityPubService implements IActivityPubService {
                 }
             });
             if (!response.ok) return null;
+
+            const contentType = response.headers.get("content-type") || "";
+            if (!contentType.includes("json") && !contentType.includes("activity")) {
+                return null;
+            }
+
             return await response.json();
         } catch (err) {
             console.error(`Error fetching signed remote object ${url}:`, err);
@@ -414,118 +468,175 @@ export class ActivityPubService implements IActivityPubService {
         }
     }
 
-    async resolveRemotePost(uri: string, localUserId: string, forceRefresh = false): Promise<any | null> {
+    async resolveRemotePost(uri: string, localUserId: string, forceRefresh = false, prefetchedObject?: any, depth = 0): Promise<any | null> {
+        if (depth > 10) return null;
+        if (!this.validateRemoteUrl(uri)) return null;
+
         // 1. Universal ID Extractor (Improved)
-        const idRegex = /\/([a-z0-9_-]{20,})$/i;
+        const idRegex = /\/([a-z0-9_-]{10,})$/i;
         const match = uri.match(idRegex);
         
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+        const appDomain = appUrl ? new URL(appUrl).hostname : "";
+
         const isLikelyLocal = uri.includes("localhost") || 
+                              (appDomain && uri.includes(appDomain)) ||
                               uri.includes("komunikasi.qzz.io") || 
                               uri.includes("komunikasi.verdi");
 
         if (match && isLikelyLocal) {
             const postId = match[1];
-            console.log("[ActivityPubService] Self-resolving local ID: " + postId);
-            
             const localPost = await this.postRepository.findById(postId);
             if (localPost) return localPost;
-            
             const byUri = await this.postRepository.findByUri(uri);
             if (byUri) return byUri;
         }
 
         // 2. Robust Resolution & Hydration Strategy
         const existing = await this.postRepository.findByUri(uri);
-        
-        // If it's local and not forced, return immediately
         if (existing && isLikelyLocal && !forceRefresh) return existing;
 
-        // Dereference if missing or if remote post lacks crucial quote metadata (Hydration)
-        const needsHydration = existing && !existing.quoteOfId && !existing.repostOfId && !isLikelyLocal;
+        const isRemoteAndMissingMeta = existing && !existing.userId && (!existing.replyToId || !existing.quoteOfId);
+        const needsHydration = (forceRefresh || (prefetchedObject && !isLikelyLocal) || isRemoteAndMissingMeta);
 
-        if (!existing || needsHydration || forceRefresh) {
-            console.log(`[ActivityPubService] Resolving/Hydrating remote post: ${uri}`);
-            const fetched = await this.fetchRemoteObjectSigned(uri, localUserId);
-            if (!fetched || (fetched.type !== "Note" && fetched.type !== "Page")) return existing;
-
-            const actor = await this.ensureRemoteActor(fetched.attributedTo, localUserId);
-            if (!actor) return existing;
-
-            // Recursive Resolution: Parent Post (Reply)
-            let parentPostId: string | null = null;
-            if (fetched.inReplyTo) {
-                const parent = await this.resolveRemotePost(fetched.inReplyTo, localUserId);
-                if (parent) parentPostId = parent.id;
+        if (!existing || needsHydration) {
+            if (this.pendingResolutions.has(uri) && !prefetchedObject) {
+                return await this.postRepository.findByUri(uri);
             }
 
-            // Recursive Resolution: Quoted Post
-            let quoteOfId: string | null = null;
-            const quoteUri = fetched.quoteUrl || fetched._misskey_quote;
-            if (quoteUri) {
-                console.log("[ActivityPubService] Detected quote metadata for: " + quoteUri);
-                const quoted = await this.resolveRemotePost(quoteUri, localUserId);
-                if (quoted) quoteOfId = quoted.id;
-            }
+            try {
+                if (!prefetchedObject) this.pendingResolutions.add(uri);
 
-            const emojis = this.extractEmojis(fetched.tag);
-            // Context-aware cleaning: Only strip RE: if we successfully resolved a quote
-            const finalContent = this.getCleanContent(fetched, !!quoteOfId);
-            
-            if (existing) {
-                console.log(`[ActivityPubService] Patching existing post with new metadata: ${existing.id}`);
-                return await this.postRepository.update(existing.id, {
-                    content: finalContent,
-                    replyToId: parentPostId || existing.replyToId,
-                    quoteOfId: quoteOfId || existing.quoteOfId,
-                    emojis: emojis as any,
-                    updatedAt: new Date()
-                });
-            } else {
-                const newId = createId();
-                console.log("[ActivityPubService] Saving new remote post with quoteOfId: " + quoteOfId);
-                return await this.postRepository.create({
-                    id: newId,
-                    content: finalContent,
-                    userId: null as any,
-                    remoteActorId: actor.id,
-                    uri: fetched.id,
-                    url: fetched.url,
-                    replyToId: parentPostId,
-                    repostOfId: null,
-                    quoteOfId: quoteOfId,
-                    visibility: "public",
-                    emojis: emojis as any,
-                    isDeleted: false,
-                    createdAt: new Date(fetched.published || Date.now()),
-                    updatedAt: new Date(),
-                });
+                const fetched = prefetchedObject || await this.fetchRemoteObjectSigned(uri, localUserId);
+                if (!fetched || (fetched.type !== "Note" && fetched.type !== "Page" && fetched.type !== "Question")) {
+                    return existing;
+                }
+
+                const actor = await this.ensureRemoteActor(fetched.attributedTo, localUserId);
+                if (!actor) return existing;
+
+                // Recursive Resolution: Parent Post (Reply)
+                let parentPostId: string | null = null;
+                if (fetched.inReplyTo) {
+                    let parentUri: string | null = null;
+                    if (typeof fetched.inReplyTo === 'string') {
+                        parentUri = fetched.inReplyTo;
+                    } else if (Array.isArray(fetched.inReplyTo)) {
+                        const first = fetched.inReplyTo[0];
+                        parentUri = typeof first === 'string' ? first : first?.id;
+                    } else if (fetched.inReplyTo.id) {
+                        parentUri = fetched.inReplyTo.id;
+                    }
+
+                    if (parentUri) {
+                        const parent = await this.resolveRemotePost(parentUri, localUserId, false, null, depth + 1);
+                        if (parent) parentPostId = parent.id;
+                    }
+                }
+
+                // Recursive Resolution: Quoted Post
+                let quoteOfId: string | null = null;
+                let quoteUri = fetched.quoteUrl || fetched._misskey_quote;
+
+                if (!quoteUri && Array.isArray(fetched.tag)) {
+                    const quoteTag = fetched.tag.find((t: any) => 
+                        (t.type === 'Mention' || t.type === 'Link') && 
+                        (t.mediaType === 'application/activity+json' || t.rel === 'quote')
+                    );
+                    if (quoteTag) quoteUri = quoteTag.href;
+                }
+
+                if (!quoteUri && fetched.quoteOf) {
+                    quoteUri = typeof fetched.quoteOf === 'string' ? fetched.quoteOf : fetched.quoteOf.id;
+                }
+
+                if (quoteUri) {
+                    const quoted = await this.resolveRemotePost(quoteUri, localUserId, false, null, depth + 1);
+                    if (quoted) quoteOfId = quoted.id;
+                }
+
+                // Robust tag and attachment parsing
+                const tags = Array.isArray(fetched.tag) ? fetched.tag : (fetched.tag ? [fetched.tag] : []);
+                const emojis = this.extractEmojis(tags);
+                const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
+                const context = fetched.context || fetched.conversation;
+
+                if (existing) {
+                    const hasNewMeta = (parentPostId && !existing.replyToId) || (quoteOfId && !existing.quoteOfId) || (context && !existing.context);
+                    const contentChanged = finalContent !== existing.content;
+                    
+                    if (hasNewMeta || contentChanged || forceRefresh || prefetchedObject) {
+                        return await this.postRepository.update(existing.id, {
+                            content: finalContent || existing.content,
+                            replyToId: parentPostId || existing.replyToId,
+                            quoteOfId: quoteOfId || existing.quoteOfId,
+                            context: context || existing.context,
+                            emojis: emojis as any || existing.emojis,
+                            apMetadata: {
+                                originalTags: tags,
+                                isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote
+                            } as any,
+                            updatedAt: new Date()
+                        });
+                    }
+                    return existing;
+                } else {
+                    const newId = createId();
+                    return await this.postRepository.create({
+                        id: newId,
+                        content: finalContent,
+                        userId: null as any,
+                        remoteActorId: actor.id,
+                        uri: fetched.id,
+                        url: fetched.url,
+                        replyToId: parentPostId,
+                        repostOfId: null,
+                        quoteOfId: quoteOfId,
+                        context: context,
+                        visibility: "public",
+                        emojis: emojis as any,
+                        apMetadata: {
+                            originalTags: tags
+                        } as any,
+                        isDeleted: false,
+                        createdAt: new Date(fetched.published || Date.now()),
+                        updatedAt: new Date(),
+                    });
+                }
+            } finally {
+                this.pendingResolutions.delete(uri);
             }
         }
 
         return existing;
     }
 
-    private getCleanContent(object: any, hasQuote: boolean = false): string {
+    private getCleanContent(object: any, isLinked: boolean = false): string {
         // 1. Priority: Misskey-specific clean field
         if (object._misskey_content) return object._misskey_content;
 
         // 2. Agnostic stripping of redundant reply/quote indicators
         let content = object.summary || object.content || "";
 
-        // Only strip RE: markers if we actually have the quote metadata resolved
-        // This prevents data loss if we can't find the quoted post
-        if (hasQuote) {
-            const wrappers = [
-                /<span class="quote-inline">RE:.*?<\/span>/gi,
-                /<p>RE:.*?<\/p>/gi,
-                /<blockquote>RE:.*?<\/blockquote>/gi,
-                /RE:\s*https?:\/\/\S+/gi
-            ];
-            
-            wrappers.forEach(regex => {
-                content = content.replace(regex, "");
-            });
-        }
+        // Standard Fediverse fallback patterns for Quotes/Replies
+        // We use 'gs' for global and single-line (to treat entire content as one line for .)
+        const wrappers = [
+            /<span class="quote-inline">RE:.*?<\/span>/gis,
+            /<p>RE:.*?<\/p>/gis,
+            /<blockquote>RE:.*?<\/blockquote>/gis,
+            /RE:\s*<a[^>]*>https?:\/\/\S+<\/a>/gis,
+            /RE:\s*https?:\/\/\S+/gi,
+            // Multiline "RE: " at the start or end of content
+            /^\s*RE:\s*https?:\/\/\S+/gim,
+            /^\s*RE:\s+/gim,
+            // Even more aggressive for Misskey/Mastodon variations
+            /<a[^>]*>RE: https?:\/\/\S+<\/a>/gis,
+            /RE:\s*<a[^>]*>.*?<\/a>/gis
+        ];
+        
+        wrappers.forEach(regex => {
+            content = content.replace(regex, "");
+        });
 
         // Clean up remaining dangling breaks or whitespace
         content = content.replace(/^(?:<br\s*\/?>\s*)+|(?:<br\s*\/?>\s*)+$/gi, "").trim();
@@ -545,6 +656,7 @@ export class ActivityPubService implements IActivityPubService {
     }
 
     private async ensureRemoteActor(actorUrl: string, localUserIdForSignedFetch?: string) {
+        if (!this.validateRemoteUrl(actorUrl)) return null;
         const existing = await this.remoteActorRepository.findById(actorUrl);
         if (existing) return existing;
 
@@ -555,12 +667,11 @@ export class ActivityPubService implements IActivityPubService {
             senderActorData = await this.fetchRemoteObject(actorUrl);
         }
 
-        if (!senderActorData || !senderActorData.inbox) {
-            return null;
-        }
+        if (!senderActorData || !senderActorData.inbox) return null;
 
         const domain = new URL(actorUrl).hostname;
-        const emojis = this.extractEmojis(senderActorData.tag);
+        const tags = Array.isArray(senderActorData.tag) ? senderActorData.tag : (senderActorData.tag ? [senderActorData.tag] : []);
+        const emojis = this.extractEmojis(tags);
 
         await this.remoteActorRepository.upsert({
             id: actorUrl,
@@ -590,7 +701,6 @@ export class ActivityPubService implements IActivityPubService {
         const url = new URL(inboxUrl);
         const digest = HttpSignatureService.createDigest(body);
         const date = new Date().toUTCString();
-
         const target = url.pathname + url.search;
 
         const headers: Record<string, string> = {
@@ -613,17 +723,11 @@ export class ActivityPubService implements IActivityPubService {
         try {
             const response = await fetch(inboxUrl, {
                 method: "POST",
-                headers: {
-                    ...headers,
-                    "Signature": signature,
-                },
+                headers: { ...headers, "Signature": signature },
                 body: body
             });
-
             if (!response.ok) {
                 console.error(`Failed to deliver to ${inboxUrl}: ${response.status} ${await response.text()}`);
-            } else {
-                console.log(`Successfully delivered to ${inboxUrl}`);
             }
         } catch (err) {
             console.error(`Error delivering to ${inboxUrl}:`, err);

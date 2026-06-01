@@ -11,6 +11,11 @@ export interface PostRecord {
     replyToId?: string | null;
     repostOfId?: string | null;
     quoteOfId?: string | null;
+    context?: string | null;
+    apMetadata?: {
+        originalTags?: any[];
+        isFepE232Quote?: boolean;
+    } | null;
     visibility: "public" | "unlisted" | "private";
     emojis?: { name: string; url: string }[] | null;
     isDeleted: boolean;

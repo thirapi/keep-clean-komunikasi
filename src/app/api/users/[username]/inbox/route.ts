@@ -288,9 +288,9 @@ async function handleCreate(userId: string, username: string, activity: any) {
     const object = activity.object;
     if (!object || object.type !== "Note") return NextResponse.json({ status: "ignored" }, { status: 202 });
 
-    // Use unified resolution logic from ActivityPubService
+// Use unified resolution logic from ActivityPubService with prefetched object
     try {
-        const post = await activityPubService.resolveRemotePost(object.id, userId);
+        const post = await activityPubService.resolveRemotePost(object.id, userId, false, object);
         
         if (post) {
             // Notification logic (only if it's a new association established)
@@ -359,8 +359,9 @@ async function handleAnnounce(userId: string, username: string, activity: any) {
         const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
-        // Use resolveRemotePost to ensure full thread context for the announced post
-        const originalPost = await activityPubService.resolveRemotePost(objectUri, userId);
+        // Use resolveRemotePost with prefetched object if available
+        const prefetchedObject = typeof activity.object === 'object' ? activity.object : undefined;
+        const originalPost = await activityPubService.resolveRemotePost(objectUri, userId, false, prefetchedObject);
 
         if (originalPost) {
             // Avoid duplicate reposts
@@ -401,9 +402,12 @@ async function handleAnnounce(userId: string, username: string, activity: any) {
                     remoteActorId: actor.id
                 });
             }
+            
+            return NextResponse.json({ status: "announced" }, { status: 202 });
+        } else {
+            console.warn("[Inbox] Could not resolve original post for Announce: " + objectUri);
+            return NextResponse.json({ error: "Could not resolve original post" }, { status: 404 });
         }
-
-        return NextResponse.json({ status: "announced" }, { status: 202 });
     } catch (err) {
         console.error("Error handling Announce activity:", err);
         return NextResponse.json({ error: "Internal error but acknowledged" }, { status: 202 });
