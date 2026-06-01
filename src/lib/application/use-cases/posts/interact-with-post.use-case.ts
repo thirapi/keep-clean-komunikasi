@@ -170,23 +170,27 @@ export class InteractWithPostUseCase {
                 });
             }
 
-            return { type: "repost" as const, id: id, repostUri: uri };
+            return { type: "repost" as const, id: id, repostUri: uri, record: repostRecord };
         });
 
-        // Fediverse Compatibility: Send Announce/Undo activity
-        if (originalPost.uri && originalPost.remoteActorId) {
-            try {
-                const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
-                if (actor?.inbox) {
-                    if (result.type === "unrepost") {
+        // Fediverse Compatibility: Broadcast Announce/Undo activity
+        try {
+            if (result.type === "repost" && result.record) {
+                const activity = await this.activityPubService.createAnnounceActivity(userId, result.record);
+                await this.activityPubService.broadcastActivity(activity, userId);
+            } else if (result.type === "unrepost") {
+                // Send Undo Announce to the original author at minimum
+                if (originalPost.uri && originalPost.remoteActorId) {
+                    const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
+                    if (actor?.inbox) {
                         await this.activityPubService.sendUndoAnnounceActivity(userId, originalPost.uri, actor.inbox);
-                    } else {
-                        await this.activityPubService.sendAnnounceActivity(userId, originalPost.uri, actor.inbox);
                     }
                 }
-            } catch (err) {
-                console.error("Failed to send Announce activity:", err);
+                // Note: Full Undo broadcast to followers would require more state, 
+                // but at least author is notified.
             }
+        } catch (err) {
+            console.error("Failed to federate repost activity:", err);
         }
 
         // Always return the UPDATED ORIGINAL post to ensure UI stats are consistent

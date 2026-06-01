@@ -53,6 +53,30 @@ export class ActivityPubService implements IActivityPubService {
         }
     }
 
+    async createAnnounceActivity(userId: string, post: any): Promise<any> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new Error("User not found");
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        if (!post.repostOfId) throw new Error("Post is not a repost");
+
+        const originalPost = await this.postRepository.findById(post.repostOfId);
+        if (!originalPost || !originalPost.uri) throw new Error("Original post not found or has no URI");
+
+        return {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": `${post.uri}/activity`,
+            "type": "Announce",
+            "actor": actorUri,
+            "published": post.createdAt.toISOString(),
+            "to": ["https://www.w3.org/ns/activitystreams#Public"],
+            "cc": [`${actorUri}/followers`],
+            "object": originalPost.uri
+        };
+    }
+
     async createNoteActivity(userId: string, post: any, attachments?: any[]): Promise<any> {
         const user = await this.userRepository.findById(userId);
         if (!user) throw new Error("User not found");
@@ -183,6 +207,21 @@ export class ActivityPubService implements IActivityPubService {
                 }
             } catch (err) {
                 console.error("Error resolving target inbox for quote delivery:", err);
+            }
+        }
+        
+        // 4. If it's an Announce (Repost), notify the original author
+        if (activity.type === "Announce" && typeof activity.object === 'string') {
+            try {
+                const originalPost = await this.postRepository.findByUri(activity.object);
+                if (originalPost && originalPost.remoteActorId) {
+                    const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
+                    if (actor?.inbox) {
+                        remoteInboxes.add(actor.inbox);
+                    }
+                }
+            } catch (err) {
+                console.error("Error resolving target inbox for announce delivery:", err);
             }
         }
         
@@ -557,7 +596,18 @@ export class ActivityPubService implements IActivityPubService {
 
                 // Robust tag and attachment parsing
                 const tags = Array.isArray(fetched.tag) ? fetched.tag : (fetched.tag ? [fetched.tag] : []);
+                const apAttachments = Array.isArray(fetched.attachment) ? fetched.attachment : (fetched.attachment ? [fetched.attachment] : []);
+                
                 const emojis = this.extractEmojis(tags);
+                const attachments = apAttachments
+                    .filter((a: any) => a.url)
+                    .map((a: any) => ({
+                        url: typeof a.url === 'string' ? a.url : a.url.href,
+                        key: a.name || createId(),
+                        fileType: a.mediaType || "application/octet-stream",
+                        size: a.size
+                    }));
+
                 const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
                 const context = fetched.context || fetched.conversation;
 
@@ -601,7 +651,7 @@ export class ActivityPubService implements IActivityPubService {
                         isDeleted: false,
                         createdAt: new Date(fetched.published || Date.now()),
                         updatedAt: new Date(),
-                    });
+                    }, attachments);
                 }
             } finally {
                 this.pendingResolutions.delete(uri);

@@ -60,7 +60,15 @@ export class CreatePostUseCase {
 
         // Fediverse Compatibility: Broadcast activity
         try {
-            const activity = await this.activityPubService.createNoteActivity(userId, postRecord, attachments);
+            const isPureRepost = !!repostOfId && !content && !attachments?.length;
+            let activity;
+            
+            if (isPureRepost) {
+                activity = await this.activityPubService.createAnnounceActivity(userId, postRecord);
+            } else {
+                activity = await this.activityPubService.createNoteActivity(userId, postRecord, attachments);
+            }
+            
             await this.activityPubService.broadcastActivity(activity, userId);
         } catch (err) {
             console.error("Failed to broadcast ActivityPub activity:", err);
