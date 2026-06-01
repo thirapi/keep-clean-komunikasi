@@ -294,7 +294,7 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
         <div
             ref={containerRef}
             className={cn(
-                "p-4 border-b border-border transition-all duration-300 bg-card/40 relative",
+                "p-4 border-b border-border transition-all duration-300 relative",
                 isExpanded ? "pb-6 z-50" : "pb-4"
             )}
         >
@@ -315,7 +315,7 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                 <div className="flex items-center gap-3 w-full">
                                     <div
                                         onClick={() => setIsExpanded(true)}
-                                        className="h-11 flex-1 flex items-center text-muted-foreground cursor-text hover:bg-accent/50 px-4 rounded-full border border-border bg-accent/20 transition-all"
+                                        className="h-11 flex-1 flex items-center text-muted-foreground cursor-text hover:bg-accent/50 px-4 rounded-full border border-border transition-all"
                                     >
                                         Apa yang Anda pikirkan?
                                     </div>
@@ -342,7 +342,6 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                             className="min-h-[100px] bg-transparent border-0 focus-visible:ring-0 text-foreground placeholder:text-muted-foreground/60 p-0 text-xl resize-none"
                                             autoFocus={index === thread.length - 1}
                                             currentUserId={currentUser.id}
-                                            draftKey={index === 0 ? "global-post" : undefined}
                                         />
                                         {thread.length > 1 && (
                                             <button

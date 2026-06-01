@@ -295,8 +295,9 @@ export function PostItem({
     return (
         <div 
             onClick={() => router.push(`/posts/${post.id}`)} 
-            className="flex flex-col border-b border-border/50 hover:bg-white/[0.02] transition-colors relative cursor-pointer select-none"
+            className="flex flex-col border-b border-border/50 hover:bg-muted/10 transition-colors relative cursor-pointer select-none"
         >
+
             {showConnector && (
                 <div className={cn("absolute w-[2px] bg-border z-0", lineX, isFirstInChain ? "top-[56px] bottom-0" : isLastInChain ? "top-0 h-[36px]" : "top-0 bottom-0")} />
             )}

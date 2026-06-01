@@ -178,11 +178,11 @@ export default function TimelineView({
                                     variant="ghost"
                                     size="icon"
                                     asChild
-                                    className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
+                                    className="mr-1 -ml-2 -my-2 h-10 w-10 text-foreground rounded-full hover:bg-accent transition-colors duration-200 flex-shrink-0"
                                     aria-label="Back to channels"
                                 >
                                     <Link href="/channels/default">
-                                        <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                        <ChevronLeft className="h-6 w-6" />
                                     </Link>
                                 </Button>
                             </div>
@@ -208,7 +208,7 @@ export default function TimelineView({
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex w-full">
+                        <div className="flex w-full border-b border-border">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
