@@ -118,8 +118,12 @@ export function PostHeader({
                         {formatDistanceToNow(createdAt, { addSuffix: true, locale: id })}
                     </span>
                     {user.isRemote && (
-                        <span className="px-1 py-0.5 bg-muted rounded text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                            Remote
+                        <span 
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[10px] font-medium text-zinc-700 dark:text-zinc-300"
+                        title="Post dari instance lain (Fediverse)"
+                        >
+                        <span className="text-base leading-none opacity-70">⁂</span>
+                        Remote
                         </span>
                     )}
                 </div>
