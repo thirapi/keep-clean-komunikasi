@@ -11,6 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
+  const accept = request.headers.get("accept") || "";
+
+  // Content Negotiation: If not an ActivityPub request, redirect to UI
+  if (!accept.includes("application/activity+json") && !accept.includes("application/ld+json")) {
+    return NextResponse.redirect(new URL(`/profile/${username}`, request.url));
+  }
 
   try {
     const actor = await getActorProfileController(username);

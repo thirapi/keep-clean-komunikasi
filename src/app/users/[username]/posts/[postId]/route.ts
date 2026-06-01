@@ -9,18 +9,22 @@ export async function GET(
     { params }: { params: Promise<{ username: string, postId: string }> }
 ) {
     const { postId } = await params;
-    const postRepository = new PostRepository(db);
+    const accept = request.headers.get("accept") || "";
+    
+    // Content Negotiation: If not an ActivityPub request, redirect to UI
+    if (!accept.includes("application/activity+json") && !accept.includes("application/ld+json")) {
+        return NextResponse.redirect(new URL(`/posts/${postId}`, request.url));
+    }
 
-    const post = await postRepository.findById(postId);
+    const postRepository = new PostRepository(db);
+    const post = await postRepository.findByIdWithDetails(postId);
 
     if (!post || post.isDeleted) {
         return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
-    const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, post.userId!),
-    });
+    const user = post.user;
 
     if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -28,8 +32,16 @@ export async function GET(
 
     const actorId = `${baseUrl}/api/users/${user.username}`;
 
+    // Map attachments to ActivityStreams Document objects
+    const apAttachments = post.attachments?.map(a => ({
+        type: "Document",
+        mediaType: a.fileType,
+        url: a.url,
+        name: "Attachment"
+    })) || [];
+
     // Return the Note object for ActivityPub
-    return NextResponse.json({
+    const note: any = {
         "@context": [
             "https://www.w3.org/ns/activitystreams",
             "https://w3id.org/security/v1"
@@ -42,8 +54,19 @@ export async function GET(
         "url": post.url,
         "to": ["https://www.w3.org/ns/activitystreams#Public"],
         "cc": [`${actorId}/followers`],
-        "attachment": [] // We could add attachments here if needed
-    }, {
+        "attachment": apAttachments
+    };
+
+    // Handle quote metadata for outgoing JSON
+    if (post.quoteOfId) {
+        const quotedPost = await postRepository.findById(post.quoteOfId);
+        if (quotedPost && quotedPost.uri) {
+            note.quoteUrl = quotedPost.uri;
+            note._misskey_quote = quotedPost.uri;
+        }
+    }
+
+    return NextResponse.json(note, {
         headers: {
             "Content-Type": "application/activity+json"
         }
