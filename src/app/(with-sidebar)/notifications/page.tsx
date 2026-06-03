@@ -4,7 +4,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import Link from "next/link";
-import { Heart, MessageSquare, Repeat, UserPlus, Bell, Inbox } from "lucide-react";
+import { Heart, MessageSquare, Repeat, UserPlus, Bell, Inbox, Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default async function NotificationsPage() {
@@ -55,6 +55,7 @@ function NotificationItem({ notification }: { notification: any }) {
     
     const iconMap = {
         like: <Heart className="size-3.5 text-rose-500 fill-rose-500" />,
+        reaction: <span className="text-xs">{notification.emoji || <Smile className="size-3.5 text-amber-500" />}</span>,
         reply: <MessageSquare className="size-3.5 text-primary fill-primary" />,
         repost: <Repeat className="size-3.5 text-emerald-500" />,
         follow: <UserPlus className="size-3.5 text-sky-500" />,
@@ -63,6 +64,7 @@ function NotificationItem({ notification }: { notification: any }) {
 
     const textMap = {
         like: "menyukai postinganmu",
+        reaction: `bereaksi ${notification.emoji || ""} pada postinganmu`,
         reply: "membalas postinganmu",
         repost: "membagikan ulang postinganmu",
         follow: "mulai mengikutimu",

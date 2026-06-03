@@ -437,6 +437,64 @@ export class ActivityPubService implements IActivityPubService {
         });
     }
 
+    async sendEmojiReactionActivity(userId: string, targetPostUri: string, targetActorInbox: string, emoji: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.privateKey) return;
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const reactionActivity = {
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                {
+                    "EmojiReact": "https://purl.org/fep/e232/EmojiReact"
+                }
+            ],
+            "id": `${actorUri}#reaction-${Date.now()}-${createId()}`,
+            "type": "EmojiReact",
+            "actor": actorUri,
+            "content": emoji,
+            "object": targetPostUri
+        };
+
+        await this.deliverToRemoteInbox(targetActorInbox, reactionActivity, {
+            username: user.username,
+            privateKey: user.privateKey
+        });
+    }
+
+    async sendUndoEmojiReactionActivity(userId: string, targetPostUri: string, targetActorInbox: string, emoji: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.privateKey) return;
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const undoActivity = {
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                {
+                    "EmojiReact": "https://purl.org/fep/e232/EmojiReact"
+                }
+            ],
+            "id": `${actorUri}#undo-reaction-${Date.now()}-${createId()}`,
+            "type": "Undo",
+            "actor": actorUri,
+            "object": {
+                "type": "EmojiReact",
+                "actor": actorUri,
+                "content": emoji,
+                "object": targetPostUri
+            }
+        };
+
+        await this.deliverToRemoteInbox(targetActorInbox, undoActivity, {
+            username: user.username,
+            privateKey: user.privateKey
+        });
+    }
+
     async fetchRemoteObject(url: string): Promise<any> {
         if (!this.validateRemoteUrl(url)) return null;
         try {

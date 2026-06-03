@@ -10,11 +10,13 @@ import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
-import { toggleLikeAction, repostAction, deletePostAction, toggleBookmarkAction } from "@/app/posts.action";
+import { ServerResponse } from "@/lib/entities/models/response.model";
+import { toggleLikeAction, toggleReactionAction, repostAction, deletePostAction, toggleBookmarkAction } from "@/app/posts.action";
 import { extractUrls } from "@/lib/extract-urls";
 
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { PostReactions } from "./post/post-reactions";
 import { 
     AlertDialog, 
     AlertDialogAction, 
@@ -179,7 +181,7 @@ export function PostItem({
 
     const deleteMutation = useMutation({
         mutationFn: () => deletePostAction(post.id, currentUserId!),
-        onSuccess: (res) => {
+        onSuccess: (res: ServerResponse<void>) => {
             if (res.status === "success") {
                 toast.success("Postingan dihapus");
                 setIsDeleteDialogOpen(false);
@@ -198,13 +200,66 @@ export function PostItem({
                 isBookmarkedByCurrentUser: !old.isBookmarkedByCurrentUser
             }));
         },
-        onSuccess: (res) => {
+        onSuccess: (res: ServerResponse<PostWithUserDTO | null>) => {
             if (res.status === "success" && res.data) {
                 updatePostInCache(targetPost.id, () => res.data!);
                 toast.success(res.data?.isBookmarkedByCurrentUser ? "Disimpan ke bookmark" : "Dihapus dari bookmark");
             }
         }
     });
+
+    const reactionMutation = useMutation({
+        mutationFn: (emoji: string) => toggleReactionAction(targetPost.id, currentUserId!, emoji),
+        onMutate: async (emoji) => {
+            updatePostInCache(targetPost.id, (old) => {
+                const hasReacted = old.reactions?.some(r => r.userId === currentUserId && r.emoji === emoji);
+                return {
+                    ...old,
+                    reactions: hasReacted
+                        ? (old.reactions || []).filter(r => !(r.userId === currentUserId && r.emoji === emoji))
+                        : [...(old.reactions || []), { 
+                            id: `temp-${Date.now()}`, 
+                            postId: old.id, 
+                            userId: currentUserId!, 
+                            emoji, 
+                            createdAt: new Date(), 
+                            updatedAt: new Date(), 
+                            user: { username: currentUser?.username || "me" } 
+                        } as any],
+                    isLikedByCurrentUser: emoji === "❤️" ? !old.isLikedByCurrentUser : old.isLikedByCurrentUser
+                };
+            });
+        },
+        onError: () => toast.error("Gagal menanggapi postingan"),
+        onSuccess: (res: ServerResponse<PostWithUserDTO | null>) => { 
+            if (res.status === "success" && res.data) {
+                updatePostInCache(targetPost.id, () => res.data!);
+            } 
+        }
+    });
+
+    const groupedReactions = useMemo(() => {
+        const groups: Record<string, { emoji: string; count: number; users: string[]; hasReacted: boolean }> = {};
+
+        (targetPost.reactions || []).forEach((r) => {
+            if (r.emoji === "❤️") return; // Keep heart for Like button only
+            if (!groups[r.emoji]) {
+                groups[r.emoji] = { emoji: r.emoji, count: 0, users: [], hasReacted: false };
+            }
+            groups[r.emoji].count++;
+            const displayName = r.userId === currentUserId ? "Anda" : (r.user?.username || "Seseorang");
+            groups[r.emoji].users.push(displayName);
+            if (r.userId === currentUserId) {
+                groups[r.emoji].hasReacted = true;
+            }
+        });
+
+        Object.values(groups).forEach(g => {
+            g.users.sort((a, b) => (a === "Anda" ? -1 : b === "Anda" ? 1 : 0));
+        });
+
+        return Object.values(groups);
+    }, [targetPost.reactions, currentUserId]);
 
     const hasLiked = !!targetPost.isLikedByCurrentUser;
     const likeCount = useMemo(() => {
@@ -277,6 +332,11 @@ export function PostItem({
                     className="my-0"
                 />
 
+                <PostReactions 
+                    reactions={groupedReactions} 
+                    onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
+                />
+
                 <PostActions 
                     isFocused
                     isLiked={hasLiked}
@@ -288,6 +348,7 @@ export function PostItem({
                     onQuote={() => setIsQuoteOpen(true)}
                     onBookmark={() => bookmarkMutation.mutate()}
                     onShare={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
+                    onReactionSelect={(emoji) => reactionMutation.mutate(emoji)}
                 />
 
                 {renderModals()}
@@ -375,6 +436,11 @@ export function PostItem({
                         <QuotePreview post={(post.repostOf || post.quoteOf)!} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
                     )}
 
+                    <PostReactions 
+                        reactions={groupedReactions} 
+                        onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
+                    />
+
                     <PostActions 
                         replyCount={targetPost.replyCount}
                         repostCount={targetPost.repostCount}
@@ -388,6 +454,7 @@ export function PostItem({
                         onQuote={() => setIsQuoteOpen(true)}
                         onBookmark={() => bookmarkMutation.mutate()}
                         onShare={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
+                        onReactionSelect={(emoji) => reactionMutation.mutate(emoji)}
                     />
                 </div>
             </div>

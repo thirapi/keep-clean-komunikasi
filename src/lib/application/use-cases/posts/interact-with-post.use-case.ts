@@ -19,12 +19,16 @@ export class InteractWithPostUseCase {
     ) { }
 
     async toggleLike(postId: string, userId: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
+        return this.toggleReaction(postId, userId, "❤️", optimisticId);
+    }
+
+    async toggleReaction(postId: string, userId: string, emoji: string, optimisticId?: string): Promise<PostWithUserDTO | null> {
         if (!userId) throw new Error("User ID is required for local interactions");
 
         const post = await this.postRepository.findByIdWithDetails(postId);
         if (!post) throw new Error("Post not found");
 
-        const hasLiked = post.reactions?.some(r => r.userId === userId && r.emoji === "❤️");
+        const hasReacted = post.reactions?.some(r => r.userId === userId && r.emoji === emoji);
 
         await db.transaction(async (tx) => {
             const postReactionsTable = (await import("@/lib/infrastructure/drizzle/schema")).postReactions;
@@ -33,7 +37,7 @@ export class InteractWithPostUseCase {
                 where: and(
                     eq(postReactionsTable.postId, postId),
                     eq(postReactionsTable.userId, userId),
-                    eq(postReactionsTable.emoji, "❤️")
+                    eq(postReactionsTable.emoji, emoji)
                 )
             });
 
@@ -42,7 +46,7 @@ export class InteractWithPostUseCase {
                     and(
                         eq(postReactionsTable.postId, postId),
                         eq(postReactionsTable.userId, userId),
-                        eq(postReactionsTable.emoji, "❤️")
+                        eq(postReactionsTable.emoji, emoji)
                     )
                 );
             } else {
@@ -50,17 +54,19 @@ export class InteractWithPostUseCase {
                     id: createId(),
                     postId,
                     userId,
-                    emoji: "❤️"
+                    emoji
                 }).onConflictDoNothing();
 
                 // Notification: Only if the recipient is a local user and not the actor
                 if (post.userId && post.userId !== userId) {
                     const notificationId = createId();
+                    const type = emoji === "❤️" ? "like" : "reaction";
                     await tx.insert((await import("@/lib/infrastructure/drizzle/schema")).notifications).values({
                         id: notificationId,
                         recipientId: post.userId,
                         actorId: userId,
-                        type: "like",
+                        type,
+                        emoji,
                         targetId: postId,
                         targetType: "post",
                         isRead: false,
@@ -70,26 +76,35 @@ export class InteractWithPostUseCase {
                     // Trigger Pusher
                     await this.pusherService.trigger(`user-${post.userId}`, "new-notification", {
                         id: notificationId,
-                        type: "like",
-                        actorId: userId
+                        type,
+                        actorId: userId,
+                        emoji // Include emoji in pusher data for frontend display if needed
                     });
                 }
             }
         });
 
-        // Fediverse Compatibility: Send Like/Undo activity
+        // Fediverse Compatibility: Send Reaction/Undo activity
         if (post.uri && post.remoteActorId) {
             try {
                 const actor = await this.remoteActorRepository.findById(post.remoteActorId);
                 if (actor?.inbox) {
-                    if (hasLiked) {
-                        await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox);
+                    if (emoji === "❤️") {
+                        if (hasReacted) {
+                            await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox);
+                        } else {
+                            await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
+                        }
                     } else {
-                        await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
+                        if (hasReacted) {
+                            await this.activityPubService.sendUndoEmojiReactionActivity(userId, post.uri, actor.inbox, emoji);
+                        } else {
+                            await this.activityPubService.sendEmojiReactionActivity(userId, post.uri, actor.inbox, emoji);
+                        }
                     }
                 }
             } catch (err) {
-                console.error("Failed to send Like activity:", err);
+                console.error("Failed to send interaction activity:", err);
             }
         }
 

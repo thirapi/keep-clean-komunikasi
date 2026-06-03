@@ -380,7 +380,8 @@ export const notifications = pgTable("Notification", {
     actorId: text("actorId").references(() => users.id), // Nullable for remote/system
     remoteActorId: text("remoteActorId").references(() => remoteActors.id),
     
-    type: text("type").notNull(), // 'like', 'repost', 'reply', 'mention', 'follow', 'quote'
+    type: text("type").notNull(), // 'like', 'repost', 'reply', 'mention', 'follow', 'quote', 'reaction'
+    emoji: text("emoji"), // For emoji reactions
     
     targetId: text("targetId"), // Post ID, Message ID, etc.
     targetType: text("targetType"), // 'post', 'message', 'user'

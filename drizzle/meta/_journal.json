@@ -134,6 +134,13 @@
       "when": 1780481824682,
       "tag": "0018_aromatic_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780504967522,
+      "tag": "0019_add_emoji_to_notifications",
+      "breakpoints": true
     }
   ]
 }

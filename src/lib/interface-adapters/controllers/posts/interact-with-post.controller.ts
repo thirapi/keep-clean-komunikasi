@@ -28,6 +28,10 @@ export const toggleLikeController = async (userId: string, postId: string, optim
     return await interactWithPostUseCase.toggleLike(postId, userId, optimisticId);
 };
 
+export const toggleReactionController = async (userId: string, postId: string, emoji: string, optimisticId?: string) => {
+    return await interactWithPostUseCase.toggleReaction(postId, userId, emoji, optimisticId);
+};
+
 export const repostController = async (userId: string, originalPostId: string, optimisticId?: string) => {
     return await interactWithPostUseCase.repost(userId, originalPostId, optimisticId);
 };

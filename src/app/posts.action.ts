@@ -5,14 +5,29 @@ import { getProfileFeedController, getProfileFeedCountController } from "@/lib/i
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 
-import { toggleLikeController, repostController } from "@/lib/interface-adapters/controllers/posts/interact-with-post.controller";
+import { toggleLikeController, toggleReactionController, repostController } from "@/lib/interface-adapters/controllers/posts/interact-with-post.controller";
 import { toggleBookmarkController, getBookmarkedPostsController } from "@/lib/interface-adapters/controllers/posts/bookmark.controller";
 
 import { getPostThreadController } from "@/lib/interface-adapters/controllers/posts/get-post-thread.controller";
 
 // ... (existing actions)
 
-export async function toggleBookmarkAction(postId: string, userId: string): Promise<ServerResponse<PostWithUserDTO>> {
+export async function toggleReactionAction(postId: string, userId: string, emoji: string, optimisticId?: string): Promise<ServerResponse<PostWithUserDTO | null>> {
+    if (!userId) {
+        return { status: "error", data: null, error: { message: "Unauthorized", type: "AuthError" } };
+    }
+    try {
+        const post = await toggleReactionController(userId, postId, emoji, optimisticId);
+        return { status: "success", data: post, error: null };
+    } catch (error: any) {
+        return { status: "error", data: null, error: { message: error.message, type: error.constructor.name } };
+    }
+}
+
+export async function toggleBookmarkAction(postId: string, userId: string): Promise<ServerResponse<PostWithUserDTO | null>> {
+    if (!userId) {
+        return { status: "error", data: null, error: { message: "Unauthorized", type: "AuthError" } };
+    }
     try {
         const post = await toggleBookmarkController(userId, postId);
         return { status: "success", data: post, error: null };

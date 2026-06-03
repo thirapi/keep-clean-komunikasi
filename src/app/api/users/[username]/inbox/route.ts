@@ -105,6 +105,8 @@ export async function POST(
             return handleCreate(user.id, username, body);
         case "Like":
             return handleLike(user.id, username, body);
+        case "EmojiReact":
+            return handleEmojiReact(user.id, username, body);
         case "Accept":
             return handleAccept(user.id, username, body);
         case "Delete":
@@ -114,6 +116,55 @@ export async function POST(
         default:
             return NextResponse.json({ status: "ignored" }, { status: 202 });
     }
+}
+
+async function handleEmojiReact(userId: string, username: string, activity: any) {
+    const objectUri = typeof activity.object === 'string' ? activity.object : activity.object?.id;
+    const emoji = activity.content;
+    
+    if (!objectUri || !emoji) return NextResponse.json({ status: "ignored" }, { status: 202 });
+
+    const post = await postRepository.findByUri(objectUri);
+    if (!post) {
+        console.log("[Inbox] EmojiReact received for unknown post: " + objectUri);
+        return NextResponse.json({ status: "ignored" }, { status: 202 });
+    }
+
+    try {
+        const actor = await ensureRemoteActor(activity.actor, userId);
+        if (!actor) throw new Error("Could not ensure remote actor");
+
+        console.log("[Inbox] Post " + post.id + " reacted with " + emoji + " by remote actor " + actor.id);
+        await postRepository.addReaction(post.id, null, emoji, actor.id);
+
+        // Notification: Remote reaction
+        if (post.userId) {
+            const notificationId = createId();
+            await notificationRepository.create({
+                id: notificationId,
+                recipientId: post.userId,
+                remoteActorId: actor.id,
+                type: "reaction",
+                emoji,
+                targetId: post.id,
+                targetType: "post",
+                isRead: false,
+                createdAt: new Date()
+            });
+
+            // Trigger Pusher
+            await pusherService.trigger(`user-${post.userId}`, "new-notification", {
+                id: notificationId,
+                type: "reaction",
+                remoteActorId: actor.id,
+                emoji
+            });
+        }
+    } catch (err) {
+        console.error("Error handling EmojiReact activity:", err);
+    }
+
+    return NextResponse.json({ status: "received" }, { status: 202 });
 }
 
 function extractEmojis(tag: any[] | undefined) {
@@ -230,6 +281,23 @@ async function handleUndo(userId: string, username: string, activity: any) {
     if (activity.object?.type === "Follow") {
         console.log("[Inbox] Verified Unfollow: " + activity.actor + " stopped following " + username);
         await followerRepository.unfollowRemote(activity.actor, userId);
+    } else if (activity.object?.type === "Like") {
+        const objectUri = typeof activity.object.object === 'string' ? activity.object.object : activity.object.object?.id;
+        if (objectUri) {
+            const post = await postRepository.findByUri(objectUri);
+            if (post) {
+                await postRepository.removeReaction(post.id, null, "❤️", activity.actor);
+            }
+        }
+    } else if (activity.object?.type === "EmojiReact") {
+        const objectUri = typeof activity.object.object === 'string' ? activity.object.object : activity.object.object?.id;
+        const emoji = activity.object.content;
+        if (objectUri && emoji) {
+            const post = await postRepository.findByUri(objectUri);
+            if (post) {
+                await postRepository.removeReaction(post.id, null, emoji, activity.actor);
+            }
+        }
     }
     return NextResponse.json({ status: "received" }, { status: 202 });
 }

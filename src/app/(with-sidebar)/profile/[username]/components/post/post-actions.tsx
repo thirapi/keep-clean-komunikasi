@@ -6,7 +6,8 @@ import {
     Heart, 
     Share2, 
     Bookmark, 
-    PenLine 
+    PenLine,
+    Smile
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -21,6 +22,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 
 interface PostActionsProps {
     replyCount?: number;
@@ -35,6 +37,7 @@ interface PostActionsProps {
     onLike: () => void;
     onBookmark: () => void;
     onShare: () => void;
+    onReactionSelect: (emoji: string) => void;
     isFocused?: boolean;
 }
 
@@ -51,6 +54,7 @@ export function PostActions({
     onLike,
     onBookmark,
     onShare,
+    onReactionSelect,
     isFocused = false
 }: PostActionsProps) {
     if (isFocused) {
@@ -105,6 +109,12 @@ export function PostActions({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                <div onClick={(e) => e.stopPropagation()}>
+                    <EmojiPickerComponent 
+                        onEmojiSelect={onReactionSelect} 
+                        triggerClassName="h-10 w-10 rounded-full text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all shrink-0 hover:scale-110 active:scale-95 flex items-center justify-center"
+                    />
+                </div>
                 <ActionButton 
                     icon={Heart} 
                     active={isLiked}
@@ -193,6 +203,12 @@ export function PostActions({
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            <div onClick={(e) => e.stopPropagation()}>
+                <EmojiPickerComponent 
+                    onEmojiSelect={onReactionSelect} 
+                    triggerClassName="h-9 w-9 rounded-full text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all shrink-0 hover:scale-110 active:scale-95 flex items-center justify-center"
+                />
+            </div>
             <ActionButton 
                 icon={Heart} 
                 label={likeCount}

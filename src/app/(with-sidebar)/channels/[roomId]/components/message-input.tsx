@@ -13,7 +13,7 @@ import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { CornerLeftUp, X, Paperclip, FileIcon, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EmojiPickerComponent } from "./emoji-picker";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 
 interface Props {

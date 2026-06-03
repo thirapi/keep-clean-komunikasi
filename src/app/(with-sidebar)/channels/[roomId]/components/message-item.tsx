@@ -48,7 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { EmojiPickerComponent } from "./emoji-picker";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 function truncate(str: string, max = 100) {

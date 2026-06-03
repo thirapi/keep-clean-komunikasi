@@ -104,7 +104,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
@@ -279,7 +281,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
@@ -365,7 +369,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
@@ -579,7 +585,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
@@ -659,7 +667,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
@@ -733,7 +743,9 @@ export class PostRepository implements IPostRepository {
                 },
                 remoteActor: true,
                 attachments: true,
-                reactions: true,
+                reactions: {
+                    with: { user: { columns: { username: true } } },
+                },
                 replyTo: {
                     with: { 
                         user: { columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true } }, 
