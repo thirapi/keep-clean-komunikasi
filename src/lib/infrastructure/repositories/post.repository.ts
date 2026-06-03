@@ -31,13 +31,39 @@ export class PostRepository implements IPostRepository {
         });
     }
 
-    async update(id: string, post: Partial<PostRecord>): Promise<PostRecord> {
-        const [result] = await this.client
-            .update(posts)
-            .set({ ...post, updatedAt: new Date() })
-            .where(eq(posts.id, id))
-            .returning();
-        return result as unknown as PostRecord;
+    async update(id: string, post: Partial<PostRecord>, attachments?: { url: string; key: string; fileType: string; size?: number }[]): Promise<PostRecord> {
+        return await this.client.transaction(async (tx) => {
+            const [result] = await tx
+                .update(posts)
+                .set({ ...post, updatedAt: new Date() })
+                .where(eq(posts.id, id))
+                .returning();
+
+            if (attachments && attachments.length > 0) {
+                // For updates, we often just want to add attachments if they were missing
+                // To avoid duplicates, we check if they exist or just try to insert with conflict handling
+                // For simplicity in this AP context, we'll insert them if they don't exist for this post
+                const existing = await tx.select().from(attachmentsTable).where(eq(attachmentsTable.postId, id));
+                const existingUrls = new Set(existing.map(e => e.url));
+
+                const newAttachments = attachments.filter(a => !existingUrls.has(a.url));
+
+                if (newAttachments.length > 0) {
+                    await tx.insert(attachmentsTable).values(
+                        newAttachments.map((a) => ({
+                            id: createId(),
+                            postId: id,
+                            url: a.url,
+                            key: a.key,
+                            fileType: a.fileType,
+                            size: a.size,
+                        }))
+                    );
+                }
+            }
+
+            return result as unknown as PostRecord;
+        });
     }
 
     async delete(id: string): Promise<void> {

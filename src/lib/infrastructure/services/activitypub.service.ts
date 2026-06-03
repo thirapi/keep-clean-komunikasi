@@ -601,14 +601,29 @@ export class ActivityPubService implements IActivityPubService {
                 
                 const emojis = this.extractEmojis(tags);
                 const attachments = apAttachments
-                    .filter((a: any) => a.url)
-                    .map((a: any) => ({
-                        url: typeof a.url === 'string' ? a.url : a.url.href,
-                        key: a.name || createId(),
-                        fileType: a.mediaType || "application/octet-stream",
-                        size: a.size,
-                        description: a.name || a.summary || null // Map remote name/summary to description
-                    }));
+                    .map((a: any) => {
+                        let url = "";
+                        if (typeof a.url === 'string') {
+                            url = a.url;
+                        } else if (Array.isArray(a.url)) {
+                            // Find best link in array
+                            const best = a.url.find((l: any) => l.mediaType?.startsWith('image/') || l.mediaType?.startsWith('video/')) || a.url[0];
+                            url = typeof best === 'string' ? best : best?.href || best?.url;
+                        } else if (a.url) {
+                            url = a.url.href || a.url.url || a.url;
+                        }
+
+                        if (!url) return null;
+
+                        return {
+                            url: url,
+                            key: a.name || createId(),
+                            fileType: a.mediaType || "application/octet-stream",
+                            size: a.size,
+                            description: a.name || a.summary || null
+                        };
+                    })
+                    .filter((a: any): a is NonNullable<typeof a> => a !== null);
 
                 const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
                 const context = fetched.context || fetched.conversation;
@@ -616,8 +631,9 @@ export class ActivityPubService implements IActivityPubService {
                 if (existing) {
                     const hasNewMeta = (parentPostId && !existing.replyToId) || (quoteOfId && !existing.quoteOfId) || (context && !existing.context);
                     const contentChanged = finalContent !== existing.content;
+                    const hasAttachments = attachments.length > 0;
                     
-                    if (hasNewMeta || contentChanged || forceRefresh || prefetchedObject) {
+                    if (hasNewMeta || contentChanged || hasAttachments || forceRefresh || prefetchedObject) {
                         return await this.postRepository.update(existing.id, {
                             content: finalContent || existing.content,
                             replyToId: parentPostId || existing.replyToId,
@@ -630,7 +646,7 @@ export class ActivityPubService implements IActivityPubService {
                                 summary: summary || (existing.apMetadata as any)?.summary
                             } as any,
                             updatedAt: new Date()
-                        });
+                        }, attachments);
                     }
                     return existing;
                 } else {

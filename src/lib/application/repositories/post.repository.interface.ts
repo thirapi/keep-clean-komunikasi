@@ -2,7 +2,7 @@ import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 
 export interface IPostRepository {
     create(post: PostRecord, attachments?: { url: string; key: string; fileType: string; size?: number }[]): Promise<PostRecord>;
-    update(id: string, post: Partial<PostRecord>): Promise<PostRecord>;
+    update(id: string, post: Partial<PostRecord>, attachments?: { url: string; key: string; fileType: string; size?: number }[]): Promise<PostRecord>;
     delete(id: string): Promise<void>;
     findById(id: string): Promise<PostRecord | null>;
     findByIdWithDetails(id: string, currentUserId?: string): Promise<PostWithUserDTO | null>;

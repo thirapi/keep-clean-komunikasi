@@ -15,6 +15,7 @@ import {
     UserPen,
     Loader2,
     ChevronLeft,
+    ExternalLink
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "../../channels/[roomId]/room.action";
@@ -34,6 +35,12 @@ import { FollowButton } from "./components/follow-button";
 import { UserListDialog } from "./components/user-list-dialog";
 import { getFollowersAction, getFollowingAction } from "../../user.action";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { 
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProfileViewProps {
     user: {
@@ -295,6 +302,27 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     </div>
 
                                     <div className="pt-4 flex gap-2">
+                                        {user.isRemote && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            asChild
+                                                            className="rounded-full border border-border/50 text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            <a href={user.id} target="_blank" rel="noopener noreferrer">
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </a>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                                                        <p>Buka di instance asal</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"

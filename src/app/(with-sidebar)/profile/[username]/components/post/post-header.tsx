@@ -11,7 +11,8 @@ import {
     Trash2,
     Globe,
     Lock,
-    Users
+    Users,
+    ExternalLink
 } from "lucide-react";
 import { 
     DropdownMenu, 
@@ -51,6 +52,7 @@ interface PostHeaderProps {
     onReport?: () => void;
     isCurrentUser?: boolean;
     currentUserId?: string;
+    originalUrl?: string | null;
 }
 
 export function PostHeader({
@@ -62,7 +64,8 @@ export function PostHeader({
     onCopyLink,
     onReport,
     isCurrentUser = false,
-    currentUserId
+    currentUserId,
+    originalUrl
 }: PostHeaderProps) {
     const VisibilityIcon = ({ visibility, className }: { visibility?: string, className?: string }) => {
         let icon = <Globe className={cn("h-3 w-3", className)} />;
@@ -115,6 +118,32 @@ export function PostHeader({
                                 <span className="line-clamp-1">{user.handle}</span>
                                 <span className="shrink-0">·</span>
                                 <VisibilityIcon visibility={visibility} className="h-3.5 w-3.5 opacity-60" />
+                                {user.isRemote && (
+                                    <>
+                                        <span className="shrink-0">·</span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span 
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 
+                                                                    bg-gradient-to-r from-violet-100 to-indigo-100 
+                                                                    dark:from-violet-950 dark:to-indigo-950 
+                                                                    border border-violet-200 dark:border-violet-800 
+                                                                    rounded-xl text-[10px] font-medium 
+                                                                    text-violet-700 dark:text-violet-300
+                                                                    shadow-sm cursor-default"
+                                                    >
+                                                        <span className="text-base leading-none opacity-75">⁂</span>
+                                                        Remote
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+                                                    <p>Post dari instance lain (Fediverse)</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -125,6 +154,8 @@ export function PostHeader({
                         onReport={onReport} 
                         onDelete={onDelete} 
                         isCurrentUser={isCurrentUser} 
+                        originalUrl={originalUrl}
+                        isRemote={user.isRemote}
                     />
                 </div>
             </div>
@@ -192,6 +223,8 @@ export function PostHeader({
                     onReport={onReport} 
                     onDelete={onDelete} 
                     isCurrentUser={isCurrentUser} 
+                    originalUrl={originalUrl}
+                    isRemote={user.isRemote}
                     size="small"
                 />
             </div>
@@ -204,12 +237,16 @@ function PostMenu({
     onReport, 
     onDelete, 
     isCurrentUser,
+    originalUrl,
+    isRemote,
     size = "normal"
 }: { 
     onCopyLink?: () => void, 
     onReport?: () => void, 
     onDelete?: () => void, 
     isCurrentUser: boolean,
+    originalUrl?: string | null,
+    isRemote?: boolean,
     size?: "normal" | "small"
 }) {
     return (
@@ -245,6 +282,20 @@ function PostMenu({
                     <Share2 className="h-4 w-4" />
                     <span>Salin Tautan</span>
                 </DropdownMenuItem>
+                {originalUrl && isRemote && (
+                    <DropdownMenuItem asChild>
+                        <a 
+                            href={originalUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="flex items-center gap-2 py-2.5 px-2 text-sm cursor-pointer hover:bg-accent transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            <span>Buka di Instance Asli</span>
+                        </a>
+                    </DropdownMenuItem>
+                )}
                 {!isCurrentUser && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReport?.(); }} className="gap-2 py-2.5 text-amber-500 focus:text-amber-500">
                         <Flag className="h-4 w-4" />

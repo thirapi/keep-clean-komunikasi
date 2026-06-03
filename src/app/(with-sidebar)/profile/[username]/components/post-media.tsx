@@ -24,6 +24,14 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
     const count = attachments.length;
     const gridClass = count === 1 ? "grid-cols-1" : "grid-cols-2";
 
+    const getProxiedUrl = (url: string) => {
+        if (!url) return "";
+        if (url.startsWith("/") || url.startsWith(window.location.origin) || url.includes("/api/media-proxy")) {
+            return url;
+        }
+        return `/api/media-proxy?url=${encodeURIComponent(url)}`;
+    };
+
     return (
         <div
             onClick={(e) => e.stopPropagation()}
@@ -35,7 +43,7 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
         >
             {attachments.map((att, idx) => {
                 const isVideo = att.fileType?.startsWith("video/");
-                // Special layout for 3 items: first item is tall
+                const proxiedUrl = getProxiedUrl(att.url);
                 const isLarge = count === 3 && idx === 0;
 
                 return (
@@ -43,42 +51,56 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
                         key={att.id || idx}
                         className={cn(
                             "relative bg-muted flex items-center justify-center overflow-hidden group border-[0.5px] border-border/50",
-                            isLarge ? "row-span-2 aspect-[4/5]" : "aspect-video",
-                            count === 1 ? "aspect-auto max-h-[500px]" : ""
+                            // Grid logic:
+                            count === 1 ? "min-h-[200px] max-h-[700px]" : 
+                            isLarge ? "row-span-2 aspect-[4/5]" : "aspect-square",
+                            "w-full"
                         )}
                     >
+                        {/* Background Blur for single image to fill edges without cropping */}
+                        {count === 1 && !isVideo && (
+                            <div 
+                                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 scale-110 pointer-events-none"
+                                style={{ backgroundImage: `url(${proxiedUrl})` }}
+                            />
+                        )}
+
                         {isVideo ? (
                             <div
-                                className="w-full h-full cursor-pointer pointer-events-auto"
+                                className="w-full h-full cursor-pointer pointer-events-auto z-10"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (onImageClick) onImageClick(idx);
                                 }}
                             >
                                 <video
-                                    src={att.url}
-                                    className="w-full h-full object-contain bg-black pointer-events-none"
+                                    src={proxiedUrl}
+                                    className="w-full h-full object-contain bg-black/40 pointer-events-none"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                                    <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
-                                        <Play className="w-5 h-5 fill-current" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
+                                    <div className="h-12 w-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-xl">
+                                        <Play className="w-6 h-6 fill-current ml-1" />
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <>
                                 <img
-                                    src={att.url}
+                                    src={proxiedUrl}
                                     alt={att.description || "Post attachment"}
                                     title={att.description || undefined}
-                                    className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity pointer-events-auto"
+                                    className={cn(
+                                        "z-10 cursor-pointer transition-all hover:brightness-95 pointer-events-auto",
+                                        // Use contain for single image to avoid crop, cover for grid for aesthetics
+                                        count === 1 ? "w-full h-full object-contain max-h-[700px]" : "w-full h-full object-cover"
+                                    )}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (onImageClick) onImageClick(idx);
                                     }}
                                 />
                                 {att.description && (
-                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold backdrop-blur-md select-none pointer-events-none">
+                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold backdrop-blur-md select-none pointer-events-none z-20">
                                         ALT
                                     </div>
                                 )}

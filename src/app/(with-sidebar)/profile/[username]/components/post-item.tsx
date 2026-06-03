@@ -234,6 +234,7 @@ export function PostItem({
                     onCopyLink={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
                     isCurrentUser={post.userId === currentUserId}
                     currentUserId={currentUserId}
+                    originalUrl={targetPost.url}
                 />
                 
                 {!hideReplyIndicator && post.replyToId && (
@@ -337,6 +338,7 @@ export function PostItem({
                         onCopyLink={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
                         isCurrentUser={post.userId === currentUserId}
                         currentUserId={currentUserId}
+                        originalUrl={targetPost.url}
                     />
 
                     {isPureRepost && reposterUserInfo && (
