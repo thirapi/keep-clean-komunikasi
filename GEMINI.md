@@ -9,6 +9,7 @@
 - **Lexical Editor**: All chat input components use the Lexical rich text framework. Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for architecture decisions.
 - **Account Filtering**: Implementasi Mute dan Reduce Intensity WAJIB mengikuti algoritma pembatasan intensitas dan Thread Integrity yang didokumentasikan di [docs/account-filtering.md](./docs/account-filtering.md).
 - **Content Integrity**: All components rendering user content (posts, bios, usernames) MUST use `parseFediverseContent` to support custom emojis and maintain visual parity across the Fediverse.
+- **Custom Emojis & Reactions**: Implementation of exclusive emoji reactions and R2-hosted custom emojis MUST follow [docs/custom-emojis.md](./docs/custom-emojis.md).
 - **Thread Integrity**: Backend logic handling incoming activities MUST implement "Thread Healing" (recursive fetching up to 10 levels) dan melacak URI `context` untuk menjaga keutuhan percakapan.
 - **Surgical Content Cleaning**: Parser ActivityPub WAJIB menggunakan regex multiline-safe untuk menghapus penanda fallback "RE: [URL]" yang redundan jika relasi `replyTo` atau `quoteOf` berhasil dibangun.
 
