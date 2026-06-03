@@ -16,9 +16,25 @@ export const getProfileFeedController = async (
     limit = 20,
     offset = 0
 ) => {
+    // 0. Normalize username if it includes local domain
+    let normalizedUsername = username;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+    const appDomain = new URL(appUrl).hostname.toLowerCase();
+
+    if (username.includes("@")) {
+        const handle = username.startsWith("@") ? username : `@${username}`;
+        const parts = handle.slice(1).split("@");
+        const localPart = parts[0];
+        const domain = parts[1]?.toLowerCase();
+
+        if (domain === appDomain || domain === "localhost") {
+            normalizedUsername = localPart;
+        }
+    }
+
     // 1. Try local user (case insensitive)
     const localUser = await db.query.users.findFirst({
-        where: eq(sql`lower(${users.username})`, username.toLowerCase()),
+        where: eq(sql`lower(${users.username})`, normalizedUsername.toLowerCase()),
     });
 
     if (localUser) {
@@ -53,9 +69,25 @@ export const getProfileFeedCountController = async (
     username: string,
     filter?: "threads" | "replies" | "reposts" | "media"
 ) => {
+    // 0. Normalize username if it includes local domain
+    let normalizedUsername = username;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+    const appDomain = new URL(appUrl).hostname.toLowerCase();
+
+    if (username.includes("@")) {
+        const handle = username.startsWith("@") ? username : `@${username}`;
+        const parts = handle.slice(1).split("@");
+        const localPart = parts[0];
+        const domain = parts[1]?.toLowerCase();
+
+        if (domain === appDomain || domain === "localhost") {
+            normalizedUsername = localPart;
+        }
+    }
+
     // 1. Try local user
     const localUser = await db.query.users.findFirst({
-        where: eq(sql`lower(${users.username})`, username.toLowerCase()),
+        where: eq(sql`lower(${users.username})`, normalizedUsername.toLowerCase()),
     });
 
     if (localUser) {

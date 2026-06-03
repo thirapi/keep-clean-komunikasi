@@ -31,8 +31,24 @@ export class GetProfileUseCase {
         
         console.log(`[GetProfile] Fetching profile for: ${decodedUsername}`);
 
-        // 1. Try local user first
-        const user = await this.userRepository.findByUsernameWithRoles(decodedUsername);
+        // 0. Normalize identifier: if it contains our local domain, treat as local user
+        let normalizedUsername = decodedUsername;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const appDomain = new URL(appUrl).hostname.toLowerCase();
+
+        if (decodedUsername.includes("@")) {
+            const handle = decodedUsername.startsWith("@") ? decodedUsername : `@${decodedUsername}`;
+            const parts = handle.slice(1).split("@");
+            const localPart = parts[0];
+            const domain = parts[1]?.toLowerCase();
+
+            if (domain === appDomain || domain === "localhost") {
+                normalizedUsername = localPart;
+            }
+        }
+
+        // 1. Try local user first (using normalized name)
+        const user = await this.userRepository.findByUsernameWithRoles(normalizedUsername);
         
         if (user) {
             const followerCount = await this.followerRepository.getFollowerCount(user.id);
