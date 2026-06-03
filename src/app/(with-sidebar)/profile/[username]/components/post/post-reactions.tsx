@@ -8,6 +8,10 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { useState, useEffect, useMemo } from "react";
+import { getCustomEmojisAction, CustomEmojiDTO } from "@/app/emoji.action";
+
 interface PostReactionsProps {
     reactions: {
         emoji: string;
@@ -16,9 +20,25 @@ interface PostReactionsProps {
         hasReacted: boolean;
     }[];
     onToggleReaction: (emoji: string) => void;
+    emojis?: { name: string; url: string }[] | null;
 }
 
-export function PostReactions({ reactions, onToggleReaction }: PostReactionsProps) {
+export function PostReactions({ reactions, onToggleReaction, emojis }: PostReactionsProps) {
+    const [localCustomEmojis, setLocalCustomEmojis] = useState<CustomEmojiDTO[]>([]);
+
+    useEffect(() => {
+        getCustomEmojisAction().then((res) => {
+            if (res.status === "success" && res.data) {
+                setLocalCustomEmojis(res.data);
+            }
+        });
+    }, []);
+
+    const mergedEmojis = useMemo(() => {
+        const localMapped = localCustomEmojis.map(e => ({ name: e.shortcode, url: e.url }));
+        return [...(emojis || []), ...localMapped];
+    }, [emojis, localCustomEmojis]);
+
     if (reactions.length === 0) return null;
 
     return (
@@ -39,7 +59,10 @@ export function PostReactions({ reactions, onToggleReaction }: PostReactionsProp
                                         : "bg-muted/30 border-transparent hover:bg-muted/60 text-muted-foreground"
                                 )}
                             >
-                                <span className="text-sm leading-none">{group.emoji}</span>
+                                <span 
+                                    className="text-sm leading-none flex items-center justify-center"
+                                    dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, mergedEmojis) }}
+                                />
                                 <span className={cn(
                                     "font-bold tabular-nums",
                                     group.hasReacted ? "text-primary" : "text-muted-foreground/70"
@@ -52,9 +75,12 @@ export function PostReactions({ reactions, onToggleReaction }: PostReactionsProp
                             side="top"
                             className="max-w-[250px] rounded-lg border-0 bg-zinc-900 dark:bg-zinc-100 shadow-2xl px-3 py-2"
                         >
-                            <div className="flex flex-col gap-1">
-                                <span className="text-base leading-none">{group.emoji}</span>
-                                <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900">
+                            <div className="flex flex-col gap-2 items-center">
+                                <span 
+                                    className="text-3xl leading-none flex items-center justify-center p-1"
+                                    dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, mergedEmojis) }}
+                                />
+                                <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900 text-center">
                                     <span className="font-bold">{group.users.join(", ")}</span>
                                     {" "}bereaksi
                                 </p>

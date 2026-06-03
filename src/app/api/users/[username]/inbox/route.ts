@@ -8,6 +8,7 @@ import { NotificationRepository } from "@/lib/infrastructure/repositories/notifi
 import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { SignatureVerificationService } from "@/lib/infrastructure/services/signature-verification.service";
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
+import { CustomEmojiRepository } from "@/lib/infrastructure/repositories/custom-emoji.repository";
 import { createId } from "@paralleldrive/cuid2";
 
 const userRepository = new UserRepository(db);
@@ -16,7 +17,8 @@ const followerRepository = new FollowerRepository(db);
 const postRepository = new PostRepository(db);
 const notificationRepository = new NotificationRepository(db);
 const pusherService = new PusherService();
-const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
+const customEmojiRepository = new CustomEmojiRepository();
+const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository, customEmojiRepository);
 
 /**
  * User Inbox endpoint (ActivityPub)

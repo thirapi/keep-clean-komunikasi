@@ -1,6 +1,8 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeRaw from "rehype-raw";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
@@ -8,6 +10,8 @@ import { XEmbed } from "@/components/ui/x-embed";
 import { LinkPreviewCard } from "./link-preview-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { useEmojis } from "@/components/emoji-provider";
 
 // Module-level constants — compiled once, not on every render
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -110,7 +114,7 @@ export function MessageItem({
 
   const prepareMentionsForSave = useCallback((content: string) => {
     if (!content) return "";
-    return content.replace(/(?<!<)@([a-zA-Z0-9_-]+)/g, (match, username) => {
+    return content.replace(/(?<!<)@([a-zA-Z0-9_-]+)>/g, (match, username) => {
       if (username.toLowerCase() === "everyone") return "<@everyone>";
       const participant = roomData?.participants?.find((p: any) => p.user.username.toLowerCase() === username.toLowerCase());
       return participant ? `<@${participant.user.id}>` : match;
@@ -343,28 +347,6 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
-  const NEWLINE_SYMBOL = "\uE001";
-
-  const processNewlines = (children: any): any => {
-    return React.Children.map(children, (child) => {
-      if (typeof child === "string") {
-        if (!child.includes(NEWLINE_SYMBOL)) return child;
-        return child.split(NEWLINE_SYMBOL).map((segment, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <br />}
-            {segment}
-          </React.Fragment>
-        ));
-      }
-      if (React.isValidElement(child) && (child.props as any).children) {
-        return React.cloneElement(child, {
-          children: processNewlines((child.props as any).children),
-        } as any);
-      }
-      return child;
-    });
-  };
-
   const resolveMentionsForView = (content: string) => {
     if (!content) return "";
     // Discord behavior: Preserve leading newlines, but trim trailing ones.
@@ -384,7 +366,6 @@ export function MessageItem({
 
     // --- DISCORD MARKDOWN FIXES ---
     // 0. Extract Code Blocks (triple backticks) to protect them from regex modifications
-    // We normalize them by ensuring the closing ``` is on its own line, as required by CommonMark
     const blockCodes: string[] = [];
     processed = processed.replace(/```[\s\S]*?```/g, (match) => {
       let normalized = match;
@@ -400,28 +381,34 @@ export function MessageItem({
       return '`' + inner.replace(/\n/g, '\uE000').replace(/ /g, '\u00A0') + '`';
     });
 
-    // 2. Universal Newline Preservation (Discord-like hard breaks)
-    processed = processed.replace(/\n/g, NEWLINE_SYMBOL);
-
     // 3. Preserve leading spaces
     processed = processed.replace(/^( +)(?![-*>] |\d+\. )/gm, (match) =>
       '\u00A0'.repeat(match.length)
     );
 
+    // --- GREEN TEXT (IMAGEBOARD STYLE) ---
+    // Process each line. If it starts with '>', wrap it in a span with green styling.
+    // We do this BEFORE restoring code blocks to avoid matching lines inside them.
+    const lines = processed.split('\n');
+    processed = lines.map(line => {
+      // Imageboard behavior: '>' must be at the very start of the line (or after our space padding)
+      const trimmedLine = line.replace(/^\u00A0+/, '');
+      if (trimmedLine.startsWith('>') && !trimmedLine.startsWith('>>>')) {
+        return `<span class="text-[#789922] dark:text-[#B5BD68] greentext">${line}</span>`;
+      }
+      return line;
+    }).join('\n');
+
     // 4. Fix multiline wrapping for Bold/Italic/Strike
     processed = processed.replace(/(\*\*\*|\*\*|\*|___|__|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
-      if (inner.includes(NEWLINE_SYMBOL)) {
+      if (inner.includes('\n')) {
         return `${sep}\u200B${inner}\u200B${sep}`;
       }
       return match;
     });
 
-    // 4.5 Surgical Tail Trimming
-    const tailTrimRegex = new RegExp(`(${NEWLINE_SYMBOL}+)([\\s\\u200B]*)([*_~]+)\\s*$`);
-    processed = processed.replace(tailTrimRegex, "$3");
-
     // 5. Restore Code Blocks
-    processed = processed.replace(new RegExp(`${NEWLINE_SYMBOL}*__BLOCK_CODE_(\\d+)__${NEWLINE_SYMBOL}*`, 'g'), (match, p1) => {
+    processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
       return `\n\n${blockCodes[parseInt(p1, 10)]}\n\n`;
     });
 
@@ -433,13 +420,18 @@ export function MessageItem({
     return processed;
   };
 
+  const { customEmojis } = useEmojis();
+  const emojiMeta = useMemo(() => customEmojis.map(e => ({ name: e.shortcode, url: e.url })), [customEmojis]);
+
   const renderContent = (content: string) => {
     if (!content) return null;
     const viewContent = resolveMentionsForView(content);
+    const contentWithEmojis = parseFediverseContent(viewContent, emojiMeta);
 
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        rehypePlugins={[rehypeRaw]}
         components={{
           ...markdownComponents,
           pre: ({ children }: any) => {
@@ -525,7 +517,7 @@ export function MessageItem({
           },
         }}
       >
-        {viewContent}
+        {contentWithEmojis}
       </ReactMarkdown >
     );
   };
@@ -599,30 +591,34 @@ export function MessageItem({
         </a>
       );
     },
-    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{processNewlines(children)}</p>,
-    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{processNewlines(children)}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{processNewlines(children)}</ol>,
-    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{processNewlines(children)}</li>,
-    blockquote: ({ children }: any) => (
-      <blockquote className="border-l-4 border-primary/40 px-4 italic text-muted-foreground/90 my-2 bg-muted/20 rounded-r-lg">
-        {processNewlines(children)}
-      </blockquote>
-    ),
-    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{processNewlines(children)}</h1>,
-    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{processNewlines(children)}</h2>,
-    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{processNewlines(children)}</h3>,
+    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
+    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
+    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{children}</li>,
+    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{children}</h3>,
     hr: () => <hr className="my-4 border-border/20" />,
     table: ({ children }: any) => (
       <div className="overflow-x-auto my-3 rounded-lg border border-border/50">
-        <table className="w-full text-sm border-collapse">{processNewlines(children)}</table>
+        <table className="w-full text-sm border-collapse">{children}</table>
       </div>
     ),
-    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{processNewlines(children)}</thead>,
-    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{processNewlines(children)}</th>,
-    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{processNewlines(children)}</td>,
-    strong: ({ children }: any) => <strong>{processNewlines(children)}</strong>,
-    em: ({ children }: any) => <em>{processNewlines(children)}</em>,
-    del: ({ children }: any) => <del>{processNewlines(children)}</del>,
+    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
+    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{children}</th>,
+    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{children}</td>,
+    strong: ({ children }: any) => <strong>{children}</strong>,
+    em: ({ children }: any) => <em>{children}</em>,
+    del: ({ children }: any) => <del>{children}</del>,
+    img: ({ node, ...props }: any) => (
+      <img 
+          {...props} 
+          className={cn(
+              props.className,
+              props.className?.includes('fediverse-emoji') && "inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5"
+          )} 
+      />
+    )
   };
 
   const isOnline = onlineUserIds.includes(message.userId);
@@ -805,7 +801,10 @@ export function MessageItem({
                           : "bg-muted/30 border-transparent hover:bg-muted/60 text-muted-foreground"
                       )}
                     >
-                      <span className="text-sm">{group.emoji}</span>
+                      <span 
+                        className="text-sm flex items-center justify-center"
+                        dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, emojiMeta) }}
+                      />
                       <span className={cn("font-bold tabular-nums", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
                         {group.count}
                       </span>
@@ -815,9 +814,12 @@ export function MessageItem({
                     side="top"
                     className="max-w-[220px] rounded-lg border-0 bg-zinc-900 dark:bg-zinc-100 shadow-2xl px-3 py-2"
                   >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-base leading-none">{group.emoji}</span>
-                      <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900">
+                    <div className="flex flex-col gap-2 items-center">
+                      <span 
+                        className="text-3xl leading-none flex items-center justify-center p-1"
+                        dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, emojiMeta) }}
+                      />
+                      <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900 text-center">
                         <span className="font-bold">{group.users.join(", ")}</span>
                         {" "}bereaksi
                       </p>
@@ -969,27 +971,6 @@ export function MessageItem({
                     <p>Reply</p>
                   </TooltipContent>
                 </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Logic to open promote dialog
-                        toast.info("Membuka jembatan pengetahuan...");
-                      }}
-                      className="h-7 w-7 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-[10px] font-bold py-1 px-2">
-                    <p>Promote to Pulse</p>
-                  </TooltipContent>
-                </Tooltip>
-
                 <EmojiPickerComponent onEmojiSelect={handleToggleReaction} />
 
                 {message.userId === currentUserId && (

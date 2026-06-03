@@ -4,13 +4,15 @@ import { GetPostThreadUseCase } from "@/lib/application/use-cases/posts/get-post
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
+import { CustomEmojiRepository } from "@/lib/infrastructure/repositories/custom-emoji.repository";
 import { db } from "@/lib/db";
 
 const postRepository = new PostRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db as any);
 const userRepository = new UserRepository(db);
 const followerRepository = new FollowerRepository(db);
-const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
+const customEmojiRepository = new CustomEmojiRepository();
+const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository, customEmojiRepository);
 
 const getPostThreadUseCase = new GetPostThreadUseCase(postRepository, remoteActorRepository, activityPubService);
 

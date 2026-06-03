@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -9,6 +9,7 @@ import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/componen
 import { cn } from "@/lib/utils";
 import { PostLinkPreview } from "@/lib/entities/models/post.model";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { getCustomEmojisAction, CustomEmojiDTO } from "@/app/emoji.action";
 
 interface PostContentProps {
     content?: string;
@@ -36,10 +37,24 @@ export function PostContent({
     className
 }: PostContentProps) {
     const [isCWHidden, setIsCWHidden] = useState(!!apMetadata?.summary);
+    const [localCustomEmojis, setLocalCustomEmojis] = useState<CustomEmojiDTO[]>([]);
+
+    useEffect(() => {
+        getCustomEmojisAction().then((res) => {
+            if (res.status === "success" && res.data) {
+                setLocalCustomEmojis(res.data);
+            }
+        });
+    }, []);
+
+    const mergedEmojis = useMemo(() => {
+        const localMapped = localCustomEmojis.map(e => ({ name: e.shortcode, url: e.url }));
+        return [...(emojis || []), ...localMapped];
+    }, [emojis, localCustomEmojis]);
 
     const summary = apMetadata?.summary;
-    const parsedContent = content ? parseFediverseContent(content, emojis) : content;
-    const parsedSummary = summary ? parseFediverseContent(summary, emojis) : null;
+    const parsedContent = content ? parseFediverseContent(content, mergedEmojis) : content;
+    const parsedSummary = summary ? parseFediverseContent(summary, mergedEmojis) : null;
 
     return (
         <div className={cn("flex flex-col", className)}>
@@ -63,7 +78,6 @@ export function PostContent({
             {!isCWHidden && parsedContent && (
                 <div className={cn(
                     "text-foreground leading-normal whitespace-pre-wrap break-words fediverse-content select-text",
-...
                     isFocused ? "text-[19px] md:text-[21px] mb-3" : isQuote ? "text-[14px] line-clamp-3 mb-1" : "text-[15px] md:text-[16px] mb-2"
                 )}>
                     <ReactMarkdown 

@@ -549,13 +549,24 @@ export class PostRepository implements IPostRepository {
     }
 
     async addReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void> {
-        await this.client.insert(postReactions).values({
-            id: createId(),
-            postId,
-            userId,
-            remoteActorId,
-            emoji
-        }).onConflictDoNothing();
+        await this.client.transaction(async (tx) => {
+            // Enforce Single Reaction Exclusivity: Delete any existing reaction from this user/actor on this post
+            await tx.delete(postReactions).where(
+                and(
+                    eq(postReactions.postId, postId),
+                    userId ? eq(postReactions.userId, userId) : isNull(postReactions.userId),
+                    remoteActorId ? eq(postReactions.remoteActorId, remoteActorId) : isNull(postReactions.remoteActorId)
+                )
+            );
+
+            await tx.insert(postReactions).values({
+                id: createId(),
+                postId,
+                userId,
+                remoteActorId,
+                emoji
+            }).onConflictDoNothing();
+        });
     }
 
     async removeReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void> {

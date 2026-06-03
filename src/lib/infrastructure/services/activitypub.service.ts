@@ -3,6 +3,7 @@ import { IUserRepository } from "@/lib/application/repositories/user.repository.
 import { IFollowerRepository } from "@/lib/application/repositories/follower.repository.interface";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { IRemoteActorRepository } from "@/lib/application/repositories/remote-actor.repository.interface";
+import { ICustomEmojiRepository } from "@/lib/application/repositories/custom-emoji.repository.interface";
 import { HttpSignatureService } from "./http-signature.service";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -13,7 +14,8 @@ export class ActivityPubService implements IActivityPubService {
         private userRepository: IUserRepository,
         private followerRepository: IFollowerRepository,
         private postRepository: IPostRepository,
-        private remoteActorRepository: IRemoteActorRepository
+        private remoteActorRepository: IRemoteActorRepository,
+        private customEmojiRepository: ICustomEmojiRepository
     ) { }
 
     private validateRemoteUrl(urlStr: string): boolean {
@@ -133,6 +135,28 @@ export class ActivityPubService implements IActivityPubService {
 
         const uniqueCc = Array.from(new Set(cc));
 
+        // Detect custom emojis in content
+        const emojiRegex = /:([a-zA-Z0-9_-]+):/g;
+        const matches = post.content.match(emojiRegex);
+        const tags: any[] = [];
+        
+        if (matches) {
+            for (const shortcode of matches) {
+                const customEmoji = await this.customEmojiRepository.findByShortcode(shortcode);
+                if (customEmoji) {
+                    tags.push({
+                        type: "Emoji",
+                        name: shortcode,
+                        icon: {
+                            type: "Image",
+                            mediaType: customEmoji.url.endsWith(".gif") ? "image/gif" : "image/png",
+                            url: customEmoji.url
+                        }
+                    });
+                }
+            }
+        }
+
         const note: any = {
             "id": post.uri,
             "type": "Note",
@@ -143,7 +167,8 @@ export class ActivityPubService implements IActivityPubService {
             "url": post.url,
             "to": ["https://www.w3.org/ns/activitystreams#Public"],
             "cc": uniqueCc,
-            "attachment": apAttachments
+            "attachment": apAttachments,
+            "tag": tags
         };
 
         if (quoteUrl) {
@@ -444,6 +469,22 @@ export class ActivityPubService implements IActivityPubService {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const actorUri = `${baseUrl}/api/users/${user.username}`;
 
+        const tags: any[] = [];
+        if (emoji.startsWith(":") && emoji.endsWith(":")) {
+            const customEmoji = await this.customEmojiRepository.findByShortcode(emoji);
+            if (customEmoji) {
+                tags.push({
+                    type: "Emoji",
+                    name: emoji,
+                    icon: {
+                        type: "Image",
+                        mediaType: customEmoji.url.endsWith(".gif") ? "image/gif" : "image/png",
+                        url: customEmoji.url
+                    }
+                });
+            }
+        }
+
         const reactionActivity = {
             "@context": [
                 "https://www.w3.org/ns/activitystreams",
@@ -455,7 +496,8 @@ export class ActivityPubService implements IActivityPubService {
             "type": "EmojiReact",
             "actor": actorUri,
             "content": emoji,
-            "object": targetPostUri
+            "object": targetPostUri,
+            "tag": tags.length > 0 ? tags : undefined
         };
 
         await this.deliverToRemoteInbox(targetActorInbox, reactionActivity, {

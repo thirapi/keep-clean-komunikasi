@@ -8,6 +8,7 @@ import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.se
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
 import { RemoteActorRepository } from "@/lib/infrastructure/repositories/remote-actor.repository";
+import { CustomEmojiRepository } from "@/lib/infrastructure/repositories/custom-emoji.repository";
 import { NotificationRepository } from "@/lib/infrastructure/repositories/notification.repository";
 import { db } from "@/lib/db";
 import { z } from "zod";
@@ -21,7 +22,8 @@ const hashtagRepository = new HashtagRepository(db);
 const userRepository = new UserRepository(db);
 const followerRepository = new FollowerRepository(db);
 const remoteActorRepository = new RemoteActorRepository(db as any);
-const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository);
+const customEmojiRepository = new CustomEmojiRepository();
+const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository, customEmojiRepository);
 const notificationRepository = new NotificationRepository(db);
 
 const createPostUseCase = new CreatePostUseCase(
@@ -32,7 +34,8 @@ const createPostUseCase = new CreatePostUseCase(
     linkPreviewService,
     hashtagRepository,
     activityPubService,
-    notificationRepository
+    notificationRepository,
+    customEmojiRepository
 );
 
 const createPostSchema = z.object({

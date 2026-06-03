@@ -6,6 +6,7 @@ import { ILinkPreviewRepository } from "@/lib/application/repositories/link-prev
 import { ILinkPreviewService } from "@/lib/application/services/link-preview.service.interface";
 import { IActivityPubService } from "@/lib/application/services/activitypub.service.interface";
 import { INotificationRepository } from "@/lib/application/repositories/notification.repository.interface";
+import { ICustomEmojiRepository } from "@/lib/application/repositories/custom-emoji.repository.interface";
 import { HashtagRepository } from "@/lib/infrastructure/repositories/hashtag.repository";
 import { createId } from "@paralleldrive/cuid2";
 import { extractUrls } from "@/lib/extract-urls";
@@ -20,7 +21,8 @@ export class CreatePostUseCase {
         private linkPreviewService: ILinkPreviewService,
         private hashtagRepository: HashtagRepository,
         private activityPubService: IActivityPubService,
-        private notificationRepository: INotificationRepository
+        private notificationRepository: INotificationRepository,
+        private customEmojiRepository: ICustomEmojiRepository
     ) { }
 
     async execute(
@@ -41,6 +43,23 @@ export class CreatePostUseCase {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
         const uri = `${baseUrl}/users/${user.username}/posts/${id}`;
 
+        // Detect custom emojis in content
+        const emojiRegex = /:([a-zA-Z0-9_-]+):/g;
+        const matches = content.match(emojiRegex);
+        const emojiMeta: { name: string; url: string }[] = [];
+        
+        if (matches) {
+            for (const shortcode of matches) {
+                const customEmoji = await this.customEmojiRepository.findByShortcode(shortcode);
+                if (customEmoji) {
+                    emojiMeta.push({
+                        name: shortcode,
+                        url: customEmoji.url
+                    });
+                }
+            }
+        }
+
         const postRecord: PostRecord = {
             id,
             userId,
@@ -51,6 +70,7 @@ export class CreatePostUseCase {
             replyToId,
             repostOfId,
             quoteOfId,
+            emojis: emojiMeta.length > 0 ? emojiMeta : null,
             isDeleted: false,
             createdAt: new Date(),
             updatedAt: new Date(),

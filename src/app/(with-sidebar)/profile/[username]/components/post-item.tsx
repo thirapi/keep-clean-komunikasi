@@ -146,16 +146,35 @@ export function PostItem({
     const likeMutation = useMutation({
         mutationFn: () => toggleLikeAction(targetPost.id, currentUserId!),
         onMutate: async () => {
-            updatePostInCache(targetPost.id, (old) => ({
-                ...old,
-                isLikedByCurrentUser: !old.isLikedByCurrentUser,
-                reactions: !old.isLikedByCurrentUser 
-                    ? [...(old.reactions || []), { id: "temp", postId: old.id, userId: currentUserId!, emoji: "❤️", createdAt: new Date(), updatedAt: new Date(), user: { username: currentUser?.username || "me" } }]
-                    : (old.reactions || []).filter(r => r.userId !== currentUserId || r.emoji !== "❤️")
-            }));
+            updatePostInCache(targetPost.id, (old) => {
+                const isTogglingOff = !!old.isLikedByCurrentUser;
+                const newReactions = (old.reactions || []).filter(r => r.userId !== currentUserId);
+                
+                if (!isTogglingOff) {
+                    newReactions.push({ 
+                        id: "temp", 
+                        postId: old.id, 
+                        userId: currentUserId!, 
+                        emoji: "❤️", 
+                        createdAt: new Date(), 
+                        updatedAt: new Date(), 
+                        user: { username: currentUser?.username || "me" } 
+                    } as any);
+                }
+
+                return {
+                    ...old,
+                    isLikedByCurrentUser: !isTogglingOff,
+                    reactions: newReactions
+                };
+            });
         },
         onError: () => toast.error("Gagal menyukai postingan"),
-        onSuccess: (res) => { if (res.status === "success" && res.data) updatePostInCache(targetPost.id, () => res.data!); }
+        onSuccess: (res: ServerResponse<PostWithUserDTO | null>) => { 
+            if (res.status === "success" && res.data) {
+                updatePostInCache(targetPost.id, () => res.data!); 
+            }
+        }
     });
 
     const repostMutation = useMutation({
@@ -212,21 +231,26 @@ export function PostItem({
         mutationFn: (emoji: string) => toggleReactionAction(targetPost.id, currentUserId!, emoji),
         onMutate: async (emoji) => {
             updatePostInCache(targetPost.id, (old) => {
-                const hasReacted = old.reactions?.some(r => r.userId === currentUserId && r.emoji === emoji);
+                const existingReaction = old.reactions?.find(r => r.userId === currentUserId);
+                const isTogglingOff = existingReaction?.emoji === emoji;
+
+                const newReactions = (old.reactions || []).filter(r => r.userId !== currentUserId);
+                if (!isTogglingOff) {
+                    newReactions.push({ 
+                        id: `temp-${Date.now()}`, 
+                        postId: old.id, 
+                        userId: currentUserId!, 
+                        emoji, 
+                        createdAt: new Date(), 
+                        updatedAt: new Date(), 
+                        user: { username: currentUser?.username || "me" } 
+                    } as any);
+                }
+
                 return {
                     ...old,
-                    reactions: hasReacted
-                        ? (old.reactions || []).filter(r => !(r.userId === currentUserId && r.emoji === emoji))
-                        : [...(old.reactions || []), { 
-                            id: `temp-${Date.now()}`, 
-                            postId: old.id, 
-                            userId: currentUserId!, 
-                            emoji, 
-                            createdAt: new Date(), 
-                            updatedAt: new Date(), 
-                            user: { username: currentUser?.username || "me" } 
-                        } as any],
-                    isLikedByCurrentUser: emoji === "❤️" ? !old.isLikedByCurrentUser : old.isLikedByCurrentUser
+                    reactions: newReactions,
+                    isLikedByCurrentUser: emoji === "❤️" ? !isTogglingOff : false
                 };
             });
         },
@@ -335,6 +359,7 @@ export function PostItem({
                 <PostReactions 
                     reactions={groupedReactions} 
                     onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
+                    emojis={targetPost.emojis}
                 />
 
                 <PostActions 
@@ -439,6 +464,7 @@ export function PostItem({
                     <PostReactions 
                         reactions={groupedReactions} 
                         onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
+                        emojis={targetPost.emojis}
                     />
 
                     <PostActions 

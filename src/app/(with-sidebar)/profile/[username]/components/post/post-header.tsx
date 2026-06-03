@@ -186,7 +186,7 @@ export function PostHeader({
                                 />
                             </UserHoverCard>
                             <div className="flex items-center gap-1.5 text-muted-foreground text-[14px]">
-                                <span className="line-clamp-1">{user.handle}</span>
+                                <span>{user.handle}</span>
                                 <span className="shrink-0">·</span>
                                 <VisibilityIcon visibility={visibility} className="h-3.5 w-3.5 opacity-60" />
                                 {user.isRemote && (

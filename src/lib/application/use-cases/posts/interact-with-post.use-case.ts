@@ -28,28 +28,21 @@ export class InteractWithPostUseCase {
         const post = await this.postRepository.findByIdWithDetails(postId);
         if (!post) throw new Error("Post not found");
 
-        const hasReacted = post.reactions?.some(r => r.userId === userId && r.emoji === emoji);
+        const existingReaction = post.reactions?.find(r => r.userId === userId);
 
         await db.transaction(async (tx) => {
             const postReactionsTable = (await import("@/lib/infrastructure/drizzle/schema")).postReactions;
             
-            const existing = await tx.query.postReactions.findFirst({
-                where: and(
+            // Delete ANY existing reaction for this user on this post to ensure exclusivity
+            await tx.delete(postReactionsTable).where(
+                and(
                     eq(postReactionsTable.postId, postId),
-                    eq(postReactionsTable.userId, userId),
-                    eq(postReactionsTable.emoji, emoji)
+                    eq(postReactionsTable.userId, userId)
                 )
-            });
+            );
 
-            if (existing) {
-                await tx.delete(postReactionsTable).where(
-                    and(
-                        eq(postReactionsTable.postId, postId),
-                        eq(postReactionsTable.userId, userId),
-                        eq(postReactionsTable.emoji, emoji)
-                    )
-                );
-            } else {
+            // If the user didn't have this exact reaction before, insert it (Switching or New)
+            if (!existingReaction || existingReaction.emoji !== emoji) {
                 await tx.insert(postReactionsTable).values({
                     id: createId(),
                     postId,
@@ -78,33 +71,37 @@ export class InteractWithPostUseCase {
                         id: notificationId,
                         type,
                         actorId: userId,
-                        emoji // Include emoji in pusher data for frontend display if needed
+                        emoji
                     });
                 }
             }
         });
 
-        // Fediverse Compatibility: Send Reaction/Undo activity
+        // Fediverse Compatibility: Send Reaction/Undo activities
         if (post.uri && post.remoteActorId) {
             try {
                 const actor = await this.remoteActorRepository.findById(post.remoteActorId);
                 if (actor?.inbox) {
-                    if (emoji === "❤️") {
-                        if (hasReacted) {
+                    // 1. If had an existing reaction, always send Undo for it first
+                    if (existingReaction) {
+                        if (existingReaction.emoji === "❤️") {
                             await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox);
                         } else {
-                            await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
+                            await this.activityPubService.sendUndoEmojiReactionActivity(userId, post.uri, actor.inbox, existingReaction.emoji);
                         }
-                    } else {
-                        if (hasReacted) {
-                            await this.activityPubService.sendUndoEmojiReactionActivity(userId, post.uri, actor.inbox, emoji);
+                    }
+
+                    // 2. If we are setting a NEW (or different) reaction, send the new activity
+                    if (!existingReaction || existingReaction.emoji !== emoji) {
+                        if (emoji === "❤️") {
+                            await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
                         } else {
                             await this.activityPubService.sendEmojiReactionActivity(userId, post.uri, actor.inbox, emoji);
                         }
                     }
                 }
             } catch (err) {
-                console.error("Failed to send interaction activity:", err);
+                console.error("Failed to federate interaction activity:", err);
             }
         }
 

@@ -135,24 +135,21 @@ export function ProfileHoverCard({
   return (
     <>
       {/* Desktop: Popover */}
-      <div className="hidden md:block">
+      <span className="hidden md:inline-block">
         <Popover onOpenChange={(open) => open && fetchFullProfile()}>
           <PopoverTrigger asChild>{children}</PopoverTrigger>
           <PopoverContent className="w-72 p-0 overflow-hidden border-0 shadow-2xl bg-zinc-950 ring-1 ring-white/10" side="right" align="start">
             {ProfileContent}
           </PopoverContent>
         </Popover>
-      </div>
-
-      {/* Mobile: Dialog */}
-      <div className="md:hidden">
+      </span><span className="inline-block md:hidden">
         <Dialog onOpenChange={(open) => open && fetchFullProfile()}>
           <DialogTrigger asChild>{children}</DialogTrigger>
           <DialogContent className="p-0 w-[90vw] max-w-xs overflow-hidden border-0 shadow-2xl bg-zinc-950 [&>button]:hidden">
             {ProfileContent}
           </DialogContent>
         </Dialog>
-      </div>
+      </span>
     </>
   );
 }
