@@ -84,6 +84,7 @@ export function PostItem({
         const identifier = isRemote ? `@${username}@${domain}` : username;
         
         return { 
+            id: (u as any)?.id,
             username, 
             identifier,
             avatar: u?.avatar || "/avatars/avatar1.png", 

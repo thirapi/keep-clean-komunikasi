@@ -395,3 +395,22 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     remoteActor: one(remoteActors, { fields: [notifications.remoteActorId], references: [remoteActors.id] }),
     post: one(posts, { fields: [notifications.targetId], references: [posts.id] }),
 }));
+
+export const accountFilters = pgTable("AccountFilter", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull().references(() => users.id),
+    targetUserId: text("targetUserId").references(() => users.id),
+    targetRemoteActorId: text("targetRemoteActorId").references(() => remoteActors.id),
+    type: text("type").$type<"mute" | "reduce_intensity">().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => ({
+    unq_local: unique().on(t.userId, t.targetUserId),
+    unq_remote: unique().on(t.userId, t.targetRemoteActorId),
+}));
+
+export const accountFiltersRelations = relations(accountFilters, ({ one }) => ({
+    user: one(users, { fields: [accountFilters.userId], references: [users.id] }),
+    targetUser: one(users, { fields: [accountFilters.targetUserId], references: [users.id] }),
+    targetRemoteActor: one(remoteActors, { fields: [accountFilters.targetRemoteActorId], references: [remoteActors.id] }),
+}));

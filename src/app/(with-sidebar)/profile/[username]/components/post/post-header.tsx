@@ -12,7 +12,10 @@ import {
     Globe,
     Lock,
     Users,
-    ExternalLink
+    ExternalLink,
+    VolumeX,
+    Gauge,
+    Info
 } from "lucide-react";
 import { 
     DropdownMenu, 
@@ -28,12 +31,27 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { 
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { UserHoverCard } from "./user-hover-card";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toggleAccountFilterAction, getUserFiltersAction } from "@/app/(with-sidebar)/user.action";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface PostHeaderProps {
     user: {
+        id: string;
         username: string;
         identifier: string;
         displayName?: string;
@@ -67,6 +85,59 @@ export function PostHeader({
     currentUserId,
     originalUrl
 }: PostHeaderProps) {
+    const queryClient = useQueryClient();
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean, type: "mute" | "reduce_intensity" | null }>({
+        open: false,
+        type: null
+    });
+
+    // Fetch user filters to show active state in menu
+    const { data: filtersResponse } = useQuery({
+        queryKey: ["user-filters", currentUserId],
+        queryFn: () => currentUserId ? getUserFiltersAction(currentUserId!) : null,
+        enabled: !!currentUserId,
+    });
+
+    const filters = filtersResponse?.status === "success" ? filtersResponse.data : [];
+    
+    const activeFilter = filters?.find(f => 
+        user.isRemote 
+            ? f.targetRemoteActorId === user.id 
+            : f.targetUserId === user.id
+    );
+
+    const filterMutation = useMutation({
+        mutationFn: (type: "mute" | "reduce_intensity") => {
+            if (!currentUserId) throw new Error("Unauthorized");
+            return toggleAccountFilterAction({
+                userId: currentUserId,
+                targetId: user.id,
+                isRemote: !!user.isRemote,
+                type
+            });
+        },
+        onSuccess: (res) => {
+            if (res.status === "success") {
+                const { action, type } = res.data!;
+                const label = type === "mute" ? "Bisukan" : "Batasi Intensitas";
+                toast.success(action === "applied" ? `${label} diaktifkan` : `${label} dimatikan`);
+                queryClient.invalidateQueries({ queryKey: ["user-filters", currentUserId] });
+                queryClient.invalidateQueries({ queryKey: ["posts"] });
+            } else {
+                toast.error(res.error?.message || "Gagal mengubah filter");
+            }
+        }
+    });
+
+    const handleFilterClick = (type: "mute" | "reduce_intensity") => {
+        // Only show confirmation if we are applying (not removing)
+        if (activeFilter?.type === type) {
+            filterMutation.mutate(type);
+        } else {
+            setConfirmDialog({ open: true, type });
+        }
+    };
+
     const VisibilityIcon = ({ visibility, className }: { visibility?: string, className?: string }) => {
         let icon = <Globe className={cn("h-3 w-3", className)} />;
         let label = "Publik";
@@ -156,7 +227,52 @@ export function PostHeader({
                         isCurrentUser={isCurrentUser} 
                         originalUrl={originalUrl}
                         isRemote={user.isRemote}
+                        onFilter={handleFilterClick}
+                        activeFilterType={activeFilter?.type}
                     />
+                </div>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                    <AlertDialog open={confirmDialog.open} onOpenChange={(o) => setConfirmDialog(prev => ({ ...prev, open: o }))}>
+                        <AlertDialogContent className="max-w-md">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    {confirmDialog.type === "mute" ? "Bisukan Akun?" : "Batasi Intensitas?"}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription asChild>
+                                    <div className="space-y-3 pt-2">
+                                        {confirmDialog.type === "mute" ? (
+                                            <p>Postingan dari akun ini akan <span className="font-bold text-foreground">disembunyikan sepenuhnya</span> dari timeline Anda. Anda tetap bisa melihat postingannya dengan mengunjungi profilnya secara langsung.</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <p>Sistem akan membatasi akun ini agar tidak mendominasi timeline Anda:</p>
+                                                <ul className="list-disc pl-4 space-y-1">
+                                                    <li>Maksimal 2 postingan beruntun untuk aktivitas baru.</li>
+                                                    <li>Postingan ke-3 dan seterusnya akan disembunyikan.</li>
+                                                    <li><span className="font-bold text-foreground">Pengecualian</span>: Balasan beruntun (Thread) tidak akan dipotong agar konteks tetap terjaga.</li>
+                                                </ul>
+                                            </div>
+                                        )}
+                                        <p className="text-[11px] text-muted-foreground italic flex items-center gap-1 pt-2">
+                                            <Info className="h-3 w-3" />
+                                            Tindakan ini hanya berpengaruh pada akun Anda sendiri.
+                                        </p>
+                                    </div>
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={() => {
+                                        if (confirmDialog.type) filterMutation.mutate(confirmDialog.type);
+                                    }}
+                                    className={cn("rounded-xl", confirmDialog.type === "mute" ? "bg-destructive hover:bg-destructive/90" : "bg-primary")}
+                                >
+                                    Lanjutkan
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
         );
@@ -225,8 +341,53 @@ export function PostHeader({
                     isCurrentUser={isCurrentUser} 
                     originalUrl={originalUrl}
                     isRemote={user.isRemote}
+                    onFilter={handleFilterClick}
+                    activeFilterType={activeFilter?.type}
                     size="small"
                 />
+            </div>
+
+            <div onClick={(e) => e.stopPropagation()}>
+                <AlertDialog open={confirmDialog.open} onOpenChange={(o) => setConfirmDialog(prev => ({ ...prev, open: o }))}>
+                    <AlertDialogContent className="max-w-md">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                {confirmDialog.type === "mute" ? "Bisukan Akun?" : "Batasi Intensitas?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                                <div className="space-y-3 pt-2">
+                                    {confirmDialog.type === "mute" ? (
+                                        <p>Postingan dari akun ini akan <span className="font-bold text-foreground">disembunyikan sepenuhnya</span> dari timeline Anda. Anda tetap bisa melihat postingannya dengan mengunjungi profilnya secara langsung.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <p>Sistem akan membatasi akun ini agar tidak mendominasi timeline Anda:</p>
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                <li>Maksimal 2 postingan beruntun untuk aktivitas baru.</li>
+                                                <li>Postingan ke-3 dan seterusnya akan disembunyikan.</li>
+                                                <li><span className="font-bold text-foreground">Pengecualian</span>: Balasan beruntun (Thread) tidak akan dipotong agar konteks tetap terjaga.</li>
+                                            </ul>
+                                        </div>
+                                    )}
+                                    <p className="text-[11px] text-muted-foreground italic flex items-center gap-1 pt-2">
+                                        <Info className="h-3 w-3" />
+                                        Tindakan ini hanya berpengaruh pada akun Anda sendiri.
+                                    </p>
+                                </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={() => {
+                                    if (confirmDialog.type) filterMutation.mutate(confirmDialog.type);
+                                }}
+                                className={cn("rounded-xl", confirmDialog.type === "mute" ? "bg-destructive hover:bg-destructive/90" : "bg-primary")}
+                            >
+                                Lanjutkan
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );
@@ -239,6 +400,8 @@ function PostMenu({
     isCurrentUser,
     originalUrl,
     isRemote,
+    onFilter,
+    activeFilterType,
     size = "normal"
 }: { 
     onCopyLink?: () => void, 
@@ -247,6 +410,8 @@ function PostMenu({
     isCurrentUser: boolean,
     originalUrl?: string | null,
     isRemote?: boolean,
+    onFilter?: (type: "mute" | "reduce_intensity") => void,
+    activeFilterType?: "mute" | "reduce_intensity",
     size?: "normal" | "small"
 }) {
     return (
@@ -276,7 +441,7 @@ function PostMenu({
             <DropdownMenuContent 
                 onClick={(e) => e.stopPropagation()} 
                 align="end" 
-                className="w-48 shadow-xl"
+                className="w-56 shadow-xl"
             >
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopyLink?.(); }} className="gap-2 py-2.5">
                     <Share2 className="h-4 w-4" />
@@ -296,12 +461,37 @@ function PostMenu({
                         </a>
                     </DropdownMenuItem>
                 )}
+
                 {!isCurrentUser && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReport?.(); }} className="gap-2 py-2.5 text-amber-500 focus:text-amber-500">
-                        <Flag className="h-4 w-4" />
-                        <span>Laporkan</span>
-                    </DropdownMenuItem>
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); onFilter?.("reduce_intensity"); }} 
+                            className={cn(
+                                "gap-2 py-2.5",
+                                activeFilterType === "reduce_intensity" && "text-primary focus:text-primary font-medium"
+                            )}
+                        >
+                            <Gauge className="h-4 w-4" />
+                            <span>{activeFilterType === "reduce_intensity" ? "Jangan Batasi Intensitas" : "Batasi Intensitas"}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); onFilter?.("mute"); }} 
+                            className={cn(
+                                "gap-2 py-2.5",
+                                activeFilterType === "mute" && "text-destructive focus:text-destructive font-medium"
+                            )}
+                        >
+                            <VolumeX className="h-4 w-4" />
+                            <span>{activeFilterType === "mute" ? "Batal Bisukan Akun" : "Bisukan Akun"}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReport?.(); }} className="gap-2 py-2.5 text-amber-500 focus:text-amber-500">
+                            <Flag className="h-4 w-4" />
+                            <span>Laporkan</span>
+                        </DropdownMenuItem>
+                    </>
                 )}
+                
                 {isCurrentUser && (
                     <>
                         <DropdownMenuSeparator />

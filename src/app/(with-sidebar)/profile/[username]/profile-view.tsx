@@ -15,7 +15,9 @@ import {
     UserPen,
     Loader2,
     ChevronLeft,
-    ExternalLink
+    ExternalLink,
+    VolumeX,
+    Gauge
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "../../channels/[roomId]/room.action";
@@ -33,7 +35,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { FollowButton } from "./components/follow-button";
 import { UserListDialog } from "./components/user-list-dialog";
-import { getFollowersAction, getFollowingAction } from "../../user.action";
+import { getFollowersAction, getFollowingAction, getUserFiltersAction } from "../../user.action";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import { 
     Tooltip,
@@ -41,6 +43,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AccountFilterRecord } from "@/lib/application/repositories/account-filter.repository.interface";
 
 interface ProfileViewProps {
     user: {
@@ -90,6 +93,20 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
     // Unified Post Query using React Query
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
+
+    // Fetch user filters to show badge
+    const { data: filtersResponse } = useQuery({
+        queryKey: ["user-filters", currentUser?.id],
+        queryFn: () => currentUser?.id ? getUserFiltersAction(currentUser.id) : null,
+        enabled: !!currentUser?.id,
+    });
+
+    const filters = filtersResponse?.status === "success" ? filtersResponse.data : [];
+    const activeFilter = filters?.find(f => 
+        user.isRemote 
+            ? f.targetRemoteActorId === user.id 
+            : f.targetUserId === user.id
+    );
 
     const { data: posts = [], isLoading, refetch } = useQuery({
         queryKey: ["posts", "profile", user.id, activeTab],
@@ -344,25 +361,55 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                 </div>
 
                                 <div className="mt-4 space-y-3">
-                                    <div>
-                                        <h2 
-                                            className="text-2xl font-bold tracking-tight text-foreground"
-                                            dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
-                                        />
-                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                            {user.isRemote && user.handle 
-                                                ? user.handle 
-                                                : `@${user.username.toLowerCase()}`}
-                                            {user.customStatus && (
-                                                <>
-                                                    <span className="text-border">•</span>
-                                                    <span className="flex items-center gap-1 text-amber-500/80">
-                                                        <Sparkles className="h-3 w-3" />
-                                                        {user.customStatus}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </p>
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <h2 
+                                                className="text-2xl font-bold tracking-tight text-foreground"
+                                                dangerouslySetInnerHTML={{ __html: parseFediverseContent(user.displayName || user.username, user.emojis) }}
+                                            />
+                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                {user.isRemote && user.handle 
+                                                    ? user.handle 
+                                                    : `@${user.username.toLowerCase()}`}
+                                                {user.customStatus && (
+                                                    <>
+                                                        <span className="text-border">•</span>
+                                                        <span className="flex items-center gap-1 text-amber-500/80">
+                                                            <Sparkles className="h-3 w-3" />
+                                                            {user.customStatus}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        {activeFilter && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className={cn(
+                                                            "px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 border shadow-sm animate-in fade-in zoom-in duration-300",
+                                                            activeFilter.type === "reduce_intensity" 
+                                                                ? "bg-primary/10 border-primary/20 text-primary"
+                                                                : "bg-destructive/10 border-destructive/20 text-destructive"
+                                                        )}>
+                                                            {activeFilter.type === "reduce_intensity" ? (
+                                                                <Gauge className="h-3 w-3" />
+                                                            ) : (
+                                                                <VolumeX className="h-3 w-3" />
+                                                            )}
+                                                            {activeFilter.type === "reduce_intensity" ? "Intensitas Terbatas" : "Dibisukan"}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                                                        <p>{activeFilter.type === "reduce_intensity" 
+                                                            ? "Postingan beruntun dari akun ini dikurangi agar tidak memenuhi timeline." 
+                                                            : "Akun ini sepenuhnya disembunyikan dari timeline Anda."}
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                     </div>
 
                                     {user.bio && (

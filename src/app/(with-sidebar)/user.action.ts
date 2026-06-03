@@ -167,3 +167,28 @@ export const unfollowRemoteUserAction = async (localUserId: string, remoteActorU
     return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
   }
 };
+
+import { toggleAccountFilterController, getUserFiltersController } from "@/lib/interface-adapters/controllers/users/toggle-account-filter.controller";
+
+export const toggleAccountFilterAction = async (params: {
+  userId: string;
+  targetId: string;
+  isRemote: boolean;
+  type: "mute" | "reduce_intensity";
+}): Promise<ServerResponse<{ action: string; type: string }>> => {
+  try {
+    const result = await toggleAccountFilterController(params);
+    return { status: "success", data: result, error: null };
+  } catch (err: any) {
+    return { status: "error", data: null as any, error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
+
+export const getUserFiltersAction = async (userId: string) => {
+  try {
+    const data = await getUserFiltersController(userId);
+    return { status: "success", data, error: null };
+  } catch (err: any) {
+    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
+  }
+};
