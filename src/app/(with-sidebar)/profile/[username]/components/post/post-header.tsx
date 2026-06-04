@@ -41,13 +41,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { UserHoverCard } from "./user-hover-card";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toggleAccountFilterAction, getUserFiltersAction } from "@/app/(with-sidebar)/user.action";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PostHeaderProps {
     user: {
@@ -85,6 +86,7 @@ export function PostHeader({
     currentUserId,
     originalUrl
 }: PostHeaderProps) {
+    const isMobile = !!useIsMobile();
     const queryClient = useQueryClient();
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean, type: "mute" | "reduce_intensity" | null }>({
         open: false,
@@ -188,25 +190,16 @@ export function PostHeader({
                             <div className="flex items-center gap-1.5 text-muted-foreground text-[14px]">
                                 <span>{user.handle}</span>
                                 <span className="shrink-0">·</span>
-                                <VisibilityIcon visibility={visibility} className="h-3.5 w-3.5 opacity-60" />
+                                <VisibilityIcon visibility={visibility} className="h-3.5 w-3.5 opacity-60 shrink-0" />
                                 {user.isRemote && (
                                     <>
                                         <span className="shrink-0">·</span>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <span 
-                                                        className="inline-flex items-center gap-1 px-2 py-0.5 
-                                                                    bg-gradient-to-r from-violet-100 to-indigo-100 
-                                                                    dark:from-violet-950 dark:to-indigo-950 
-                                                                    border border-violet-200 dark:border-violet-800 
-                                                                    rounded-xl text-[10px] font-medium 
-                                                                    text-violet-700 dark:text-violet-300
-                                                                    shadow-sm cursor-default"
-                                                    >
-                                                        <span className="text-base leading-none opacity-75">⁂</span>
-                                                        Remote
-                                                    </span>
+                                                    <div className="flex items-center justify-center cursor-default text-violet-500/80 hover:text-violet-500 transition-colors shrink-0">
+                                                        <span className="text-[22px] leading-none select-none">⁂</span>
+                                                    </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
                                                     <p>Post dari instance lain (Fediverse)</p>
@@ -281,11 +274,11 @@ export function PostHeader({
     return (
         <div className="flex items-start justify-between mb-0.5 relative w-full">
             <div className="flex flex-col min-w-0 flex-1 pr-8">
-                <div className="flex items-center gap-1.5 min-w-0 leading-tight mb-0.5">
+                <div className="flex items-center gap-1 min-w-0 leading-tight mb-0.5">
                     <UserHoverCard user={user} currentUserId={currentUserId}>
                         <Link 
                             href={user.profilePath} 
-                            className="font-bold text-[15px] text-foreground hover:underline line-clamp-1 shrink-0 max-w-full" 
+                            className="font-bold text-[15px] text-foreground hover:underline line-clamp-1 shrink-1 min-w-0" 
                             onClick={(e) => e.stopPropagation()}
                             dangerouslySetInnerHTML={{ __html: displayNameWithEmojis }}
                         />
@@ -295,7 +288,7 @@ export function PostHeader({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <span className="text-muted-foreground text-[13px] whitespace-nowrap shrink-0 hover:underline cursor-default">
-                                    {formatDistanceToNow(createdAt, { addSuffix: true, locale: id })}
+                                    {formatRelativeTime(createdAt, isMobile)}
                                 </span>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
@@ -304,23 +297,14 @@ export function PostHeader({
                         </Tooltip>
                     </TooltipProvider>
                     <span className="text-muted-foreground text-[13px] shrink-0">·</span>
-                    <VisibilityIcon visibility={visibility} className="h-3 w-3 opacity-60" />
+                    <VisibilityIcon visibility={visibility} className="h-3 w-3 opacity-60 shrink-0" />
                     {user.isRemote && (
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span 
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 
-                                                    bg-gradient-to-r from-violet-100 to-indigo-100 
-                                                    dark:from-violet-950 dark:to-indigo-950 
-                                                    border border-violet-200 dark:border-violet-800 
-                                                    rounded-xl text-[10px] font-medium 
-                                                    text-violet-700 dark:text-violet-300
-                                                    shadow-sm cursor-default"
-                                    >
-                                        <span className="text-base leading-none opacity-75">⁂</span>
-                                        Remote
-                                    </span>
+                                    <div className="flex items-center justify-center cursor-default text-violet-500/80 hover:text-violet-500 transition-colors shrink-0">
+                                        <span className="text-[20px] leading-none select-none mb-[-2px]">⁂</span>
+                                    </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
                                     <p>Post dari instance lain (Fediverse)</p>
@@ -329,7 +313,7 @@ export function PostHeader({
                         </TooltipProvider>
                     )}
                 </div>
-                <Link href={user.profilePath} className="text-muted-foreground text-[13px] line-clamp-1 leading-none mb-1.5" onClick={(e) => e.stopPropagation()}>
+                <Link href={user.profilePath} className="text-muted-foreground text-[12px] md:text-[13px] line-clamp-1 leading-none mb-1.5" onClick={(e) => e.stopPropagation()}>
                     {user.handle}
                 </Link>
             </div>

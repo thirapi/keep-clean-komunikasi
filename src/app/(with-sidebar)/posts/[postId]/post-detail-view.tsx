@@ -100,7 +100,13 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                 variant="ghost"
                                 size="icon"
                                 className="h-10 w-10 text-white rounded-full hover:bg-white/10"
-                                onClick={() => router.back()}
+                                onClick={() => {
+                                    if (document.referrer.includes(window.location.host) && window.history.length > 2) {
+                                        router.back();
+                                    } else {
+                                        router.push("/timeline");
+                                    }
+                                }}
                             >
                                 <ChevronLeft strokeWidth="3" className="h-6 w-6" />
                             </Button>
