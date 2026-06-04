@@ -53,8 +53,14 @@ export function PostContent({
     }, [emojis, localCustomEmojis]);
 
     const summary = apMetadata?.summary;
-    const parsedContent = content ? parseFediverseContent(content, mergedEmojis) : content;
-    const parsedSummary = summary ? parseFediverseContent(summary, mergedEmojis) : null;
+    
+    // Clean content from extra newlines between tags if it's HTML-like
+    // This prevents whitespace-pre-wrap from rendering newlines between block elements
+    const cleanContent = content ? content.replace(/>\n\s*</g, '><') : content;
+    const cleanSummary = summary ? summary.replace(/>\n\s*</g, '><') : summary;
+
+    const parsedContent = cleanContent ? parseFediverseContent(cleanContent, mergedEmojis) : cleanContent;
+    const parsedSummary = cleanSummary ? parseFediverseContent(cleanSummary, mergedEmojis) : null;
 
     return (
         <div className={cn("flex flex-col", className)}>

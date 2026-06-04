@@ -303,3 +303,8 @@
   height: auto;
   border-radius: 0.75rem;
 }
+
+/* Fix Mastodon's invisible spans that take up space */
+.fediverse-content .invisible {
+  display: none;
+}

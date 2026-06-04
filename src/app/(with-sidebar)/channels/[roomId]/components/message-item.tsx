@@ -14,10 +14,9 @@ import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import { useEmojis } from "@/components/emoji-provider";
 
 // Module-level constants — compiled once, not on every render
+import { extractUrls } from "@/lib/extract-urls";
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
-// Extracts all URL tokens from message text, stripping trailing punctuation
-const URL_TOKEN_REGEX = /https?:\/\/[^\s]+/g;
 import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy, Pencil, Check, X, Smile, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -319,9 +318,7 @@ export function MessageItem({
   const socialEmbeds = useMemo(() => {
     if (!message.content) return [];
 
-    const urls = Array.from(message.content.matchAll(URL_TOKEN_REGEX), (m) =>
-      m[0].replace(/[.,!?]+$/, "")
-    );
+    const urls = extractUrls(message.content);
 
     const embeds: React.ReactNode[] = [];
     const seen = new Set<string>();
