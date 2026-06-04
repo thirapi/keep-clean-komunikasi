@@ -105,7 +105,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -122,7 +122,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -139,7 +142,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -154,7 +160,10 @@ export class PostRepository implements IPostRepository {
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -185,7 +194,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -202,7 +211,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -219,7 +231,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -228,13 +243,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -282,7 +303,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -299,7 +320,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -316,7 +340,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -325,13 +352,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -370,7 +403,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -387,7 +420,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -404,7 +440,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -413,13 +452,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -440,7 +485,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -597,7 +642,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -614,7 +659,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -631,7 +679,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -640,13 +691,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -679,7 +736,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -696,7 +753,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -713,7 +773,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -722,13 +785,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,
@@ -755,7 +824,7 @@ export class PostRepository implements IPostRepository {
                 remoteActor: true,
                 attachments: true,
                 reactions: {
-                    with: { user: { columns: { username: true } } },
+                    with: { user: { columns: { username: true } }, remoteActor: true },
                 },
                 replyTo: {
                     with: { 
@@ -772,7 +841,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -789,7 +861,10 @@ export class PostRepository implements IPostRepository {
                         reactions: true,
                         reposts: { 
                             where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                            columns: { id: true, userId: true }
+                            with: {
+                                user: { columns: { username: true } },
+                                remoteActor: { columns: { username: true } }
+                            }
                         },
                         replies: { 
                             where: eq(posts.isDeleted, false),
@@ -798,13 +873,19 @@ export class PostRepository implements IPostRepository {
                         bookmarks: true,
                     },
                 },
-                reposts: {
+                reposts: { 
                     where: and(eq(posts.isDeleted, false), eq(posts.content, "")),
-                    columns: { id: true, userId: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 replies: {
                     where: eq(posts.isDeleted, false),
-                    columns: { id: true }
+                    with: {
+                        user: { columns: { username: true } },
+                        remoteActor: { columns: { username: true } }
+                    }
                 },
                 bookmarks: true,
                 linkPreviews: true,

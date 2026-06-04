@@ -53,6 +53,7 @@ export interface PostWithUserDTO extends PostRecord {
     } | null;
     attachments?: AttachmentRecord[];
     reactions?: PostReactionWithUserDTO[];
+    reposts?: PostWithUserDTO[];
     replyTo?: PostWithUserDTO | null;
     repostOf?: PostWithUserDTO | null;
     quoteOf?: PostWithUserDTO | null;
@@ -79,5 +80,12 @@ export interface PostReactionRecord {
 export interface PostReactionWithUserDTO extends PostReactionRecord {
     user: {
         username: string;
-    };
+    } | null;
+    remoteActor?: {
+        id: string;
+        username: string;
+        domain: string;
+        name?: string | null;
+        avatar?: string | null;
+    } | null;
 }

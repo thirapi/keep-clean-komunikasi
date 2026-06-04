@@ -191,15 +191,10 @@ export class InteractWithPostUseCase {
                 const activity = await this.activityPubService.createAnnounceActivity(userId, result.record);
                 await this.activityPubService.broadcastActivity(activity, userId);
             } else if (result.type === "unrepost") {
-                // Send Undo Announce to the original author at minimum
-                if (originalPost.uri && originalPost.remoteActorId) {
-                    const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
-                    if (actor?.inbox) {
-                        await this.activityPubService.sendUndoAnnounceActivity(userId, originalPost.uri, actor.inbox);
-                    }
+                // Broadcast Undo Announce to followers and original author
+                if (originalPost.uri) {
+                    await this.activityPubService.broadcastUndoAnnounceActivity(userId, originalPost.uri);
                 }
-                // Note: Full Undo broadcast to followers would require more state, 
-                // but at least author is notified.
             }
         } catch (err) {
             console.error("Failed to federate repost activity:", err);

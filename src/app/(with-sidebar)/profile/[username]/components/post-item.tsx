@@ -271,7 +271,16 @@ export function PostItem({
                 groups[r.emoji] = { emoji: r.emoji, count: 0, users: [], hasReacted: false };
             }
             groups[r.emoji].count++;
-            const displayName = r.userId === currentUserId ? "Anda" : (r.user?.username || "Seseorang");
+            
+            let displayName = "Seseorang";
+            if (r.userId === currentUserId) {
+                displayName = "Anda";
+            } else if (r.user?.username) {
+                displayName = r.user.username;
+            } else if (r.remoteActor?.username) {
+                displayName = r.remoteActor.username;
+            }
+            
             groups[r.emoji].users.push(displayName);
             if (r.userId === currentUserId) {
                 groups[r.emoji].hasReacted = true;
@@ -285,6 +294,15 @@ export function PostItem({
         return Object.values(groups);
     }, [targetPost.reactions, currentUserId]);
 
+    const likers = useMemo(() => {
+        return (targetPost.reactions || [])
+            .filter(r => r.emoji === "❤️")
+            .map(r => {
+                if (r.userId === currentUserId) return "Anda";
+                return r.user?.username || r.remoteActor?.username || "Seseorang";
+            });
+    }, [targetPost.reactions, currentUserId]);
+
     const hasLiked = !!targetPost.isLikedByCurrentUser;
     const likeCount = useMemo(() => {
         const baseCount = targetPost.reactions?.filter(r => r.emoji === "❤️").length || 0;
@@ -293,6 +311,15 @@ export function PostItem({
         if (!targetPost.isLikedByCurrentUser && containsUser) return Math.max(0, baseCount - 1);
         return baseCount;
     }, [targetPost.reactions, targetPost.isLikedByCurrentUser, currentUserId]);
+
+    const reposters = useMemo(() => {
+        const uniqueReposters = new Set<string>();
+        (targetPost.reposts || []).forEach(r => {
+            const name = r.user?.username || r.remoteActor?.username;
+            if (name) uniqueReposters.add(name);
+        });
+        return Array.from(uniqueReposters);
+    }, [targetPost.reposts]);
 
     const handleMediaClick = (idx: number) => {
         setLightboxIndex(idx);
@@ -350,7 +377,9 @@ export function PostItem({
 
                 <PostStats 
                     likeCount={likeCount} 
+                    likers={likers}
                     repostCount={targetPost.repostCount} 
+                    reposters={reposters}
                     replyCount={targetPost.replyCount}
                     isFocused
                     className="my-0"
@@ -374,6 +403,9 @@ export function PostItem({
                     onBookmark={() => bookmarkMutation.mutate()}
                     onShare={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
                     onReactionSelect={(emoji) => reactionMutation.mutate(emoji)}
+                    likeCount={likeCount}
+                    likers={likers}
+                    reposters={reposters}
                 />
 
                 {renderModals()}
@@ -471,6 +503,8 @@ export function PostItem({
                         replyCount={targetPost.replyCount}
                         repostCount={targetPost.repostCount}
                         likeCount={likeCount}
+                        likers={likers}
+                        reposters={reposters}
                         isLiked={hasLiked}
                         isReposted={targetPost.isRepostedByCurrentUser}
                         isBookmarked={targetPost.isBookmarkedByCurrentUser}

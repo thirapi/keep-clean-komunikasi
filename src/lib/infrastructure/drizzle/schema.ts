@@ -273,6 +273,7 @@ export const postReactions = pgTable("PostReaction", {
 export const postReactionsRelations = relations(postReactions, ({ one }) => ({
     post: one(posts, { fields: [postReactions.postId], references: [posts.id] }),
     user: one(users, { fields: [postReactions.userId], references: [users.id] }),
+    remoteActor: one(remoteActors, { fields: [postReactions.remoteActorId], references: [remoteActors.id] }),
 }));
 
 export const followers = pgTable("Follower", {

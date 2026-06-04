@@ -28,6 +28,9 @@ interface PostActionsProps {
     replyCount?: number;
     repostCount?: number;
     likeCount?: number;
+    likers?: string[];
+    reposters?: string[];
+    repliers?: string[];
     isLiked?: boolean;
     isReposted?: boolean;
     isBookmarked?: boolean;
@@ -45,6 +48,9 @@ export function PostActions({
     replyCount,
     repostCount,
     likeCount,
+    likers = [],
+    reposters = [],
+    repliers = [],
     isLiked,
     isReposted,
     isBookmarked,
@@ -57,6 +63,24 @@ export function PostActions({
     onReactionSelect,
     isFocused = false
 }: PostActionsProps) {
+    const likeTooltipText = likers.length > 0 
+        ? (likers.length > 10 
+            ? `${likers.slice(0, 10).join(", ")} dan ${likers.length - 10} lainnya`
+            : likers.join(", "))
+        : null;
+
+    const repostTooltipText = reposters.length > 0
+        ? (reposters.length > 10
+            ? `${reposters.slice(0, 10).join(", ")} dan ${reposters.length - 10} lainnya`
+            : reposters.join(", "))
+        : null;
+
+    const replyTooltipText = repliers.length > 0
+        ? (repliers.length > 10
+            ? `${repliers.slice(0, 10).join(", ")} dan ${repliers.length - 10} lainnya`
+            : repliers.join(", "))
+        : null;
+
     if (isFocused) {
         return (
             <div className="flex items-center justify-around py-1 mb-1">
@@ -66,7 +90,6 @@ export function PostActions({
                     hoverColor="hover:text-sky-500" 
                     hoverBg="hover:bg-sky-500/10"
                     size="large"
-                    tooltip="Balas"
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -78,7 +101,7 @@ export function PostActions({
                                 hoverColor="hover:text-emerald-500" 
                                 hoverBg="hover:bg-emerald-500/10"
                                 size="large"
-                                tooltip="Bagikan Ulang"
+                                tooltip={repostTooltipText ? `Direpost oleh: ${repostTooltipText}` : undefined}
                             />
                         </div>
                     </DropdownMenuTrigger>
@@ -124,7 +147,7 @@ export function PostActions({
                     hoverColor="hover:text-rose-500" 
                     hoverBg="hover:bg-rose-500/10"
                     size="large"
-                    tooltip={isLiked ? "Batal Suka" : "Suka"}
+                    tooltip={likeTooltipText ? `Disukai oleh: ${likeTooltipText}` : undefined}
                 />
                 <ActionButton 
                     icon={Bookmark} 
@@ -135,7 +158,6 @@ export function PostActions({
                     hoverColor="hover:text-amber-500" 
                     hoverBg="hover:bg-amber-500/10"
                     size="large"
-                    tooltip={isBookmarked ? "Hapus dari Bookmark" : "Simpan ke Bookmark"}
                 />
                 <ActionButton 
                     icon={Share2} 
@@ -143,7 +165,6 @@ export function PostActions({
                     hoverColor="hover:text-sky-500" 
                     hoverBg="hover:bg-sky-500/10"
                     size="large"
-                    tooltip="Bagikan"
                 />
             </div>
         );
@@ -160,7 +181,6 @@ export function PostActions({
                 onClick={onReply} 
                 hoverColor="hover:text-sky-500" 
                 hoverBg="hover:bg-sky-500/10" 
-                tooltip="Balas"
             />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -172,7 +192,7 @@ export function PostActions({
                             activeColor="text-emerald-500"
                             hoverColor="hover:text-emerald-500" 
                             hoverBg="hover:bg-emerald-500/10" 
-                            tooltip="Bagikan Ulang"
+                            tooltip={repostTooltipText ? `Direpost oleh: ${repostTooltipText}` : undefined}
                         />
                     </div>
                 </DropdownMenuTrigger>
@@ -218,7 +238,7 @@ export function PostActions({
                 onClick={onLike} 
                 hoverColor="hover:text-rose-500" 
                 hoverBg="hover:bg-rose-500/10" 
-                tooltip={isLiked ? "Batal Suka" : "Suka"}
+                tooltip={likeTooltipText ? `Disukai oleh: ${likeTooltipText}` : undefined}
             />
             <ActionButton 
                 icon={Bookmark} 
@@ -228,14 +248,12 @@ export function PostActions({
                 onClick={onBookmark} 
                 hoverColor="hover:text-amber-500" 
                 hoverBg="hover:bg-amber-500/10" 
-                tooltip={isBookmarked ? "Hapus dari Bookmark" : "Simpan ke Bookmark"}
             />
             <ActionButton 
                 icon={Share2} 
                 onClick={onShare} 
                 hoverColor="hover:text-sky-500" 
                 hoverBg="hover:bg-sky-500/10" 
-                tooltip="Bagikan"
             />
         </div>
     );

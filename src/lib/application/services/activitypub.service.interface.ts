@@ -9,6 +9,7 @@ export interface IActivityPubService {
     sendUndoLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
     sendAnnounceActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
     sendUndoAnnounceActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
+    broadcastUndoAnnounceActivity(userId: string, targetPostUri: string): Promise<void>;
     sendEmojiReactionActivity(userId: string, targetPostUri: string, targetActorInbox: string, emoji: string): Promise<void>;
     sendUndoEmojiReactionActivity(userId: string, targetPostUri: string, targetActorInbox: string, emoji: string): Promise<void>;
     sendDeleteActivity(userId: string, postUri: string): Promise<void>;

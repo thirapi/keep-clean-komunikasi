@@ -462,6 +462,51 @@ export class ActivityPubService implements IActivityPubService {
         });
     }
 
+    async broadcastUndoAnnounceActivity(userId: string, targetPostUri: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.privateKey) return;
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        const actorUri = `${baseUrl}/api/users/${user.username}`;
+
+        const undoActivity = {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": `${actorUri}#undo-announce-${Date.now()}-${createId()}`,
+            "type": "Undo",
+            "actor": actorUri,
+            "object": {
+                "type": "Announce",
+                "actor": actorUri,
+                "object": targetPostUri
+            }
+        };
+
+        const remoteInboxes = await this.followerRepository.getRemoteFollowersInboxes(userId);
+        
+        // Also include the original author's inbox if possible
+        try {
+            const originalPost = await this.postRepository.findByUri(targetPostUri);
+            if (originalPost?.remoteActorId) {
+                const actor = await this.remoteActorRepository.findById(originalPost.remoteActorId);
+                if (actor?.inbox) {
+                    remoteInboxes.push(actor.inbox);
+                }
+            }
+        } catch (err) {
+            console.error("[BroadcastUndoAnnounce] Failed to fetch original author inbox:", err);
+        }
+
+        const uniqueInboxes = [...new Set(remoteInboxes)];
+        console.log(`Broadcasting Undo Announce to ${uniqueInboxes.length} inboxes...`);
+
+        for (const inboxUrl of uniqueInboxes) {
+            this.deliverToRemoteInbox(inboxUrl, undoActivity, {
+                username: user.username,
+                privateKey: user.privateKey
+            }).catch(err => console.error(`Failed to deliver Undo Announce to ${inboxUrl}:`, err));
+        }
+    }
+
     async sendEmojiReactionActivity(userId: string, targetPostUri: string, targetActorInbox: string, emoji: string): Promise<void> {
         const user = await this.userRepository.findById(userId);
         if (!user || !user.privateKey) return;
@@ -881,10 +926,47 @@ export class ActivityPubService implements IActivityPubService {
             "object": postUri
         };
 
-        // Broadcast to followers
-        const remoteInboxes = await this.followerRepository.getRemoteFollowersInboxes(userId);
-        
-        console.log(`Broadcasting Delete activity to ${remoteInboxes.length} remote inboxes...`);
+        // 1. Gather inboxes
+        const remoteInboxes = new Set<string>();
+
+        // Add followers
+        const followerInboxes = await this.followerRepository.getRemoteFollowersInboxes(userId);
+        followerInboxes.forEach(inbox => remoteInboxes.add(inbox));
+
+        // 2. If it's a reply/repost/quote, find the target inbox to ensure synchronization
+        try {
+            const post = await this.postRepository.findByUri(postUri);
+            if (post) {
+                // Check replyTo
+                if (post.replyToId) {
+                    const parent = await this.postRepository.findById(post.replyToId);
+                    if (parent?.remoteActorId) {
+                        const actor = await this.remoteActorRepository.findById(parent.remoteActorId);
+                        if (actor?.inbox) remoteInboxes.add(actor.inbox);
+                    }
+                }
+                // Check repostOf
+                if (post.repostOfId) {
+                    const original = await this.postRepository.findById(post.repostOfId);
+                    if (original?.remoteActorId) {
+                        const actor = await this.remoteActorRepository.findById(original.remoteActorId);
+                        if (actor?.inbox) remoteInboxes.add(actor.inbox);
+                    }
+                }
+                // Check quoteOf
+                if (post.quoteOfId) {
+                    const quoted = await this.postRepository.findById(post.quoteOfId);
+                    if (quoted?.remoteActorId) {
+                        const actor = await this.remoteActorRepository.findById(quoted.remoteActorId);
+                        if (actor?.inbox) remoteInboxes.add(actor.inbox);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("[DeletePost] Failed to fetch related authors inboxes:", err);
+        }
+
+        console.log(`Broadcasting Delete activity to ${remoteInboxes.size} unique remote inboxes...`);
 
         for (const inboxUrl of remoteInboxes) {
             this.deliverToRemoteInbox(inboxUrl, deleteActivity, {

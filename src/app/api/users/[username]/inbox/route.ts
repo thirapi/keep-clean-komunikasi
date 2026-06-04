@@ -288,7 +288,8 @@ async function handleUndo(userId: string, username: string, activity: any) {
         if (objectUri) {
             const post = await postRepository.findByUri(objectUri);
             if (post) {
-                await postRepository.removeReaction(post.id, null, "❤️", activity.actor);
+                const emoji = activity.object.content || "❤️";
+                await postRepository.removeReaction(post.id, null, emoji, activity.actor);
             }
         }
     } else if (activity.object?.type === "EmojiReact") {
@@ -323,17 +324,23 @@ async function handleLike(userId: string, username: string, activity: any) {
         const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
-        console.log("[Inbox] Post " + post.id + " liked by remote actor " + actor.id);
-        await postRepository.addReaction(post.id, null, "❤️", actor.id);
+        // Smarter detection: Some software might send Like with content for reactions
+        const emoji = activity.content || "❤️";
+        const isStandardLike = emoji === "❤️";
+        const notificationType = isStandardLike ? "like" : "reaction";
 
-        // Notification: Remote like
+        console.log(`[Inbox] Post ${post.id} ${notificationType} by remote actor ${actor.id} with ${emoji}`);
+        await postRepository.addReaction(post.id, null, emoji, actor.id);
+
+        // Notification: Remote like/reaction
         if (post.userId) {
             const notificationId = createId();
             await notificationRepository.create({
                 id: notificationId,
                 recipientId: post.userId,
                 remoteActorId: actor.id,
-                type: "like",
+                type: notificationType,
+                emoji: isStandardLike ? null : emoji,
                 targetId: post.id,
                 targetType: "post",
                 isRead: false,
@@ -343,8 +350,9 @@ async function handleLike(userId: string, username: string, activity: any) {
             // Trigger Pusher
             await pusherService.trigger(`user-${post.userId}`, "new-notification", {
                 id: notificationId,
-                type: "like",
-                remoteActorId: actor.id
+                type: notificationType,
+                remoteActorId: actor.id,
+                emoji: isStandardLike ? null : emoji
             });
         }
     } catch (err) {
