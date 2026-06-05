@@ -49,3 +49,12 @@
     - Mentions are stored as `<@userId>` tokens in the database and rendered as atomic `MentionNode` instances in the editor.
     - Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for the full architecture.
 
+## AI Operational & Code Integrity
+- **Mandatory Context Review**: AI WAJIB membaca file ini dan dokumentasi relevan di `docs/` sebelum memulai riset atau eksekusi untuk memahami konteks dan batasan proyek.
+- **Surgical Modifications**: Utamakan penggunaan tool `replace` daripada `write_file` untuk mengedit file yang sudah ada. Pastikan `old_string` bersifat unik dan konteks yang diambil cukup luas untuk menghindari penimpaan blok kode yang tidak sengaja.
+- **Logic Preservation**: JANGAN PERNAH menghapus atau mengubah logika bisnis yang sudah ada kecuali diminta secara eksplisit. Jika perbaikan bug memerlukan perubahan logika, AI harus menjelaskan alasannya dan mempertimbangkan efek sampingnya.
+- **Impact Assessment**: Sebelum melakukan perubahan, evaluasi bagaimana perubahan tersebut mempengaruhi flow lain, hook, atau relasi database. Patuhi batasan "Clean Architecture" yang didefinisikan di `clean-architecture.md`.
+- **Validation Mandate**: Semua kode yang ditulis harus valid secara sintaksis, *type-safe* (TypeScript), dan diverifikasi melalui skrip pengujian atau unit test sebelum dianggap selesai.
+- **Zero Hallucination Policy**: Jika ragu tentang struktur file atau alur logika, gunakan `read_file` atau `grep_search` untuk verifikasi. Dilarang berasumsi tentang keberadaan fungsi, variabel, atau file.
+- **User Intent Alignment**: Hanya lakukan perubahan yang benar-benar diminta oleh user atau yang secara teknis diperlukan untuk menyelesaikan masalah yang dilaporkan. Hindari "improvisasi" yang mengubah perilaku dasar aplikasi tanpa persetujuan.
+
