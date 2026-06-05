@@ -26,9 +26,21 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
 
     const getProxiedUrl = (url: string) => {
         if (!url) return "";
-        if (url.startsWith("/") || url.startsWith(window.location.origin) || url.includes("/api/media-proxy")) {
+        
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+        
+        // Skip proxy if:
+        // 1. URL is relative
+        // 2. URL starts with current origin (localhost/production)
+        // 3. URL starts with our official production domain (to handle local dev looking at prod assets)
+        // 4. URL is already proxied
+        if (url.startsWith("/") || 
+            url.startsWith(window.location.origin) || 
+            url.startsWith(baseUrl) ||
+            url.includes("/api/media-proxy")) {
             return url;
         }
+        
         return `/api/media-proxy?url=${encodeURIComponent(url)}`;
     };
 

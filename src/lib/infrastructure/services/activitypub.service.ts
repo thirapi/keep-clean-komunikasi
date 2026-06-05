@@ -684,8 +684,11 @@ export class ActivityPubService implements IActivityPubService {
         const existing = await this.postRepository.findByUri(uri);
         if (existing && isLikelyLocal && !forceRefresh) return existing;
 
-        const isRemoteAndMissingMeta = existing && !existing.userId && (!existing.replyToId || !existing.quoteOfId);
-        const needsHydration = (forceRefresh || (prefetchedObject && !isLikelyLocal) || isRemoteAndMissingMeta);
+        // Hydration check: Resolve if missing metadata OR content OR attachments
+        // Note: Remote posts might have content but no attachments, so we check for both.
+        // We use a simplified check for attachments by seeing if the post was ever hydrated.
+        const isRemoteAndPartial = existing && !existing.userId && (!existing.replyToId || !existing.quoteOfId || !existing.content);
+        const needsHydration = (forceRefresh || (prefetchedObject && !isLikelyLocal) || isRemoteAndPartial);
 
         if (!existing || needsHydration) {
             // Concurrency Lock: Check if a resolution for this URI is already in progress

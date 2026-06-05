@@ -302,11 +302,23 @@ export function MessageItem({
     }
   };
 
+  const getProxiedUrl = (url: string) => {
+    if (!url) return "";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+    if (url.startsWith("/") || 
+        url.startsWith(window.location.origin) || 
+        url.startsWith(baseUrl) ||
+        url.includes("/api/media-proxy")) {
+        return url;
+    }
+    return `/api/media-proxy?url=${encodeURIComponent(url)}`;
+  };
+
   const imagesAndVideos = useMemo(() => {
     return (message.attachments || [])
       .filter(a => isImage(a.url) || isVideo(a.url))
       .map(a => ({
-        url: a.url,
+        url: getProxiedUrl(a.url),
         filename: getFileName(a.url),
         type: isVideo(a.url) ? 'video' : 'image'
       }));

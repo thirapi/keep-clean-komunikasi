@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { EmojiPicker } from "frimousse";
-import { Smiley, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { Smiley, MagnifyingGlass, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import {
     Popover,
     PopoverContent,
@@ -18,11 +18,16 @@ interface EmojiPickerProps {
     triggerSize?: "default" | "sm" | "lg" | "icon";
 }
 
+type TabType = "custom" | "default";
+
 export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerSize }: EmojiPickerProps) {
     const [open, setOpen] = useState(false);
     const { customEmojis, isLoading } = useEmojis();
     const [searchQuery, setSearchQuery] = useState("");
     const isMobile = useIsMobile();
+    
+    // State untuk memisahkan kategori lewat Tab demi UX yang super mulus
+    const [activeTab, setActiveTab] = useState<TabType>("custom");
 
     const groupedCustomEmojis = useMemo(() => {
         const filtered = searchQuery 
@@ -44,6 +49,9 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
         setOpen(false);
     };
 
+    // Jika pengguna sedang mengetik pencarian, otomatis buka semua area agar pencarian akurat
+    const isSearching = searchQuery.length > 0;
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -64,6 +72,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                     isMobile ? "w-[calc(100vw-32px)] max-w-[360px]" : "w-[320px]"
                 )}
             >
+                {/* 1. INPUT PENCARIAN */}
                 <div className="relative mx-3 mt-3 mb-2">
                     <MagnifyingGlass weight="duotone" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
                     <input
@@ -74,92 +83,137 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                     />
                 </div>
 
-                <div className="flex flex-col h-[400px]">
-                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
-                        {/* Custom Emojis Section */}
-                        {isLoading && customEmojis.length === 0 ? (
-                             <div className="flex flex-col items-center justify-center py-6 gap-2 text-muted-foreground/60">
-                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                <span className="text-[10px] font-medium">Memuat custom emoji...</span>
-                             </div>
-                        ) : (
-                            Object.entries(groupedCustomEmojis).map(([category, emojis]) => (
-                                <div key={category} className="px-2 mb-2">
-                                    <div className="px-2 pt-4 pb-2 text-[12px] font-semibold text-muted-foreground/50 sticky top-0 bg-popover z-20">
-                                        {category}
-                                    </div>
-                                    <div className="grid grid-cols-8 gap-0">
-                                        {emojis.map((emoji) => (
-                                            <button
-                                                key={emoji.shortcode}
-                                                onClick={() => handleEmojiClick(emoji.shortcode)}
-                                                title={emoji.shortcode}
-                                                className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
-                                            >
-                                                <img 
-                                                    src={emoji.url} 
-                                                    alt={emoji.shortcode} 
-                                                    className="w-[22px] h-[22px] object-contain relative z-10" 
-                                                />
-                                                <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-
-                        <EmojiPicker.Root
-                            onEmojiSelect={({ emoji }) => {
-                                handleEmojiClick(emoji);
-                            }}
-                            columns={8}
+                {/* 2. TAB SWITCHER (Hanya muncul jika tidak sedang mencari, sangat clean secara UX) */}
+                {!isSearching && (
+                    <div className="flex px-3 mb-2 gap-1 border-b border-border/40 pb-1.5">
+                        <button
+                            onClick={() => setActiveTab("custom")}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all",
+                                activeTab === "custom" 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
                         >
-                            {/* 
-                                Removed EmojiPicker.Viewport here because it was causing nested scroll issues.
-                                Using the parent's overflow-y-auto instead.
-                            */}
-                            <EmojiPicker.Loading className="flex flex-col items-center justify-center py-10 gap-2 text-sm text-muted-foreground/60">
-                                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                <span className="text-xs font-medium animate-pulse">Memuat emoji...</span>
-                            </EmojiPicker.Loading>
-
-                            <EmojiPicker.Empty className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground/50 p-6 text-center">
-                                {Object.keys(groupedCustomEmojis).length === 0 && (
-                                    <>
-                                        <MagnifyingGlass weight="duotone" className="h-10 w-10 opacity-20" />
-                                        <p className="text-xs leading-relaxed">
-                                            Tidak ada emoji yang cocok dengan pencarian Anda.
-                                        </p>
-                                    </>
-                                )}
-                            </EmojiPicker.Empty>
-
-                            <EmojiPicker.List
-                                className="select-none pb-2 px-2"
-                                components={{
-                                    CategoryHeader: ({ category, ...props }) => (
-                                        <div
-                                            {...props}
-                                            className="px-2 pt-4 pb-2 text-[12px] font-semibold text-muted-foreground/50 bg-popover sticky top-0 z-20"
-                                        >
-                                            {category.label}
-                                        </div>
-                                    ),
-                                    Emoji: ({ emoji, ...props }) => (
-                                        <button
-                                            {...props}
-                                            title={emoji.label}
-                                            className="flex items-center justify-center h-9 w-9 rounded-lg text-[22px] hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
-                                        >
-                                            <span className="relative z-10 leading-none">{emoji.emoji}</span>
-                                            <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
-                                        </button>
-                                    ),
-                                }}
-                            />
-                        </EmojiPicker.Root>
+                            <Sparkle weight="duotone" className="h-3.5 w-3.5" />
+                            Kustom
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("default")}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all",
+                                activeTab === "default" 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            <Smiley weight="duotone" className="h-3.5 w-3.5" />
+                            Standar
+                        </button>
                     </div>
+                )}
+
+                <div className="flex flex-col h-[340px]">
+                    
+                    {/* AREA CUSTOM EMOJI (Aktif jika di Tab Custom ATAU saat user mengetik search) */}
+                    {(activeTab === "custom" || isSearching) && Object.keys(groupedCustomEmojis).length > 0 && (
+                        <div className={cn(
+                            "overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent",
+                            isSearching ? "max-h-[140px] border-b border-border/40" : "h-full"
+                        )}>
+                            {isLoading && customEmojis.length === 0 ? (
+                                 <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground/60">
+                                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                    <span className="text-[11px] font-medium">Memuat custom emoji...</span>
+                                 </div>
+                            ) : (
+                                Object.entries(groupedCustomEmojis).map(([category, emojis]) => (
+                                    <div key={category} className="mb-2">
+                                        <div className="px-2 pt-2 pb-1 text-[11px] font-bold text-muted-foreground/50 sticky top-0 bg-popover z-20">
+                                            {category}
+                                        </div>
+                                        <div className="grid grid-cols-8 gap-0">
+                                            {emojis.map((emoji) => (
+                                                <button
+                                                    key={emoji.shortcode}
+                                                    onClick={() => handleEmojiClick(emoji.shortcode)}
+                                                    title={emoji.shortcode}
+                                                    className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
+                                                >
+                                                    <img 
+                                                        src={emoji.url} 
+                                                        alt={emoji.shortcode} 
+                                                        className="w-[22px] h-[22px] object-contain relative z-10" 
+                                                    />
+                                                    <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {/* AREA DEFAULT EMOJI (Aktif jika di Tab Default ATAU saat user mengetik search) */}
+                    {(activeTab === "default" || isSearching) && (
+                        <div className="flex-1 min-h-0">
+                            <EmojiPicker.Root
+                                onEmojiSelect={({ emoji }) => {
+                                    handleEmojiClick(emoji);
+                                }}
+                                columns={8}
+                            >
+                                <EmojiPicker.Viewport 
+                                    className={cn(
+                                        "overflow-y-auto pb-2 px-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent",
+                                        isSearching ? "h-[200px]" : "h-[340px]"
+                                    )}
+                                >
+                                    <EmojiPicker.Loading className="flex flex-col items-center justify-center py-10 gap-2 text-sm text-muted-foreground/60">
+                                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                        <span className="text-xs font-medium animate-pulse">Memuat emoji...</span>
+                                    </EmojiPicker.Loading>
+
+                                    <EmojiPicker.Empty className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground/50 p-6 text-center">
+                                        {Object.keys(groupedCustomEmojis).length === 0 && (
+                                            <>
+                                                <MagnifyingGlass weight="duotone" className="h-10 w-10 opacity-20" />
+                                                <p className="text-xs leading-relaxed">
+                                                    Tidak ada emoji yang cocok dengan pencarian Anda.
+                                                </p>
+                                            </>
+                                        )}
+                                    </EmojiPicker.Empty>
+
+                                    <EmojiPicker.List
+                                        className="select-none"
+                                        components={{
+                                            CategoryHeader: ({ category, ...props }) => (
+                                                <div
+                                                    {...props}
+                                                    className="px-2 pt-4 pb-2 text-[12px] font-semibold text-muted-foreground/50 bg-popover sticky top-0 z-20"
+                                                >
+                                                    {category.label}
+                                                </div>
+                                            ),
+                                            Emoji: ({ emoji, ...props }) => (
+                                                <button
+                                                    {...props}
+                                                    title={emoji.label}
+                                                    className="flex items-center justify-center h-9 w-9 rounded-lg text-[22px] hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
+                                                >
+                                                    <span className="relative z-10 leading-none">{emoji.emoji}</span>
+                                                    <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
+                                                </button>
+                                            ),
+                                        }}
+                                    />
+                                </EmojiPicker.Viewport>
+                            </EmojiPicker.Root>
+                        </div>
+                    )}
+
                 </div>
             </PopoverContent>
         </Popover>

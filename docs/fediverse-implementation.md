@@ -66,7 +66,11 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 
 1.  **Background Queues**: Migrasi ke BullMQ untuk pengiriman aktivitas agar tidak membebani request utama dan mendukung retry otomatis.
 2.  **Shared Inbox**: Optimasi pengiriman ke instance besar untuk menghemat bandwidth.
-3.  **Media Proxy (Backend)**: Mengalihkan semua request gambar remote melalui endpoint proxy internal untuk privasi dan melewati restriksi CORS secara permanen.
+*   **Media Proxy (Backend)**: Mengalihkan semua request gambar remote melalui endpoint proxy internal (`/api/media-proxy`) untuk privasi, melewati restriksi CORS, dan mendukung instance dengan *Secure Mode/Authorized Fetch*. Proxy secara otomatis menambahkan HTTP Signatures untuk akses ke instance yang memerlukannya.
+### 7. Media Layer (Proxy & Attachments)
+*   **Unified Media Proxy**: Endpoint `/api/media-proxy` menangani pengambilan media dari instance remote dengan dukungan Signed GET dan SSRF Protection.
+*   **On-Demand Hydration**: Sistem secara otomatis menarik metadata dan lampiran (attachments) dari instance luar jika ditemukan kiriman yang belum terisi lengkap (partial resolution) di database lokal.
+*   **Media Pre-fetching**: Saat resolusi kiriman, sistem melakukan pre-fetch media ke proxy untuk memicu caching pada CDN/Edge.
 
 ## 🛠️ Perubahan Terbaru & Solusi Masalah
 *   **Modern Interaction Standards**: Mengadopsi **FEP-e232** dan **_misskey_quote** untuk mendukung *Quote Post* secara native, menghilangkan sisa teks fallback yang mengganggu.
