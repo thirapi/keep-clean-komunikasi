@@ -9,6 +9,7 @@ import { PusherService } from "@/lib/infrastructure/services/pusher.service";
 import { SignatureVerificationService } from "@/lib/infrastructure/services/signature-verification.service";
 import { ActivityPubService } from "@/lib/infrastructure/services/activitypub.service";
 import { CustomEmojiRepository } from "@/lib/infrastructure/repositories/custom-emoji.repository";
+import { ICustomEmojiRepository } from "@/lib/application/repositories/custom-emoji.repository.interface";
 import { createId } from "@paralleldrive/cuid2";
 
 const userRepository = new UserRepository(db);
@@ -17,7 +18,7 @@ const followerRepository = new FollowerRepository(db);
 const postRepository = new PostRepository(db);
 const notificationRepository = new NotificationRepository(db);
 const pusherService = new PusherService();
-const customEmojiRepository = new CustomEmojiRepository();
+const customEmojiRepository: ICustomEmojiRepository = new CustomEmojiRepository();
 const activityPubService = new ActivityPubService(userRepository, followerRepository, postRepository, remoteActorRepository, customEmojiRepository);
 
 /**
@@ -136,17 +137,23 @@ async function handleEmojiReact(userId: string, username: string, activity: any)
         const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
+        let emojiUrl: string | null = null;
+
         // --- NEW: Custom Emoji Registration ---
         // Extract emoji tag if it's a shortcode reaction
         if (emoji.startsWith(":") && emoji.endsWith(":")) {
             const tags = Array.isArray(activity.tag) ? activity.tag : (activity.tag ? [activity.tag] : []);
-            const emojiTag = tags.find((t: any) => t.type === "Emoji" && t.name === emoji);
+            const emojiNameNoColons = emoji.slice(1, -1);
+            const emojiTag = tags.find((t: any) => t.type === "Emoji" && (t.name === emoji || t.name === emojiNameNoColons));
             if (emojiTag && emojiTag.icon?.url) {
-                await customEmojiRepository.upsert({
-                    shortcode: emoji,
-                    url: emojiTag.icon.url,
-                    category: "federated"
-                });
+                emojiUrl = emojiTag.icon.url;
+                if (emojiUrl) {
+                    await customEmojiRepository.upsert({
+                        shortcode: emoji,
+                        url: emojiUrl,
+                        category: "federated"
+                    });
+                }
             }
         }
 
@@ -168,12 +175,13 @@ async function handleEmojiReact(userId: string, username: string, activity: any)
                 createdAt: new Date()
             });
 
-            // Trigger Pusher
+            // Trigger Pusher with emojiUrl for instant rendering
             await pusherService.trigger(`user-${post.userId}`, "new-notification", {
                 id: notificationId,
                 type: "reaction",
                 remoteActorId: actor.id,
-                emoji
+                emoji,
+                emojiUrl: emojiUrl // Include URL for immediate UI rendering
             });
         }
     } catch (err) {
@@ -348,11 +356,14 @@ async function handleLike(userId: string, username: string, activity: any) {
             const tags = Array.isArray(activity.tag) ? activity.tag : (activity.tag ? [activity.tag] : []);
             const emojiTag = tags.find((t: any) => t.type === "Emoji" && t.name === emoji);
             if (emojiTag && emojiTag.icon?.url) {
-                await customEmojiRepository.upsert({
-                    shortcode: emoji,
-                    url: emojiTag.icon.url,
-                    category: "federated"
-                });
+                const url = emojiTag.icon.url;
+                if (url) {
+                    await customEmojiRepository.upsert({
+                        shortcode: emoji,
+                        url: url,
+                        category: "federated"
+                    });
+                }
             }
         }
 

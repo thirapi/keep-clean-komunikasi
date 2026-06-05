@@ -780,15 +780,35 @@ export class ActivityPubService implements IActivityPubService {
                     const context = fetched.context || fetched.conversation;
 
                     // --- NEW: Reaction Summary & Custom Emojis from Tags ---
-                    const reactionSummary = fetched.reactions || null;
-                    const reactionCount = fetched.reactionCount || 0;
+                    // Handle various reaction formats (Misskey, Akkoma, Pleroma)
+                    let rawReactions = fetched.reactions || fetched._misskey_reactions || null;
+                    let reactionCount = fetched.reactionCount || fetched._misskey_reactionCount || 0;
+                    
+                    // Normalize reaction summary keys (ensure colons for shortcodes)
+                    const reactionSummary: Record<string, number> = {};
+                    if (rawReactions && typeof rawReactions === 'object') {
+                        Object.entries(rawReactions).forEach(([key, val]) => {
+                            // If key is a shortcode without colons, add them
+                            const normalizedKey = (key.length > 1 && !key.startsWith(':') && !key.endsWith(':') && !/^\p{Emoji}/u.test(key))
+                                ? `:${key}:`
+                                : key;
+                            reactionSummary[normalizedKey] = typeof val === 'number' ? val : 0;
+                        });
+                    }
+
+                    const finalReactionSummary = Object.keys(reactionSummary).length > 0 ? reactionSummary : null;
+
+                    // If summary exists but count is missing/0, calculate it
+                    if (finalReactionSummary && !reactionCount) {
+                        reactionCount = Object.values(finalReactionSummary).reduce((a, b) => a + b, 0);
+                    }
 
                     // Register custom emojis found in tags
                     if (emojis) {
                         for (const emoji of emojis) {
                             if (emoji.name && emoji.url) {
                                 await this.customEmojiRepository.upsert({
-                                    shortcode: emoji.name,
+                                    shortcode: emoji.name.startsWith(':') ? emoji.name : `:${emoji.name}:`,
                                     url: emoji.url,
                                     category: "federated"
                                 }).catch(() => {}); // Best effort

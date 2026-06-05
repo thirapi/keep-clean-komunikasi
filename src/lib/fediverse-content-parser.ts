@@ -2,12 +2,19 @@ export function parseFediverseContent(content: string, emojis: { name: string; u
     if (!content || !emojis || emojis.length === 0) return content;
 
     let parsedContent = content;
-    emojis.forEach(emoji => {
-        // Escape name for regex (e.g. :blob_cat:)
-        const escapedName = emoji.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Sort emojis by name length descending to avoid partial matches (e.g. :cat: vs :cat_heart:)
+    const sortedEmojis = [...emojis].sort((a, b) => b.name.length - a.name.length);
+
+    sortedEmojis.forEach(emoji => {
+        // Handle both ":name:" and "name" formats
+        const shortcode = emoji.name.startsWith(':') ? emoji.name : `:${emoji.name}:`;
+        
+        // Escape for regex
+        const escapedName = shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(escapedName, 'g');
-        // We use a specific class for custom emojis to control their size
-        const imgTag = `<img src="${emoji.url}" alt="${emoji.name}" title="${emoji.name}" class="fediverse-emoji inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5" />`;
+        
+        const imgTag = `<img src="${emoji.url}" alt="${shortcode}" title="${shortcode}" class="fediverse-emoji inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5" />`;
         parsedContent = parsedContent.replace(regex, imgTag);
     });
 

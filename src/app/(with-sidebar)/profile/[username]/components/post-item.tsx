@@ -265,6 +265,7 @@ export function PostItem({
     const groupedReactions = useMemo(() => {
         const groups: Record<string, { emoji: string; count: number; users: string[]; hasReacted: boolean }> = {};
 
+        // 1. Process local individual reaction records
         (targetPost.reactions || []).forEach((r) => {
             if (r.emoji === "❤️") return; // Keep heart for Like button only
             if (!groups[r.emoji]) {
@@ -275,24 +276,42 @@ export function PostItem({
             let displayName = "Seseorang";
             if (r.userId === currentUserId) {
                 displayName = "Anda";
+                groups[r.emoji].hasReacted = true;
             } else if (r.user?.username) {
                 displayName = r.user.username;
             } else if (r.remoteActor?.username) {
                 displayName = r.remoteActor.username;
             }
             
-            groups[r.emoji].users.push(displayName);
-            if (r.userId === currentUserId) {
-                groups[r.emoji].hasReacted = true;
+            if (!groups[r.emoji].users.includes(displayName)) {
+                groups[r.emoji].users.push(displayName);
             }
         });
+
+        // 2. Merge with summarized reactions from apMetadata (remote summary)
+        if (targetPost.reactionSummary) {
+            Object.entries(targetPost.reactionSummary).forEach(([emoji, count]) => {
+                if (emoji === "❤️") return;
+                if (!groups[emoji]) {
+                    groups[emoji] = { 
+                        emoji, 
+                        count, 
+                        users: ["Seseorang dari luar"], 
+                        hasReacted: false 
+                    };
+                } else {
+                    // Use the maximum of local records vs remote summary to ensure accuracy
+                    groups[emoji].count = Math.max(groups[emoji].count, count);
+                }
+            });
+        }
 
         Object.values(groups).forEach(g => {
             g.users.sort((a, b) => (a === "Anda" ? -1 : b === "Anda" ? 1 : 0));
         });
 
         return Object.values(groups);
-    }, [targetPost.reactions, currentUserId]);
+    }, [targetPost.reactions, targetPost.reactionSummary, currentUserId]);
 
     const likers = useMemo(() => {
         return (targetPost.reactions || [])

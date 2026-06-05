@@ -6,13 +6,21 @@ import { id } from "date-fns/locale";
 import Link from "next/link";
 import { Heart, ChatTeardropText, Repeat, UserPlus, Bell, Tray, Smiley } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import { getCustomEmojisAction } from "@/app/emoji.action";
 
 export default async function NotificationsPage() {
     const session = await getUserSession();
     if (!session?.user?.id) return null;
 
-    const response = await getNotificationsAction();
-    const notifications = response.data || [];
+    const [notifRes, emojiRes] = await Promise.all([
+        getNotificationsAction(),
+        getCustomEmojisAction()
+    ]);
+
+    const notifications = notifRes.data || [];
+    const customEmojis = emojiRes.data || [];
+    const mappedEmojis = customEmojis.map(e => ({ name: e.shortcode, url: e.url }));
 
     return (
         <div className="flex flex-col min-h-screen bg-background/50">
@@ -39,7 +47,11 @@ export default async function NotificationsPage() {
                 ) : (
                     <div className="flex flex-col">
                         {notifications.map((notification) => (
-                            <NotificationItem key={notification.id} notification={notification} />
+                            <NotificationItem 
+                                key={notification.id} 
+                                notification={notification} 
+                                customEmojis={mappedEmojis}
+                            />
                         ))}
                     </div>
                 )}
@@ -48,14 +60,28 @@ export default async function NotificationsPage() {
     );
 }
 
-function NotificationItem({ notification }: { notification: any }) {
+function NotificationItem({ notification, customEmojis }: { notification: any, customEmojis: { name: string, url: string }[] }) {
     const actor = notification.actor || notification.remoteActor;
     const actorName = actor?.username || actor?.name || "seseorang";
     const avatar = actor?.avatar || "/avatars/avatar1.png";
     
+    // Prioritize emojiUrl from notification (for real-time pusher updates)
+    const reactionContent = notification.emoji ? (
+        <span 
+            className="flex items-center justify-center"
+            dangerouslySetInnerHTML={{ 
+                __html: notification.emojiUrl 
+                    ? `<img src="${notification.emojiUrl}" alt="${notification.emoji}" class="fediverse-emoji h-[1.2em] w-[1.2em]" />`
+                    : parseFediverseContent(notification.emoji, customEmojis) 
+            }}
+        />
+    ) : (
+        <Smiley weight="duotone" className="size-3.5 text-amber-500" />
+    );
+
     const iconMap = {
         like: <Heart weight="duotone" className="size-3.5 text-rose-500" />,
-        reaction: <span className="text-xs">{notification.emoji || <Smiley weight="duotone" className="size-3.5 text-amber-500" />}</span>,
+        reaction: <span className="text-xs">{reactionContent}</span>,
         reply: <ChatTeardropText weight="duotone" className="size-3.5 text-primary" />,
         repost: <Repeat weight="duotone" className="size-3.5 text-emerald-500" />,
         follow: <UserPlus weight="duotone" className="size-3.5 text-primary" />,
@@ -64,7 +90,7 @@ function NotificationItem({ notification }: { notification: any }) {
 
     const textMap = {
         like: "menyukai postinganmu",
-        reaction: `bereaksi ${notification.emoji || ""} pada postinganmu`,
+        reaction: `bereaksi pada postinganmu`, // Text simplified as emoji is shown in icon
         reply: "membalas postinganmu",
         repost: "membagikan ulang postinganmu",
         follow: "mulai mengikutimu",
@@ -88,7 +114,7 @@ function NotificationItem({ notification }: { notification: any }) {
             <div className="flex flex-col items-center gap-2 pt-1 shrink-0 w-11">
                 <div className="relative">
                     <UserAvatar src={avatar} alt={actorName} className="h-11 w-11 rounded-xl border border-border/50 shadow-sm" />
-                    <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border border-border shadow-sm group-hover:scale-110 transition-transform">
+                    <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border border-border shadow-sm group-hover:scale-110 transition-transform flex items-center justify-center min-w-[22px] min-h-[22px]">
                         {iconMap[notification.type as keyof typeof iconMap]}
                     </div>
                 </div>
@@ -102,9 +128,17 @@ function NotificationItem({ notification }: { notification: any }) {
                     </span>
                 </div>
                 
-                <p className="text-[13px] text-foreground/80 leading-relaxed">
-                    {textMap[notification.type as keyof typeof textMap]}
-                </p>
+                <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] text-foreground/80 leading-relaxed">
+                        {textMap[notification.type as keyof typeof textMap]}
+                    </p>
+                    {notification.type === "reaction" && notification.emoji && (
+                        <span 
+                            className="inline-block"
+                            dangerouslySetInnerHTML={{ __html: parseFediverseContent(notification.emoji, customEmojis) }}
+                        />
+                    )}
+                </div>
 
                 {notification.post?.content && notification.type !== 'follow' && (
                     <div className="mt-2.5 p-3 rounded-xl bg-muted/20 border border-border/20 italic text-xs text-muted-foreground line-clamp-2 group-hover:bg-muted/30 transition-colors">

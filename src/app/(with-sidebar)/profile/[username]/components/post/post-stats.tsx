@@ -13,6 +13,7 @@ interface PostStatsProps {
     reposters?: string[];
     likeCount?: number;
     likers?: string[];
+    reactionCount?: number;
     replyCount?: number;
     isFocused?: boolean;
     className?: string;
@@ -23,11 +24,14 @@ export function PostStats({
     reposters = [],
     likeCount = 0,
     likers = [],
+    reactionCount = 0,
     replyCount = 0,
     isFocused = false,
     className
 }: PostStatsProps) {
-    if (repostCount === 0 && likeCount === 0 && replyCount === 0 && !isFocused) return null;
+    // Show stats if any count is > 0 or if in focused view
+    const totalInteractions = repostCount + likeCount + reactionCount + replyCount;
+    if (totalInteractions === 0 && !isFocused) return null;
 
     const likeTooltipText = likers.length > 0 
         ? (likers.length > 10 
@@ -52,6 +56,13 @@ export function PostStats({
         <div className="flex gap-1 items-baseline hover:underline cursor-pointer group">
             <span className="font-bold text-foreground text-[15px] tabular-nums">{repostCount}</span>
             <span className="text-muted-foreground text-[15px]">Repost</span>
+        </div>
+    );
+
+    const reactionContent = (
+        <div className="flex gap-1 items-baseline hover:underline cursor-pointer group">
+            <span className="font-bold text-foreground text-[15px] tabular-nums">{reactionCount}</span>
+            <span className="text-muted-foreground text-[15px]">Tanggapan</span>
         </div>
     );
 
@@ -97,7 +108,9 @@ export function PostStats({
                     </TooltipProvider>
                 ) : likeContent
             )}
-            {isFocused && repostCount === 0 && likeCount === 0 && replyCount === 0 && (
+            {reactionCount > 0 && reactionContent}
+            
+            {isFocused && totalInteractions === 0 && (
                 <div className="text-muted-foreground text-[15px] italic opacity-50">
                     Belum ada interaksi
                 </div>
