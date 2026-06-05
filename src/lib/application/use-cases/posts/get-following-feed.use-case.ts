@@ -2,6 +2,7 @@ import { IPostRepository } from "../../repositories/post.repository.interface";
 import { IFollowerRepository } from "../../repositories/follower.repository.interface";
 import { IAccountFilterRepository } from "../../repositories/account-filter.repository.interface";
 import { filterTimelineIntensity } from "../../utils/timeline-filter";
+import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 
 export class GetFollowingFeedUseCase {
     constructor(
@@ -10,7 +11,7 @@ export class GetFollowingFeedUseCase {
         private accountFilterRepository: IAccountFilterRepository
     ) { }
 
-    async execute(userId: string, limit: number = 20, offset: number = 0) {
+    async execute(userId: string, limit: number = 20, offset: number = 0): Promise<PostWithUserDTO[]> {
         const followingIds = await this.followerRepository.getFollowing(userId);
         const remoteFollowingIds = await this.followerRepository.getRemoteFollowing(userId);
 
@@ -19,23 +20,41 @@ export class GetFollowingFeedUseCase {
         }
 
         const filters = await this.accountFilterRepository.findByUserId(userId);
-        const mutedIds = new Set(filters.filter(f => f.type === "mute").map(f => f.targetUserId || f.targetRemoteActorId).filter((id): id is string => !!id));
+        const mutedUserIds = filters.filter(f => f.type === "mute" && f.targetUserId).map(f => f.targetUserId!);
+        const mutedRemoteActorIds = filters.filter(f => f.type === "mute" && f.targetRemoteActorId).map(f => f.targetRemoteActorId!);
         const reducedIntensityIds = new Set(filters.filter(f => f.type === "reduce_intensity").map(f => f.targetUserId || f.targetRemoteActorId).filter((id): id is string => !!id));
 
-        const overFetchLimit = limit * 2.5;
-        const posts = await this.postRepository.getFollowingFeed(followingIds, remoteFollowingIds, overFetchLimit, offset, userId);
+        let allProcessedPosts: PostWithUserDTO[] = [];
+        let currentDBOffset = offset;
+        let attempts = 0;
+        const maxAttempts = 3;
 
-        // 1. Filter out muted accounts
-        let processedPosts = posts.filter(post => {
-            const actorId = post.userId || post.remoteActorId || "unknown";
-            return !mutedIds.has(actorId);
-        });
+        while (allProcessedPosts.length < limit && attempts < maxAttempts) {
+            const fetchLimit = Math.max(limit * 2, 50);
+            const posts = await this.postRepository.getFollowingFeed(
+                followingIds, 
+                remoteFollowingIds, 
+                fetchLimit, 
+                currentDBOffset, 
+                userId,
+                mutedUserIds,
+                mutedRemoteActorIds
+            );
 
-        // 2. Apply reduced intensity logic
-        if (reducedIntensityIds.size > 0) {
-            processedPosts = filterTimelineIntensity(processedPosts, reducedIntensityIds);
+            if (posts.length === 0) break;
+
+            let processed = posts;
+            if (reducedIntensityIds.size > 0) {
+                processed = filterTimelineIntensity(posts, reducedIntensityIds);
+            }
+
+            allProcessedPosts = [...allProcessedPosts, ...processed];
+            currentDBOffset += posts.length;
+            attempts++;
+
+            if (posts.length < fetchLimit) break;
         }
 
-        return processedPosts.slice(0, limit);
+        return allProcessedPosts.slice(0, limit);
     }
 }

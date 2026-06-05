@@ -355,7 +355,7 @@ export default function TimelineView({
 
                             {!hasMore && posts.length > 0 && (
                                 <div className="p-12 text-center opacity-20 border-t border-white/5">
-                                    <p className="text-sm italic text-muted-foreground">Anda sudah melihat semuanya ✨</p>
+                                    <p className="text-muted-foreground">Anda sudah melihat semuanya ✨</p>
                                 </div>
                             )}
                         </div>

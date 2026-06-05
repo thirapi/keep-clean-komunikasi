@@ -17,9 +17,9 @@ export interface IPostRepository {
     deleteByUri(uri: string): Promise<void>;
     findParentChain(postId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
     findThreadDescendants(postId: string, userId: string, currentUserId?: string): Promise<PostWithUserDTO[]>;
-    getGlobalFeed(limit?: number, offset?: number, currentUserId?: string, filter?: "all" | "local"): Promise<PostWithUserDTO[]>;
-    getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
-    getDiscoveryFeed(limit?: number, offset?: number, currentUserId?: string): Promise<PostWithUserDTO[]>;
+    getGlobalFeed(limit?: number, offset?: number, currentUserId?: string, filter?: "all" | "local", excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]>;
+    getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit?: number, offset?: number, currentUserId?: string, excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]>;
+    getDiscoveryFeed(limit?: number, offset?: number, currentUserId?: string, excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]>;
     addReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void>;
     removeReaction(postId: string, userId: string | null, emoji: string, remoteActorId?: string): Promise<void>;
 }

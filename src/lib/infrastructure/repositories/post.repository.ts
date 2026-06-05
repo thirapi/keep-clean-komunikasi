@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { posts, postReactions, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or, inArray, notInArray } from "drizzle-orm";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -625,12 +625,14 @@ export class PostRepository implements IPostRepository {
         );
     }
 
-    async getGlobalFeed(limit = 20, offset = 0, currentUserId?: string, filter: "all" | "local" = "all"): Promise<PostWithUserDTO[]> {
+    async getGlobalFeed(limit = 20, offset = 0, currentUserId?: string, filter: "all" | "local" = "all", excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
             where: and(
                 eq(posts.isDeleted, false),
                 eq(posts.visibility, "public"),
-                filter === "local" ? isNotNull(posts.userId) : undefined
+                filter === "local" ? isNotNull(posts.userId) : undefined,
+                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
@@ -712,9 +714,9 @@ export class PostRepository implements IPostRepository {
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    async getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
+    async getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit = 20, offset = 0, currentUserId?: string, excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: (posts, { and, eq, inArray, or }) => and(
+            where: (posts, { and, eq, inArray, or, notInArray }) => and(
                 or(
                     followingIds.length > 0 ? inArray(posts.userId, followingIds) : undefined,
                     remoteFollowingIds.length > 0 ? inArray(posts.remoteActorId, remoteFollowingIds) : undefined
@@ -724,7 +726,9 @@ export class PostRepository implements IPostRepository {
                     eq(posts.visibility, "public"),
                     eq(posts.visibility, "unlisted"),
                     currentUserId ? eq(posts.userId, currentUserId) : undefined
-                )
+                ),
+                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
@@ -807,12 +811,14 @@ export class PostRepository implements IPostRepository {
         return this.mapPostsWithStates(results as any, currentUserId);
     }
 
-    async getDiscoveryFeed(limit = 20, offset = 0, currentUserId?: string): Promise<PostWithUserDTO[]> {
+    async getDiscoveryFeed(limit = 20, offset = 0, currentUserId?: string, excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]> {
         // Simple discovery: show most reacted posts
         const results = await this.client.query.posts.findMany({
             where: and(
                 eq(posts.isDeleted, false),
-                eq(posts.visibility, "public")
+                eq(posts.visibility, "public"),
+                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,

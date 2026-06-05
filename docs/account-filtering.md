@@ -50,14 +50,14 @@ Logika utama penyaringan intensitas berada di fungsi `filterTimelineIntensity`. 
 
 ### Data Flow
 1. **Use Case (`GetGlobalFeedUseCase` / `GetFollowingFeedUseCase`)**:
-    - Mengambil data dari repository dengan teknik *over-fetching* (mengambil lebih banyak data dari yang diminta, misal `limit * 2.5`) untuk mengompensasi data yang akan difilter.
-    - Melakukan filter "Mute" di level aplikasi.
+    - Menggunakan **SQL-level filtering** untuk menyaring akun yang di-Mute melalui Repository. Ini memastikan `limit` dan `offset` database tetap akurat terhadap data yang valid.
+    - Menggunakan teknik **Looping Fetch (max 3 attempts)** untuk memastikan kuota `limit` terpenuhi jika ada postingan yang difilter oleh algoritma intensitas di level aplikasi.
     - Melakukan filter "Reduce Intensity" menggunakan utility.
     - Melakukan `slice(0, limit)` untuk mengembalikan jumlah data yang konsisten ke UI.
 
-2. **Repository (`AccountFilterRepository`)**:
-    - Menyimpan preferensi filter di tabel `AccountFilter`.
-    - Mendukung user lokal (`targetUserId`) dan user Fediverse (`targetRemoteActorId`).
+2. **Repository (`PostRepository`)**:
+    - Menerima parameter `excludedUserIds` dan `excludedRemoteActorIds`.
+    - Menggunakan `notInArray` di query SQL untuk efisiensi performa.
 
 3. **Real-time Updates**:
     - Setelah filter diubah via UI, query cache React Query di-invalidate (`user-filters` dan `posts`) untuk memberikan feedback instan kepada pengguna.

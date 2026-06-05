@@ -10,32 +10,43 @@ export class GetGlobalFeedUseCase {
     ) { }
 
     async execute(limit: number = 20, offset: number = 0, currentUserId?: string, filter: "all" | "local" = "all"): Promise<PostWithUserDTO[]> {
-        // If user is logged in, we need to apply filters
-        if (currentUserId) {
-            const filters = await this.accountFilterRepository.findByUserId(currentUserId);
-            const mutedIds = new Set(filters.filter(f => f.type === "mute").map(f => f.targetUserId || f.targetRemoteActorId).filter((id): id is string => !!id));
-            const reducedIntensityIds = new Set(filters.filter(f => f.type === "reduce_intensity").map(f => f.targetUserId || f.targetRemoteActorId).filter((id): id is string => !!id));
+        const filters = currentUserId ? await this.accountFilterRepository.findByUserId(currentUserId) : [];
+        const mutedUserIds = filters.filter(f => f.type === "mute" && f.targetUserId).map(f => f.targetUserId!);
+        const mutedRemoteActorIds = filters.filter(f => f.type === "mute" && f.targetRemoteActorId).map(f => f.targetRemoteActorId!);
+        const reducedIntensityIds = new Set(filters.filter(f => f.type === "reduce_intensity").map(f => f.targetUserId || f.targetRemoteActorId).filter((id): id is string => !!id));
 
-            // Over-fetching to compensate for filtered posts
-            // If many accounts are muted/reduced, we need more data to fill the page
-            const overFetchLimit = limit * 2.5; 
-            const posts = await this.postRepository.getGlobalFeed(overFetchLimit, offset, currentUserId, filter);
+        let allProcessedPosts: PostWithUserDTO[] = [];
+        let currentDBOffset = offset;
+        let attempts = 0;
+        const maxAttempts = 3;
 
-            // 1. Filter out muted accounts
-            let processedPosts = posts.filter(post => {
-                const actorId = post.userId || post.remoteActorId || "unknown";
-                return !mutedIds.has(actorId);
-            });
+        // Looping fetch to ensure we satisfy the 'limit' even after application-level intensity filtering.
+        // Mute filtering is now handled at the SQL level for accuracy and performance.
+        while (allProcessedPosts.length < limit && attempts < maxAttempts) {
+            const fetchLimit = Math.max(limit * 2, 50); 
+            const posts = await this.postRepository.getGlobalFeed(
+                fetchLimit,
+                currentDBOffset,
+                currentUserId,
+                filter,
+                mutedUserIds,
+                mutedRemoteActorIds
+            );
 
-            // 2. Apply reduced intensity logic
+            if (posts.length === 0) break;
+
+            let processed = posts;
             if (reducedIntensityIds.size > 0) {
-                processedPosts = filterTimelineIntensity(processedPosts, reducedIntensityIds);
+                processed = filterTimelineIntensity(posts, reducedIntensityIds);
             }
 
-            // Return up to 'limit' posts
-            return processedPosts.slice(0, limit);
+            allProcessedPosts = [...allProcessedPosts, ...processed];
+            currentDBOffset += posts.length;
+            attempts++;
+
+            if (posts.length < fetchLimit) break; // End of database reached
         }
 
-        return await this.postRepository.getGlobalFeed(limit, offset, currentUserId, filter);
+        return allProcessedPosts.slice(0, limit);
     }
 }
