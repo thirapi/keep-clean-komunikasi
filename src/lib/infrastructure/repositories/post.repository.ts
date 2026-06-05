@@ -631,8 +631,8 @@ export class PostRepository implements IPostRepository {
                 eq(posts.isDeleted, false),
                 eq(posts.visibility, "public"),
                 filter === "local" ? isNotNull(posts.userId) : undefined,
-                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
-                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
+                excludedUserIds && excludedUserIds.length > 0 ? or(isNull(posts.userId), notInArray(posts.userId, excludedUserIds)) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? or(isNull(posts.remoteActorId), notInArray(posts.remoteActorId, excludedRemoteActorIds)) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
@@ -716,7 +716,7 @@ export class PostRepository implements IPostRepository {
 
     async getFollowingFeed(followingIds: string[], remoteFollowingIds: string[], limit = 20, offset = 0, currentUserId?: string, excludedUserIds?: string[], excludedRemoteActorIds?: string[]): Promise<PostWithUserDTO[]> {
         const results = await this.client.query.posts.findMany({
-            where: (posts, { and, eq, inArray, or, notInArray }) => and(
+            where: (posts, { and, eq, inArray, or, notInArray, isNull }) => and(
                 or(
                     followingIds.length > 0 ? inArray(posts.userId, followingIds) : undefined,
                     remoteFollowingIds.length > 0 ? inArray(posts.remoteActorId, remoteFollowingIds) : undefined
@@ -727,8 +727,8 @@ export class PostRepository implements IPostRepository {
                     eq(posts.visibility, "unlisted"),
                     currentUserId ? eq(posts.userId, currentUserId) : undefined
                 ),
-                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
-                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
+                excludedUserIds && excludedUserIds.length > 0 ? or(isNull(posts.userId), notInArray(posts.userId, excludedUserIds)) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? or(isNull(posts.remoteActorId), notInArray(posts.remoteActorId, excludedRemoteActorIds)) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
@@ -817,8 +817,8 @@ export class PostRepository implements IPostRepository {
             where: and(
                 eq(posts.isDeleted, false),
                 eq(posts.visibility, "public"),
-                excludedUserIds && excludedUserIds.length > 0 ? notInArray(posts.userId, excludedUserIds) : undefined,
-                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? notInArray(posts.remoteActorId, excludedRemoteActorIds) : undefined
+                excludedUserIds && excludedUserIds.length > 0 ? or(isNull(posts.userId), notInArray(posts.userId, excludedUserIds)) : undefined,
+                excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? or(isNull(posts.remoteActorId), notInArray(posts.remoteActorId, excludedRemoteActorIds)) : undefined
             ),
             orderBy: [desc(posts.createdAt)],
             limit,
