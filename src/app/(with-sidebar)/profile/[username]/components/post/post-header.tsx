@@ -313,9 +313,9 @@ export function PostHeader({
                         </TooltipProvider>
                     )}
                 </div>
-                <Link href={user.profilePath} className="text-muted-foreground text-[12px] md:text-[13px] line-clamp-1 leading-none mb-1.5" onClick={(e) => e.stopPropagation()}>
+                <div className="text-muted-foreground text-[12px] md:text-[13px] line-clamp-1 leading-none mb-1.5 cursor-default">
                     {user.handle}
-                </Link>
+                </div>
             </div>
             <div className="shrink-0 absolute top-[-6px] right-[-10px]">
                 <PostMenu 

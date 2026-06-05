@@ -332,6 +332,14 @@ export function PostItem({
     if (isFocused) {
         return (
             <div className="flex flex-col px-4 pt-4 pb-1 border-b border-border bg-background">
+                {isPureRepost && reposterUserInfo && (
+                    <div className="mb-2 text-muted-foreground text-[13px] font-medium flex items-center gap-1.5 ml-12 md:ml-14">
+                        <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                        <Link href={reposterUserInfo.profilePath} className="hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
+                            {reposterUserInfo.username === currentUser?.username ? "Anda" : reposterUserInfo.displayName} membagikan ulang
+                        </Link>
+                    </div>
+                )}
                 <PostHeader 
                     user={displayUserInfo} 
                     createdAt={createdAt} 
@@ -438,84 +446,90 @@ export function PostItem({
             <Link href={`/posts/${post.id}`} className="post-item-link hidden" aria-hidden="true" />
 
             {showConnector && (
-                <div className={cn("absolute w-[2px] bg-border z-0", lineX, isFirstInChain ? "top-[56px] bottom-0" : isLastInChain ? "top-0 h-[36px]" : "top-0 bottom-0")} />
+                <div className={cn(
+                    "absolute w-[2px] bg-border z-0", 
+                    lineX, 
+                    isFirstInChain ? (isPureRepost ? "top-[76px] bottom-0" : "top-[56px] bottom-0") : (isLastInChain ? "top-0 h-[36px]" : "top-0 bottom-0")
+                )} />
             )}
 
-            <div className="relative z-20 flex gap-0 pt-4 pb-3 px-4">
-                <div className={cn("shrink-0 z-30 relative flex flex-col items-center", gutterWidth)}>
-                    <Link href={displayUserInfo.profilePath} className="hover:opacity-80 block" onClick={(e) => e.stopPropagation()}>
-                        <UserAvatar src={displayUserInfo.avatar} className="h-10 w-10" />
-                    </Link>
-                </div>
+            <div className="relative z-20 flex flex-col pt-3 pb-3 px-4">
+                {isPureRepost && reposterUserInfo && (
+                    <div className="mb-1 text-muted-foreground text-[13px] font-medium z-30 relative flex items-center gap-1.5 ml-10 md:ml-12">
+                        <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                        <Link href={reposterUserInfo.profilePath} className="hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
+                            {reposterUserInfo.username === currentUser?.username ? "Anda" : reposterUserInfo.displayName} membagikan ulang
+                        </Link>
+                    </div>
+                )}
 
-                <div className="flex-1 min-w-0 pl-3 md:pl-4">
-                    <PostHeader 
-                        user={displayUserInfo} 
-                        createdAt={createdAt} 
-                        visibility={targetPost.visibility} 
-                        onDelete={() => setIsDeleteDialogOpen(true)}
-                        onCopyLink={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
-                        isCurrentUser={post.userId === currentUserId}
-                        currentUserId={currentUserId}
-                        originalUrl={targetPost.url}
-                    />
+                <div className="flex gap-0">
+                    <div className={cn("shrink-0 z-30 relative flex flex-col items-center", gutterWidth)}>
+                        <Link href={displayUserInfo.profilePath} className="hover:opacity-80 block" onClick={(e) => e.stopPropagation()}>
+                            <UserAvatar src={displayUserInfo.avatar} className="h-10 w-10" />
+                        </Link>
+                    </div>
 
-                    {isPureRepost && reposterUserInfo && (
-                        <div className="mb-2 text-muted-foreground text-[13px] font-medium z-30 relative flex items-center gap-1.5">
-                            <Repeat2 className="h-3.5 w-3.5 shrink-0" />
-                            <Link href={reposterUserInfo.profilePath} className="hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
-                                {reposterUserInfo.username === currentUser?.username ? "Anda" : reposterUserInfo.displayName} membagikan ulang
-                            </Link>
-                        </div>
-                    )}
+                    <div className="flex-1 min-w-0 pl-3 md:pl-4">
+                        <PostHeader 
+                            user={displayUserInfo} 
+                            createdAt={createdAt} 
+                            visibility={targetPost.visibility} 
+                            onDelete={() => setIsDeleteDialogOpen(true)}
+                            onCopyLink={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
+                            isCurrentUser={post.userId === currentUserId}
+                            currentUserId={currentUserId}
+                            originalUrl={targetPost.url}
+                        />
 
-                    {!hideReplyIndicator && post.replyToId && !showConnector && (
-                        <div className="text-[14px] text-muted-foreground mb-1.5 z-30 relative line-clamp-1">
-                            {post.replyTo ? (
-                                <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
-                            ) : (
-                                <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>
-                            )}
-                        </div>
-                    )}
+                        {!hideReplyIndicator && post.replyToId && !showConnector && (
+                            <div className="text-[14px] text-muted-foreground mb-1.5 z-30 relative line-clamp-1">
+                                {post.replyTo ? (
+                                    <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
+                                ) : (
+                                    <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>
+                                )}
+                            </div>
+                        )}
 
-                    <PostContent 
-                        content={displayContent} 
-                        attachments={displayAttachments} 
-                        onImageClick={handleMediaClick}
-                        urls={urls}
-                        linkPreviews={targetPost.linkPreviews}
-                        emojis={targetPost.emojis}
-                        apMetadata={targetPost.apMetadata}
-                    />
+                        <PostContent 
+                            content={displayContent} 
+                            attachments={displayAttachments} 
+                            onImageClick={handleMediaClick}
+                            urls={urls}
+                            linkPreviews={targetPost.linkPreviews}
+                            emojis={targetPost.emojis}
+                            apMetadata={targetPost.apMetadata}
+                        />
 
-                    {isQuotePost && (post.repostOf || post.quoteOf) && (
-                        <QuotePreview post={(post.repostOf || post.quoteOf)!} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
-                    )}
+                        {isQuotePost && (post.repostOf || post.quoteOf) && (
+                            <QuotePreview post={(post.repostOf || post.quoteOf)!} getUserInfo={getUserInfo} onImageClick={handleMediaClick} />
+                        )}
 
-                    <PostReactions 
-                        reactions={groupedReactions} 
-                        onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
-                        emojis={targetPost.emojis}
-                    />
+                        <PostReactions 
+                            reactions={groupedReactions} 
+                            onToggleReaction={(emoji) => reactionMutation.mutate(emoji)} 
+                            emojis={targetPost.emojis}
+                        />
 
-                    <PostActions 
-                        replyCount={targetPost.replyCount}
-                        repostCount={targetPost.repostCount}
-                        likeCount={likeCount}
-                        likers={likers}
-                        reposters={reposters}
-                        isLiked={hasLiked}
-                        isReposted={targetPost.isRepostedByCurrentUser}
-                        isBookmarked={targetPost.isBookmarkedByCurrentUser}
-                        onLike={() => likeMutation.mutate()}
-                        onRepost={() => repostMutation.mutate()}
-                        onReply={() => setIsReplyOpen(true)}
-                        onQuote={() => setIsQuoteOpen(true)}
-                        onBookmark={() => bookmarkMutation.mutate()}
-                        onShare={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
-                        onReactionSelect={(emoji) => reactionMutation.mutate(emoji)}
-                    />
+                        <PostActions 
+                            replyCount={targetPost.replyCount}
+                            repostCount={targetPost.repostCount}
+                            likeCount={likeCount}
+                            likers={likers}
+                            reposters={reposters}
+                            isLiked={hasLiked}
+                            isReposted={targetPost.isRepostedByCurrentUser}
+                            isBookmarked={targetPost.isBookmarkedByCurrentUser}
+                            onLike={() => likeMutation.mutate()}
+                            onRepost={() => repostMutation.mutate()}
+                            onReply={() => setIsReplyOpen(true)}
+                            onQuote={() => setIsQuoteOpen(true)}
+                            onBookmark={() => bookmarkMutation.mutate()}
+                            onShare={() => { navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`); toast.success("Tautan disalin!"); }}
+                            onReactionSelect={(emoji) => reactionMutation.mutate(emoji)}
+                        />
+                    </div>
                 </div>
             </div>
 
