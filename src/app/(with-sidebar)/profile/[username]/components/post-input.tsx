@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
-import { PaperPlaneRight, Image as ImageIcon, X, File as FileIcon, CircleNotch, Globe, Users, Lock, CaretDown, PlusCircle } from "@phosphor-icons/react/dist/ssr";
+import { PaperPlaneRight, Image as ImageIcon, X, File as FileIcon, CircleNotch, Globe, Users, Lock, CaretDown, PlusCircle, Smiley } from "@phosphor-icons/react/dist/ssr";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,6 +18,7 @@ import { optimisticPostRepository } from "@/lib/infrastructure/optimistic-post.r
 import { createId } from "@paralleldrive/cuid2";
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { cn } from "@/lib/utils";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 
 interface ThreadItem {
     id: string;
@@ -336,7 +337,9 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                     <div className="relative">
                                         <MentionTextarea
                                             value={item.content}
-                                            onChange={(val) => updateContent(item.id, val)}
+                                            onChange={(val) => {
+                                                updateContent(item.id, val);
+                                            }}
                                             placeholder={index === 0 ? "Apa yang Anda pikirkan?" : "Tambah kiriman lain..."}
                                             onSubmit={handleSend}
                                             className="min-h-[100px] bg-transparent border-0 focus-visible:ring-0 text-foreground placeholder:text-muted-foreground/60 p-0 text-xl resize-none"
@@ -400,6 +403,13 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                             >
                                                 <ImageIcon className="h-4 w-4" />
                                             </Button>
+
+                                            <EmojiPickerComponent
+                                                onEmojiSelect={(emoji) => {
+                                                    updateContent(item.id, item.content + emoji);
+                                                }}
+                                                triggerClassName="h-8 w-8 text-brand rounded-full hover:bg-brand/10 hover:text-brand/80 transition-colors flex items-center justify-center"
+                                            />
 
                                             {index === thread.length - 1 && (
                                                 <Button

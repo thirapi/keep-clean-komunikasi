@@ -1,22 +1,23 @@
 export function parseFediverseContent(content: string, emojis: { name: string; url: string }[] | null | undefined): string {
     if (!content || !emojis || emojis.length === 0) return content;
 
-    let parsedContent = content;
-    
-    // Sort emojis by name length descending to avoid partial matches (e.g. :cat: vs :cat_heart:)
-    const sortedEmojis = [...emojis].sort((a, b) => b.name.length - a.name.length);
-
-    sortedEmojis.forEach(emoji => {
-        // Handle both ":name:" and "name" formats
+    // Create a map for fast lookup and normalize shortcodes
+    const emojiMap = new Map<string, string>();
+    emojis.forEach(emoji => {
         const shortcode = emoji.name.startsWith(':') ? emoji.name : `:${emoji.name}:`;
-        
-        // Escape for regex
-        const escapedName = shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(escapedName, 'g');
-        
-        const imgTag = `<img src="${emoji.url}" alt="${shortcode}" title="${shortcode}" class="fediverse-emoji inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5" />`;
-        parsedContent = parsedContent.replace(regex, imgTag);
+        emojiMap.set(shortcode, emoji.url);
     });
 
-    return parsedContent;
+    // Single-pass replacement: Match HTML tags (to skip them) or shortcodes
+    // This ensures we don't replace shortcodes inside alt/title attributes of existing tags
+    return content.replace(/(<[^>]+>)|(:[a-zA-Z0-9_-]+:)/g, (match, tag, shortcode) => {
+        if (tag) return tag; // Return HTML tags unchanged
+        
+        const emojiUrl = emojiMap.get(shortcode);
+        if (emojiUrl) {
+            return `<img src="${emojiUrl}" alt="${shortcode}" title="${shortcode}" class="fediverse-emoji inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5" />`;
+        }
+        
+        return match; // Return as is if no emoji found
+    });
 }

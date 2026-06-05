@@ -183,7 +183,7 @@ function SubmitOnEnterPlugin({ onSubmit }: { onSubmit?: () => void }) {
     return null;
 }
 
-// Plugin: Sync external value clears into the editor
+// Plugin: Sync external value changes into the editor
 function SyncValuePlugin({
     value,
     roomData,
@@ -192,21 +192,68 @@ function SyncValuePlugin({
     roomData?: RoomWithParticipantsDTO;
 }) {
     const [editor] = useLexicalComposerContext();
-    const lastValueRef = useRef(value);
 
     useEffect(() => {
-        // Only sync when value is externally cleared (e.g., after sending)
-        if (value === "" && lastValueRef.current !== "") {
-            editor.update(() => {
+        // Sync when value changes externally and is different from editor's internal state
+        editor.update(() => {
+            const currentContent = editorStateToPlainText(editor.getEditorState());
+            if (value !== currentContent) {
                 const root = $getRoot();
                 root.clear();
-                const paragraph = $createParagraphNode();
-                paragraph.append($createTextNode(""));
-                root.append(paragraph);
-                paragraph.selectEnd();
-            });
-        }
-        lastValueRef.current = value;
+                
+                // Parse content into nodes (preserving multi-line structure)
+                const lines = value.split('\n');
+                lines.forEach((line, lineIdx) => {
+                    const paragraph = $createParagraphNode();
+                    const regex = /<@([a-zA-Z0-9_-]+)>/g;
+                    let lastIndex = 0;
+                    let match;
+
+                    while ((match = regex.exec(line)) !== null) {
+                        if (match.index > lastIndex) {
+                            const textBefore = line.slice(lastIndex, match.index);
+                            paragraph.append($createTextNode(textBefore));
+                        }
+
+                        const userId = match[1];
+                        let displayName = userId;
+
+                        if (userId === "everyone") {
+                            displayName = "everyone";
+                        } else {
+                            const participant = roomData?.participants?.find(
+                                (p) => p.user.id === userId
+                            );
+                            if (participant) {
+                                displayName = participant.user.username;
+                            }
+                        }
+
+                        paragraph.append($createMentionNode(userId, displayName));
+                        lastIndex = regex.lastIndex;
+                    }
+
+                    if (lastIndex < line.length) {
+                        paragraph.append($createTextNode(line.slice(lastIndex)));
+                    }
+
+                    if (paragraph.getChildrenSize() === 0) {
+                        paragraph.append($createTextNode(""));
+                    }
+
+                    root.append(paragraph);
+                    
+                    // Add newline behavior handled by multiple paragraphs, 
+                    // except for the last line which doesn't need a trailing empty paragraph usually
+                });
+
+                // Move cursor to end if it's an external update (like emoji selection)
+                const lastChild = root.getLastChild();
+                if (lastChild && "selectEnd" in lastChild) {
+                    (lastChild as any).selectEnd();
+                }
+            }
+        }, { discrete: true }); // Use discrete update to ensure it's applied immediately
     }, [value, editor, roomData]);
 
     return null;

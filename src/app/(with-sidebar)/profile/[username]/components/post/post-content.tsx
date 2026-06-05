@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import rehypeRaw from "rehype-raw";
 import { PostMedia } from "../post-media";
 import { LinkPreviewCard } from "@/app/(with-sidebar)/channels/[roomId]/components/link-preview-card";
@@ -87,7 +88,7 @@ export function PostContent({
                     isFocused ? "text-[19px] md:text-[21px] mb-3" : isQuote ? "text-[14px] line-clamp-3 mb-1" : "text-[15px] md:text-[16px] mb-2"
                 )}>
                     <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]} 
+                        remarkPlugins={[remarkGfm, remarkBreaks]} 
                         rehypePlugins={[rehypeRaw]}
                         components={{
                             a: ({ node, ...props }) => {

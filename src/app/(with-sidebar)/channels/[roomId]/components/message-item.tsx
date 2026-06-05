@@ -10,6 +10,7 @@ import { XEmbed } from "@/components/ui/x-embed";
 import { LinkPreviewCard } from "./link-preview-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import { useEmojis } from "@/components/emoji-provider";
 
@@ -51,7 +52,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 
 function truncate(str: string, max = 100) {
@@ -267,6 +267,12 @@ export function MessageItem({
     if (!str) return false;
     const cleanStr = str.replace(/\s/g, "");
     if (!cleanStr) return false;
+    
+    // Custom emojis check (Misskey/Pleroma style :shortcode:)
+    // We allow multiple shortcodes but nothing else
+    const customEmojiRegex = /^(:[a-zA-Z0-9_-]+:)+$/;
+    if (customEmojiRegex.test(cleanStr)) return true;
+
     // Modern regex using Unicode property escapes to match all emojis, 
     // including ZWJ sequences, modifiers, and variation selectors.
     // We filter out digits/text if they aren't part of an emoji sequence.
@@ -275,7 +281,7 @@ export function MessageItem({
     // Hardening: make sure it's not JUST numbers or punctuation that happen to have emoji properties
     const hasActualEmoji = /\p{Extended_Pictographic}/u.test(cleanStr);
 
-    return emojiRegex.test(cleanStr) && hasActualEmoji;
+    return (emojiRegex.test(cleanStr) && hasActualEmoji) || customEmojiRegex.test(cleanStr);
   };
 
   const isImage = (url: string) => {
@@ -344,7 +350,7 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
-  const resolveMentionsForView = (content: string) => {
+  const resolveMentionsForView = (content: string, emojis: { name: string; url: string }[] | null | undefined = []) => {
     if (!content) return "";
     // Discord behavior: Preserve leading newlines, but trim trailing ones.
     const trimmedContent = content.replace(/\n+$/, "");
@@ -404,6 +410,10 @@ export function MessageItem({
       return match;
     });
 
+    // --- CUSTOM EMOJIS (Fediverse style) ---
+    // Process emojis BEFORE restoring code blocks to prevent replacement inside code.
+    processed = parseFediverseContent(processed, emojis);
+
     // 5. Restore Code Blocks
     processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
       return `\n\n${blockCodes[parseInt(p1, 10)]}\n\n`;
@@ -422,8 +432,7 @@ export function MessageItem({
 
   const renderContent = (content: string) => {
     if (!content) return null;
-    const viewContent = resolveMentionsForView(content);
-    const contentWithEmojis = parseFediverseContent(viewContent, emojiMeta);
+    const viewContent = resolveMentionsForView(content, emojiMeta);
 
     return (
       <ReactMarkdown
@@ -514,7 +523,7 @@ export function MessageItem({
           },
         }}
       >
-        {contentWithEmojis}
+        {viewContent}
       </ReactMarkdown >
     );
   };
@@ -732,17 +741,25 @@ export function MessageItem({
         {/* === INLINE EDIT MODE === */}
         {isEditing ? (
           <div className="mt-1 mb-1">
-            <MentionTextarea
-              value={editContent}
-              onChange={(val) => setEditContent(val)}
-              onSubmit={handleSaveEdit}
-              onKeyDown={handleEditKeyDown}
-              className="w-full bg-background border border-primary/30 rounded-lg focus-within:ring-2 focus-within:ring-primary/40 min-h-[40px] max-h-[300px]"
-              maxHeight={300}
-              roomData={roomData!}
-              currentUserId={currentUserId}
-              autoFocus
-            />
+            <div className="relative group/edit-input">
+              <MentionTextarea
+                value={editContent}
+                onChange={(val) => setEditContent(val)}
+                onSubmit={handleSaveEdit}
+                onKeyDown={handleEditKeyDown}
+                className="w-full bg-background border border-primary/30 rounded-lg focus-within:ring-2 focus-within:ring-primary/40 min-h-[40px] max-h-[300px] pr-10"
+                maxHeight={300}
+                roomData={roomData!}
+                currentUserId={currentUserId}
+                autoFocus
+              />
+              <div className="absolute right-2 bottom-2">
+                <EmojiPickerComponent
+                  onEmojiSelect={(emoji) => setEditContent((prev) => prev + emoji)}
+                  triggerClassName="h-7 w-7 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center"
+                />
+              </div>
+            </div>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="text-[11px] text-muted-foreground">
                 escape untuk <button onClick={onCancelEdit} className="text-primary hover:underline font-medium">membatalkan</button>

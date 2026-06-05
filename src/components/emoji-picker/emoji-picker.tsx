@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { EmojiPicker } from "frimousse";
-import { Smiley, MagnifyingGlass as MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { Smiley, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import {
     Popover,
     PopoverContent,
@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEmojis } from "@/components/emoji-provider";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface EmojiPickerProps {
     onEmojiSelect: (emoji: string) => void;
@@ -21,6 +22,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
     const [open, setOpen] = useState(false);
     const { customEmojis, isLoading } = useEmojis();
     const [searchQuery, setSearchQuery] = useState("");
+    const isMobile = useIsMobile();
 
     const groupedCustomEmojis = useMemo(() => {
         const filtered = searchQuery 
@@ -55,9 +57,12 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
             </PopoverTrigger>
             <PopoverContent
                 side="top"
-                align="start"
+                align={isMobile ? "center" : "start"}
                 sideOffset={12}
-                className="w-[320px] p-0 border-border/50 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden rounded-xl bg-popover"
+                className={cn(
+                    "p-0 border-border/50 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden rounded-xl bg-popover",
+                    isMobile ? "w-[calc(100vw-32px)] max-w-[360px]" : "w-[320px]"
+                )}
             >
                 <div className="relative mx-3 mt-3 mb-2">
                     <MagnifyingGlass weight="duotone" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
@@ -110,47 +115,49 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                             }}
                             columns={8}
                         >
-                            <EmojiPicker.Viewport className="px-2">
-                                <EmojiPicker.Loading className="flex flex-col items-center justify-center py-10 gap-2 text-sm text-muted-foreground/60">
-                                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                    <span className="text-xs font-medium animate-pulse">Memuat emoji...</span>
-                                </EmojiPicker.Loading>
+                            {/* 
+                                Removed EmojiPicker.Viewport here because it was causing nested scroll issues.
+                                Using the parent's overflow-y-auto instead.
+                            */}
+                            <EmojiPicker.Loading className="flex flex-col items-center justify-center py-10 gap-2 text-sm text-muted-foreground/60">
+                                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                <span className="text-xs font-medium animate-pulse">Memuat emoji...</span>
+                            </EmojiPicker.Loading>
 
-                                <EmojiPicker.Empty className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground/50 p-6 text-center">
-                                    {Object.keys(groupedCustomEmojis).length === 0 && (
-                                        <>
-                                            <MagnifyingGlass weight="duotone" className="h-10 w-10 opacity-20" />
-                                            <p className="text-xs leading-relaxed">
-                                                Tidak ada emoji yang cocok dengan pencarian Anda.
-                                            </p>
-                                        </>
-                                    )}
-                                </EmojiPicker.Empty>
+                            <EmojiPicker.Empty className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground/50 p-6 text-center">
+                                {Object.keys(groupedCustomEmojis).length === 0 && (
+                                    <>
+                                        <MagnifyingGlass weight="duotone" className="h-10 w-10 opacity-20" />
+                                        <p className="text-xs leading-relaxed">
+                                            Tidak ada emoji yang cocok dengan pencarian Anda.
+                                        </p>
+                                    </>
+                                )}
+                            </EmojiPicker.Empty>
 
-                                <EmojiPicker.List
-                                    className="select-none pb-2"
-                                    components={{
-                                        CategoryHeader: ({ category, ...props }) => (
-                                            <div
-                                                {...props}
-                                                className="px-2 pt-4 pb-2 text-[12px] font-semibold text-muted-foreground/50 bg-popover"
-                                            >
-                                                {category.label}
-                                            </div>
-                                        ),
-                                        Emoji: ({ emoji, ...props }) => (
-                                            <button
-                                                {...props}
-                                                title={emoji.label}
-                                                className="flex items-center justify-center h-9 w-9 rounded-lg text-[22px] hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
-                                            >
-                                                <span className="relative z-10 leading-none">{emoji.emoji}</span>
-                                                <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
-                                            </button>
-                                        ),
-                                    }}
-                                />
-                            </EmojiPicker.Viewport>
+                            <EmojiPicker.List
+                                className="select-none pb-2 px-2"
+                                components={{
+                                    CategoryHeader: ({ category, ...props }) => (
+                                        <div
+                                            {...props}
+                                            className="px-2 pt-4 pb-2 text-[12px] font-semibold text-muted-foreground/50 bg-popover sticky top-0 z-20"
+                                        >
+                                            {category.label}
+                                        </div>
+                                    ),
+                                    Emoji: ({ emoji, ...props }) => (
+                                        <button
+                                            {...props}
+                                            title={emoji.label}
+                                            className="flex items-center justify-center h-9 w-9 rounded-lg text-[22px] hover:bg-primary/10 hover:scale-110 active:scale-90 transition-all cursor-pointer relative group/emoji"
+                                        >
+                                            <span className="relative z-10 leading-none">{emoji.emoji}</span>
+                                            <div className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 group-hover/emoji:opacity-100 transition-opacity" />
+                                        </button>
+                                    ),
+                                }}
+                            />
                         </EmojiPicker.Root>
                     </div>
                 </div>

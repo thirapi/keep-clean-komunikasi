@@ -11,7 +11,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useMemo } from "react";
-import { Image, X, File, CircleNotch } from "@phosphor-icons/react/dist/ssr";
+import { Image, X, File, CircleNotch, Smiley } from "@phosphor-icons/react/dist/ssr";
 import { PostMedia } from "./post-media";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import Link from "next/link";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
+
 
 interface ReplyDialogProps {
     isOpen: boolean;
@@ -233,14 +235,20 @@ export function ReplyDialog({ isOpen, onClose, parentPost, currentUser, onReplyC
                 </div>
 
                 <div className="p-4 bg-zinc-900/30 border-t border-white/5 flex items-center justify-between">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-primary rounded-full hover:bg-primary/10"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <Image weight="duotone" className="h-5 w-5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-primary rounded-full hover:bg-primary/10"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Image weight="duotone" className="h-5 w-5" />
+                        </Button>
+                        <EmojiPickerComponent
+                            onEmojiSelect={(emoji) => setContent(prev => prev + emoji)}
+                            triggerClassName="h-9 w-9 text-primary rounded-full hover:bg-primary/10 flex items-center justify-center"
+                        />
+                    </div>
                     <Button
                         onClick={handleSend}
                         disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
