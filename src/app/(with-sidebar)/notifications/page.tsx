@@ -4,7 +4,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import Link from "next/link";
-import { Heart, MessageSquare, Repeat, UserPlus, Bell, Inbox, Smile } from "lucide-react";
+import { Heart, ChatTeardropText, Repeat, UserPlus, Bell, Tray, Smiley } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
 export default async function NotificationsPage() {
@@ -29,7 +29,7 @@ export default async function NotificationsPage() {
                 {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 text-center px-6 animate-in fade-in duration-700">
                         <div className="h-20 w-20 rounded-3xl bg-muted/30 flex items-center justify-center mb-6 rotate-3">
-                            <Inbox className="h-10 w-10 text-muted-foreground/40" />
+                            <Tray weight="duotone" className="h-10 w-10 text-muted-foreground/40" />
                         </div>
                         <h2 className="text-xl font-bold text-foreground">Kotak masuk bersih</h2>
                         <p className="text-sm text-muted-foreground max-w-[240px] mx-auto mt-2 leading-relaxed">
@@ -54,12 +54,12 @@ function NotificationItem({ notification }: { notification: any }) {
     const avatar = actor?.avatar || "/avatars/avatar1.png";
     
     const iconMap = {
-        like: <Heart className="size-3.5 text-rose-500 fill-rose-500" />,
-        reaction: <span className="text-xs">{notification.emoji || <Smile className="size-3.5 text-amber-500" />}</span>,
-        reply: <MessageSquare className="size-3.5 text-primary fill-primary" />,
-        repost: <Repeat className="size-3.5 text-emerald-500" />,
-        follow: <UserPlus className="size-3.5 text-sky-500" />,
-        mention: <Bell className="size-3.5 text-amber-500" />
+        like: <Heart weight="duotone" className="size-3.5 text-rose-500" />,
+        reaction: <span className="text-xs">{notification.emoji || <Smiley weight="duotone" className="size-3.5 text-amber-500" />}</span>,
+        reply: <ChatTeardropText weight="duotone" className="size-3.5 text-primary" />,
+        repost: <Repeat weight="duotone" className="size-3.5 text-emerald-500" />,
+        follow: <UserPlus weight="duotone" className="size-3.5 text-primary" />,
+        mention: <Bell weight="duotone" className="size-3.5 text-amber-500" />
     };
 
     const textMap = {

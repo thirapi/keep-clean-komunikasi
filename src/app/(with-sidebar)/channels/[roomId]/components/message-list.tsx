@@ -5,7 +5,7 @@ import {
 } from "@/lib/entities/models/message.model";
 import { MessageItem } from "./message-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Hash, Loader2 } from "lucide-react";
+import { ChatTeardropText, Hash, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { DateSeparator } from "./date-separator";
 import { UnreadSeparator } from "./unread-separator";
@@ -269,7 +269,7 @@ export function MessageList({
           >
             {isLoadingMore ? (
               <>
-                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                <CircleNotch weight="duotone" className="mr-2 h-3 w-3 animate-spin" />
                 Memuat...
               </>
             ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Users2, Hash } from "lucide-react";
+import { Users, Hash } from "@phosphor-icons/react/dist/ssr";
 
 export default function LoadingRoom() {
   const skeletonMessages = Array.from({ length: 6 });

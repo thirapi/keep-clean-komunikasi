@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { SealCheck, Bell, CaretUpDown, CreditCard, SignOut, Sparkle } from "@phosphor-icons/react/dist/ssr";
 
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -82,7 +75,7 @@ export function NavUser({
                   {user.role}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <CaretUpDown weight="duotone" className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -113,7 +106,7 @@ export function NavUser({
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={handleAdminRedirect}>
-                    <BadgeCheck />
+                    <SealCheck />
                     Admin
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -121,7 +114,7 @@ export function NavUser({
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
+              <SignOut weight="duotone" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

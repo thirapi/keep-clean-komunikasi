@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { ChatTeardropText } from "@phosphor-icons/react/dist/ssr";
 import { AnimateInView } from "@/components/landingpage/animate-in-view";
 import Head from "next/head";
 
@@ -45,7 +45,7 @@ export default function PrivacyPolicy() {
           <div className="w-full max-w-screen-xl mx-auto flex h-16 items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-2">
               <Link href="/" className="flex items-center gap-2">
-                <MessageSquare className="h-6 w-6" />
+                <ChatTeardropText weight="duotone" className="h-6 w-6" />
                 <span className="text-xl font-bold">Komunikasi</span>
               </Link>
             </div>
@@ -289,38 +289,33 @@ export default function PrivacyPolicy() {
         <footer className="w-full border-t py-6 md:py-0">
           <div className="w-full max-w-screen-xl mx-auto flex h-16 items-center justify-between px-4 md:px-6 flex-col gap-4 md:h-24 md:flex-row">
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
+              <ChatTeardropText weight="duotone" className="h-5 w-5" />
               <p className="text-sm text-muted-foreground">
                 © 2024 Komunikasi. All rights reserved.
               </p>
             </div>
             <nav className="flex gap-4 sm:gap-6">
-              <Link
-                href="/"
+              <Link href="/"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Masuk
               </Link>
-              <Link
-                href="/"
+              <Link href="/"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Daftar
               </Link>
-              <Link
-                href="/#about"
+              <Link href="/#about"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Tentang
               </Link>
-              <Link
-                href="/privacy"
+              <Link href="/privacy"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 Kebijakan Privasi
               </Link>
-              <Link
-                href="https://github.com/Thirapi"
+              <Link href="https://github.com/Thirapi"
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 GitHub

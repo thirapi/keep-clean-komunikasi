@@ -1,24 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Bell,
-  Check,
-  Edit3,
-  Lock,
-  Mail,
-  Settings,
-  Shield,
-  User,
-  UserCircle,
-  UserPen,
-  X,
-  Loader2,
-  Camera,
-  Key,
-  Sparkles,
-  ChevronLeft,
-} from "lucide-react";
+import { Bell, Check, PencilSimple, Lock, Shield, User, UserCircle, X, CircleNotch, Camera, Key, Sparkle, CaretLeft } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +47,6 @@ function Paintbrush(props: any) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -245,7 +227,7 @@ export function UserSettingsDialog({
       <DialogTrigger asChild>
         {trigger || (
           <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted/50 rounded-md transition-colors">
-            <UserPen className="h-4 w-4 text-muted-foreground" />
+            <UserCircle className="h-4 w-4 text-muted-foreground" />
             Edit Profile
           </button>
         )}
@@ -290,7 +272,7 @@ export function UserSettingsDialog({
                   onClick={() => setSelectedItem(null)}
                   className={cn("md:hidden h-8 w-8", !selectedItem && "invisible")}
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <CaretLeft weight="duotone" className="h-5 w-5" />
                 </Button>
                 <div>
                   <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">
@@ -324,7 +306,7 @@ export function UserSettingsDialog({
                                 onClick={() => bannerInputRef.current?.click()}
                                 disabled={isBannerUploading}
                               >
-                                {isBannerUploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                                {isBannerUploading ? <CircleNotch weight="duotone" className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
                                 Unggah Banner
                               </Button>
                             </div>
@@ -377,7 +359,7 @@ export function UserSettingsDialog({
                               className="absolute -bottom-2 -right-2 z-10 flex items-center justify-center bg-primary text-primary-foreground p-1.5 rounded-full border-2 border-background"
                               title="Ubah Foto Profil"
                             >
-                              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                              {isUploading ? <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                             </button>
                             <input
                               type="file"
@@ -409,7 +391,7 @@ export function UserSettingsDialog({
 
                         <div className="grid gap-2">
                           <Label htmlFor="status" className="text-sm font-bold flex items-center gap-2">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Status Kustom
+                            <Sparkle weight="duotone" className="w-3.5 h-3.5 text-amber-500" /> Status Kustom
                           </Label>
                           <Input
                             id="status"
@@ -468,7 +450,7 @@ export function UserSettingsDialog({
                               </h3>
                               {customStatus && (
                                 <div className="flex items-center gap-1.5 mt-1 opacity-80">
-                                  <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                                  <Sparkle weight="duotone" className="w-2.5 h-2.5 text-amber-500" />
                                   <p className="text-[11px] text-zinc-300 leading-none truncate">{customStatus}</p>
                                 </div>
                               )}
@@ -549,7 +531,7 @@ export function UserSettingsDialog({
                         disabled={isUpdating || !newPassword}
                         className="w-full sm:w-auto sm:px-10 font-bold h-11 shadow-lg shadow-primary/20"
                       >
-                        {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Perbarui Kata Sandi</>}
+                        {isUpdating ? <CircleNotch weight="duotone" className="mr-2 h-4 w-4 animate-spin" /> : <><Key className="mr-2 h-4 w-4" /> Perbarui Kata Sandi</>}
                       </Button>
                     </div>
                   </div>
@@ -596,7 +578,7 @@ export function UserSettingsDialog({
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] md:w-[calc(100%-4rem)] max-w-2xl bg-zinc-900/95 backdrop-blur-md text-white px-3 sm:px-4 py-3 rounded-xl flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 duration-300 z-50 border border-white/10">
                 <div className="flex items-center gap-2 sm:gap-3 mr-2">
                   <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkle weight="duotone" className="h-4 w-4" />
                   </div>
                   <span className="text-[12px] sm:text-sm font-medium leading-tight">
                     <span className="hidden xs:inline">Hati-hati — ada </span>perubahan belum disimpan!
@@ -617,7 +599,7 @@ export function UserSettingsDialog({
                     disabled={isUpdating}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 h-8 sm:h-9 px-3 sm:px-6 text-xs sm:text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
                   >
-                    {isUpdating ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1.5 sm:mr-2" /> : null}
+                    {isUpdating ? <CircleNotch weight="duotone" className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1.5 sm:mr-2" /> : null}
                     <span className="hidden sm:inline">Simpan Perubahan</span>
                     <span className="sm:hidden">Simpan</span>
                   </Button>

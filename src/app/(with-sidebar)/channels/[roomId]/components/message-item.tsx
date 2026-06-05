@@ -17,7 +17,7 @@ import { useEmojis } from "@/components/emoji-provider";
 import { extractUrls } from "@/lib/extract-urls";
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
-import { CornerLeftUp, CornerUpLeft, MessageSquare, FileIcon, Download, ExternalLink, Trash2, Copy, Pencil, Check, X, Smile, Sparkles } from "lucide-react";
+import { ArrowBendUpLeft, ChatTeardropText, File, DownloadSimple, ArrowSquareOut, Trash, Copy, PencilSimple, Check, X, Smiley, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -396,7 +396,7 @@ export function MessageItem({
       return line;
     }).join('\n');
 
-    // 4. Fix multiline wrapping for Bold/Italic/Strike
+    // 4. Fix multiline wrapping for TextB/TextItalic/Strike
     processed = processed.replace(/(\*\*\*|\*\*|\*|___|__|~~|_)([\s\S]+?)\1/g, (match, sep, inner) => {
       if (inner.includes('\n')) {
         return `${sep}\u200B${inner}\u200B${sep}`;
@@ -460,7 +460,7 @@ export function MessageItem({
                       toast.success("Kode disalin!");
                     }}
                   >
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy weight="duotone" className="h-3.5 w-3.5" />
                   </Button>
 
                   {children}
@@ -710,7 +710,7 @@ export function MessageItem({
             className="flex items-center gap-2 mt-0.5 mb-1 group/reply cursor-pointer hover:bg-primary/5 p-1 rounded-sm transition-colors border-l-2 border-primary/20 pl-2"
             onClick={() => message.replyTo && onScrollToMessage?.(message.replyTo)}
           >
-            <CornerLeftUp className="h-3 w-3 text-primary/60" />
+            <ArrowBendUpLeft weight="duotone" className="h-3 w-3 text-primary/60" />
             <div className="text-[11px] text-muted-foreground line-clamp-1">
               <span className="font-bold text-primary/70">
                 @{message.replyToMessage.user?.username ?? "user"}
@@ -891,7 +891,7 @@ export function MessageItem({
                       />
                     )}
                     <div className="absolute inset-0 bg-black/0 group-media:hover:bg-black/20 transition-colors flex items-center justify-center">
-                      <ExternalLink className="w-8 h-8 text-white opacity-0 group-media:hover:opacity-100 transition-all scale-75 group-media:hover:scale-100 drop-shadow-lg" />
+                      <ArrowSquareOut weight="duotone" className="w-8 h-8 text-white opacity-0 group-media:hover:opacity-100 transition-all scale-75 group-media:hover:scale-100 drop-shadow-lg" />
                     </div>
                     {imagesAndVideos.length > 4 && idx === 3 && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
@@ -908,7 +908,7 @@ export function MessageItem({
                 {otherFiles.map((attachment) => (
                   <div key={attachment.id} className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-md max-w-sm">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                      <FileIcon className="h-5 w-5 text-primary" />
+                      <File weight="duotone" className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold truncate text-foreground/90">{getFileName(attachment.url)}</p>
@@ -919,12 +919,12 @@ export function MessageItem({
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary" onClick={(e) => e.stopPropagation()}>
                         <a href={attachment.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
+                          <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                         </a>
                       </Button>
                       <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary" onClick={(e) => e.stopPropagation()}>
                         <a href={attachment.url} download={getFileName(attachment.url)}>
-                          <Download className="h-4 w-4" />
+                          <DownloadSimple weight="duotone" className="h-4 w-4" />
                         </a>
                       </Button>
                     </div>
@@ -958,7 +958,7 @@ export function MessageItem({
                       onClick={(e) => { e.stopPropagation(); onReply(message); }}
                       className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                     >
-                      <CornerUpLeft className="w-3.5 h-3.5" />
+                      <ArrowBendUpLeft className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent
@@ -983,7 +983,7 @@ export function MessageItem({
                           }}
                           className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                         >
-                          <Pencil className="w-3.5 h-3.5" />
+                          <PencilSimple weight="duotone" className="w-3.5 h-3.5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent
@@ -1004,7 +1004,7 @@ export function MessageItem({
                               disabled={isDeleting}
                               className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash weight="duotone" className="w-3.5 h-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

@@ -11,7 +11,7 @@ import { setTypingStatusAction } from "../messages.action";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
-import { CornerLeftUp, X, Paperclip, FileIcon, Eye, EyeOff } from "lucide-react";
+import { ArrowBendUpLeft, X, Paperclip, File, Eye, EyeSlash } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
@@ -330,7 +330,7 @@ export function MessageInput({
                 )
               ) : (
                 <div className="h-full w-full flex flex-col items-center justify-center p-2 text-center">
-                  <FileIcon className="h-8 w-8 text-primary/60 mb-1" />
+                  <File weight="duotone" className="h-8 w-8 text-primary/60 mb-1" />
                   <span className="text-[10px] truncate w-full px-1">{item.file.name}</span>
                 </div>
               )}
@@ -341,7 +341,7 @@ export function MessageInput({
                   className="h-6 w-6 rounded-full shadow-lg"
                   onClick={() => removeFile(index)}
                 >
-                  <X className="h-3 w-3" />
+                  <X weight="duotone" className="h-3 w-3" />
                 </Button>
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-[9px] text-white px-1 py-0.5 truncate backdrop-blur-sm">
@@ -354,7 +354,7 @@ export function MessageInput({
               onClick={() => fileInputRef.current?.click()}
               className="h-20 w-20 sm:h-24 sm:w-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all bg-muted/20"
             >
-              <Paperclip className="h-6 w-6 mb-1" />
+              <Paperclip weight="duotone" className="h-6 w-6 mb-1" />
               <span className="text-[10px]">Tambah</span>
             </button>
           )}
@@ -369,7 +369,7 @@ export function MessageInput({
           selectedFiles.length > 0 ? "border-t border-border/20" : "rounded-t-xl border-t"
         )}>
           <div className="bg-primary/20 p-1.5 rounded-lg">
-            <CornerLeftUp className="h-3.5 w-3.5 text-primary" />
+            <ArrowBendUpLeft weight="duotone" className="h-3.5 w-3.5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] font-bold text-primary mb-0.5">
@@ -389,7 +389,7 @@ export function MessageInput({
             className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
             onClick={onCancelReply}
           >
-            <X className="h-4 w-4" />
+            <X weight="duotone" className="h-4 w-4" />
           </Button>
         </div>
       )}
@@ -420,7 +420,7 @@ export function MessageInput({
             onClick={() => fileInputRef.current?.click()}
             className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
-            <Paperclip className="h-4.5 w-4.5" />
+            <Paperclip weight="duotone" className="h-4.5 w-4.5" />
           </Button>
           <EmojiPickerComponent
             onEmojiSelect={(emoji) => {
@@ -471,7 +471,7 @@ export function MessageInput({
             ))}
           </div>
         ) : (
-          <CornerLeftUp className="h-4 w-4 rotate-90" />
+          <ArrowBendUpLeft weight="duotone" className="h-4 w-4 rotate-90" />
         )}
         </Button>
       </div>

@@ -34,7 +34,7 @@ import { PostActions } from "./post/post-actions";
 import { PostStats } from "./post/post-stats";
 import { ReplyDialog } from "./reply-dialog";
 import { QuoteDialog } from "./quote-dialog";
-import { Repeat2 } from "lucide-react";
+import { ArrowsClockwise } from "@phosphor-icons/react/dist/ssr";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 interface PostItemProps {
@@ -334,7 +334,7 @@ export function PostItem({
             <div className="flex flex-col px-4 pt-4 pb-1 border-b border-border bg-background">
                 {isPureRepost && reposterUserInfo && (
                     <div className="mb-2 text-muted-foreground text-[13px] font-medium flex items-center gap-1.5 ml-12 md:ml-14">
-                        <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                        <ArrowsClockwise weight="duotone" className="h-3.5 w-3.5 shrink-0" />
                         <Link href={reposterUserInfo.profilePath} className="hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
                             {reposterUserInfo.username === currentUser?.username ? "Anda" : reposterUserInfo.displayName} membagikan ulang
                         </Link>
@@ -355,7 +355,7 @@ export function PostItem({
                 {!hideReplyIndicator && post.replyToId && (
                     <div className="text-[15px] text-muted-foreground mb-3">
                         {post.replyTo ? (
-                            <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
+                            <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
                         ) : (
                             <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>
                         )}
@@ -456,7 +456,7 @@ export function PostItem({
             <div className="relative z-20 flex flex-col pt-3 pb-3 px-4">
                 {isPureRepost && reposterUserInfo && (
                     <div className="mb-1 text-muted-foreground text-[13px] font-medium z-30 relative flex items-center gap-1.5 ml-10 md:ml-12">
-                        <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                        <ArrowsClockwise weight="duotone" className="h-3.5 w-3.5 shrink-0" />
                         <Link href={reposterUserInfo.profilePath} className="hover:underline line-clamp-1" onClick={(e) => e.stopPropagation()}>
                             {reposterUserInfo.username === currentUser?.username ? "Anda" : reposterUserInfo.displayName} membagikan ulang
                         </Link>
@@ -485,7 +485,7 @@ export function PostItem({
                         {!hideReplyIndicator && post.replyToId && !showConnector && (
                             <div className="text-[14px] text-muted-foreground mb-1.5 z-30 relative line-clamp-1">
                                 {post.replyTo ? (
-                                    <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-sky-500 hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
+                                    <>Membalas <Link href={getUserInfo(post.replyTo).profilePath} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{getUserInfo(post.replyTo).handle}</Link></>
                                 ) : (
                                     <span className="italic opacity-60">Membalas postingan yang telah dihapus</span>
                                 )}
@@ -573,8 +573,7 @@ function QuotePreview({ post, getUserInfo, onImageClick }: { post: PostWithUserD
     const userInfo = getUserInfo(post);
 
     return (
-        <Link
-            href={`/posts/${post.id}`}
+        <Link href={`/posts/${post.id}`}
             onClick={(e) => e.stopPropagation()}
             className="mt-3 border border-border rounded-2xl p-3 flex flex-col gap-2 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer overflow-hidden block"
         >

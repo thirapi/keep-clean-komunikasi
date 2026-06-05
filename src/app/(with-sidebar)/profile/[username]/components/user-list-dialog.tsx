@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 
 interface UserListDialogProps {
     title: string;
@@ -32,7 +32,7 @@ export function UserListDialog({ title, trigger, userId, fetchAction }: UserList
                 </DialogHeader>
                 <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
                     {isLoading ? (
-                        <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>
+                        <div className="flex justify-center p-4"><CircleNotch weight="duotone" className="animate-spin" /></div>
                     ) : users.length === 0 ? (
                         <p className="text-center text-sm p-4 text-muted-foreground">Tidak ada pengguna.</p>
                     ) : (

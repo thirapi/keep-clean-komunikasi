@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { MagnifyingGlass, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
   DialogContent,
@@ -108,7 +108,7 @@ export function DirectMessageDialog({
 
         <div className="px-6 py-2">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
+            <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
             <Input
               placeholder="cari pengguna..."
               value={searchQuery}
@@ -122,7 +122,7 @@ export function DirectMessageDialog({
         <div className="max-h-[350px] overflow-hidden flex flex-col mt-2 px-3 pb-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-              <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+              <CircleNotch weight="duotone" className="h-7 w-7 animate-spin text-primary/60" />
               <p className="text-sm font-medium">mencari pengguna...</p>
             </div>
           ) : searchQuery && users.length === 0 ? (

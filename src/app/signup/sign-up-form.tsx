@@ -27,14 +27,7 @@ import { useMemo, useState, Suspense } from "react";
 import { signInUser, signUpUser } from "@/app/auth.action";
 import { useSearchParams } from "next/navigation";
 import { ServerResponse } from "@/lib/entities/models/response.model";
-import {
-  CircleX,
-  Eye,
-  EyeOff,
-  KeyRound,
-  LoaderCircle,
-  UserRound,
-} from "lucide-react";
+import { XCircle, Eye, EyeSlash, Key, CircleNotch, User } from "@phosphor-icons/react/dist/ssr";
 
 const formSchema = z.object({
   username: z.string().min(3),
@@ -130,7 +123,7 @@ export function SignUpForm({
                         <FormLabel>Username</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             <Input
                               placeholder="Choose a username"
                               className="pl-10"
@@ -152,7 +145,7 @@ export function SignUpForm({
                         <FormLabel>Password</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Key className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             <Input
                               type={showPassword ? "text" : "password"}
                               placeholder="Create a password"
@@ -166,9 +159,9 @@ export function SignUpForm({
                               tabIndex={-1}
                             >
                               {showPassword ? (
-                                <EyeOff className="h-5 w-5" />
+                                <EyeSlash weight="duotone" className="h-5 w-5" />
                               ) : (
-                                <Eye className="h-5 w-5" />
+                                <Eye weight="duotone" className="h-5 w-5" />
                               )}
                             </button>
                           </div>
@@ -187,7 +180,7 @@ export function SignUpForm({
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Key className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             <Input
                               type={showConfirmPassword ? "text" : "password"}
                               placeholder="Confirm your password"
@@ -203,9 +196,9 @@ export function SignUpForm({
                               tabIndex={-1}
                             >
                               {showConfirmPassword ? (
-                                <EyeOff className="h-5 w-5" />
+                                <EyeSlash weight="duotone" className="h-5 w-5" />
                               ) : (
-                                <Eye className="h-5 w-5" />
+                                <Eye weight="duotone" className="h-5 w-5" />
                               )}
                             </button>
                           </div>
@@ -224,7 +217,7 @@ export function SignUpForm({
                   {formStatus === "pending" ? (
                     <>
                       <span>Sign Up</span>
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" />
                     </>
                   ) : (
                     "Sign Up"

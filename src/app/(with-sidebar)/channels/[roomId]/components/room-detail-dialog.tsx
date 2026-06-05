@@ -1,27 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  Settings,
-  Hash,
-  Globe,
-  Lock,
-  Trash2,
-  Loader2,
-  AlertTriangle,
-  Info,
-  Users,
-  User,
-  Shield,
-  Calendar,
-  Camera,
-  X,
-  LogOut,
-  UserMinus,
-  Sparkles,
-  MoreVertical,
-  Crown,
-} from "lucide-react";
+import { Gear, Hash, Globe, Lock, Trash, CircleNotch, Warning, Info, Users, User, Shield, Calendar, Camera, X, SignOut, UserMinus, Sparkle, DotsThreeVertical, Crown } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
   DialogContent,
@@ -318,7 +298,7 @@ export function RoomDetailDialog({
                 onClick={() => bannerInputRef.current?.click()}
                 disabled={isBannerUploading}
               >
-                {isBannerUploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                {isBannerUploading ? <CircleNotch weight="duotone" className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
                 Ubah Banner
               </Button>
               {banner && (
@@ -328,7 +308,7 @@ export function RoomDetailDialog({
                   className="h-8 w-8 p-0"
                   onClick={() => setBanner("")}
                 >
-                  <X className="w-3 h-3" />
+                  <X weight="duotone" className="w-3 h-3" />
                 </Button>
               )}
             </div>
@@ -421,7 +401,7 @@ export function RoomDetailDialog({
                       </>
                     ) : (
                       <>
-                        <Users className="w-3.5 h-3.5" />{" "}
+                        <Users weight="duotone" className="w-3.5 h-3.5" />{" "}
                         {roomData.participants.length} Anggota
                       </>
                     )}
@@ -434,17 +414,17 @@ export function RoomDetailDialog({
           <Tabs defaultValue="overview" className="mt-6 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview" className="gap-2 text-xs sm:text-sm">
-                <Info className="w-3.5 h-3.5" /> Overview
+                <Info weight="duotone" className="w-3.5 h-3.5" /> Overview
               </TabsTrigger>
               <TabsTrigger value="members" className="gap-2 text-xs sm:text-sm">
-                <Users className="w-3.5 h-3.5" /> Members
+                <Users weight="duotone" className="w-3.5 h-3.5" /> Members
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
                 className="gap-2 text-xs sm:text-sm"
                 disabled={!isOwner && !isDirect}
               >
-                <Settings className="w-3.5 h-3.5" /> Settings
+                <Gear className="w-3.5 h-3.5" /> Settings
               </TabsTrigger>
             </TabsList>
 
@@ -542,7 +522,7 @@ export function RoomDetailDialog({
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive gap-2 border-destructive/20 font-bold">
-                            <LogOut className="w-4 h-4" /> Keluar dari Channel
+                            <SignOut weight="duotone" className="w-4 h-4" /> Keluar dari Channel
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -559,7 +539,7 @@ export function RoomDetailDialog({
                               disabled={isLeaving}
                               className="bg-destructive hover:bg-destructive/90"
                             >
-                              {isLeaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                              {isLeaving ? <CircleNotch weight="duotone" className="w-4 h-4 animate-spin mr-2" /> : null}
                               Ya, Keluar
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -615,7 +595,7 @@ export function RoomDetailDialog({
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <UserMinus className="w-4 h-4" />
+                                    <UserMinus weight="duotone" className="w-4 h-4" />
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -650,7 +630,7 @@ export function RoomDetailDialog({
                       <div className="grid gap-2">
                         <Label htmlFor="channel-name">Nama Channel</Label>
                         <div className="relative">
-                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Hash weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="channel-name"
                             value={name}
@@ -686,7 +666,7 @@ export function RoomDetailDialog({
                       >
                         <div className="flex items-center gap-3">
                           {isPublic ? (
-                            <Globe className="w-4 h-4 text-emerald-500" />
+                            <Globe weight="duotone" className="w-4 h-4 text-emerald-500" />
                           ) : (
                             <Lock className="w-4 h-4 text-amber-500" />
                           )}
@@ -710,7 +690,7 @@ export function RoomDetailDialog({
                       {!isGeneral && (
                         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
                           <div className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle className="w-4 h-4" />
+                            <Warning weight="duotone" className="w-4 h-4" />
                             <p className="text-sm font-semibold">
                               Zona Berbahaya
                             </p>
@@ -724,9 +704,9 @@ export function RoomDetailDialog({
                                 disabled={isDeleting}
                               >
                                 {isDeleting ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <CircleNotch weight="duotone" className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash weight="duotone" className="w-4 h-4" />
                                 )}
                                 Hapus Channel
                               </Button>
@@ -774,7 +754,7 @@ export function RoomDetailDialog({
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-zinc-900/95 backdrop-blur-md text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom-8 duration-300 z-50 border border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="hidden xs:flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkle weight="duotone" className="h-4 w-4" />
                   </div>
                   <span className="text-[12px] sm:text-sm font-medium">Ada perubahan!</span>
                 </div>
@@ -800,7 +780,7 @@ export function RoomDetailDialog({
                     disabled={isSaving}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 h-8 font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95 text-xs"
                   >
-                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : null}
+                    {isSaving ? <CircleNotch weight="duotone" className="h-3 w-3 animate-spin mr-1.5" /> : null}
                     Simpan
                   </Button>
                 </div>

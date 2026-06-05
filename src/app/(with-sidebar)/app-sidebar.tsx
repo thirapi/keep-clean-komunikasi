@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash, Search, MessageCircle, ChevronDown, Rss, ArrowDownUp } from "lucide-react";
+import { User, Hash, MagnifyingGlass, ChatCircle, CaretDown, Rss, ArrowsDownUp } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import { NavMain } from "./nav-main";
@@ -217,20 +217,20 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
           {sidebarMode === "chat" ? (
             <>
               {/* Ikon Chat */}
-              <MessageCircle className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
+              <ChatCircle weight="duotone" className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
               <span className="font-bold text-[14px] truncate tracking-wide">Chat</span>
             </>
           ) : (
             <>
               {/* Ikon Social Feed */}
-              <Rss className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
+              <Rss weight="duotone" className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
               <span className="font-bold text-[14px] truncate tracking-wide">Social Feed</span>
             </>
           )}
         </div>
         
         {/* Ikon Dua Panah (Atas-Bawah) khas Switcher */}
-        <ArrowDownUp className="size-3.5 text-sidebar-foreground/50 group-hover:text-primary transition-colors shrink-0 duration-200" />
+        <ArrowsDownUp weight="duotone" className="size-3.5 text-sidebar-foreground/50 group-hover:text-primary transition-colors shrink-0 duration-200" />
       </Link>
     </Button>
   );
@@ -261,7 +261,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                          className="h-9 w-9 p-2 text-muted-foreground hover:bg-muted/50 rounded-lg shrink-0"
                          onClick={handleSearchClick}
                        >
-                         <Search className="h-4 w-4" />
+                         <MagnifyingGlass weight="duotone" className="h-4 w-4" />
                        </Button>
                      </TooltipTrigger>
                      <TooltipContent side="bottom">{searchTooltip}</TooltipContent>
@@ -294,7 +294,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                          className="h-10 w-10 p-2 text-muted-foreground hover:bg-muted/50 rounded-xl shrink-0"
                          onClick={handleSearchClick}
                        >
-                         <Search className="h-4.5 w-4.5" />
+                         <MagnifyingGlass weight="duotone" className="h-4.5 w-4.5" />
                        </Button>
                      </TooltipTrigger>
                      <TooltipContent side="right">{searchTooltip}</TooltipContent>
@@ -314,7 +314,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                   className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
                   onClick={handleSearchClick}
                 >
-                  <Search className="h-4 w-4" />
+                  <MagnifyingGlass weight="duotone" className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">{searchTooltip}</TooltipContent>
@@ -427,7 +427,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                 setMobileTab("channels");
               }}
             >
-              <Hash className="h-[22px] w-[22px]" strokeWidth={mobileTab === "channels" ? 3 : 2} />
+              <Hash className="h-[22px] w-[22px]" weight={mobileTab === "channels" ? "bold" : "duotone"} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "channels" ? "font-bold" : "font-medium")}>Channels</span>
             </Button>
             <Button
@@ -438,7 +438,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                 setMobileTab("dms");
               }}
             >
-              <MessageCircle className="h-[22px] w-[22px]" fill={mobileTab === "dms" ? "currentColor" : "none"} strokeWidth={mobileTab === "dms" ? 0 : 2} />
+              <ChatCircle className="h-[22px] w-[22px]" weight={mobileTab === "dms" ? "fill" : "duotone"} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
             </Button>
             <Button
@@ -446,7 +446,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "social" ? "text-primary" : "text-muted-foreground")}
               onClick={() => router.push("/timeline")}
             >
-              <Rss className="h-[22px] w-[22px]" strokeWidth={mobileTab === "social" ? 3 : 2} />
+              <Rss className="h-[22px] w-[22px]" weight={mobileTab === "social" ? "bold" : "duotone"} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "social" ? "font-bold" : "font-medium")}>Social</span>
             </Button>
             <Button
@@ -455,7 +455,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
               className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
             >
               <Link href={user ? `/profile/${user.name}` : "/"}>
-                <User className="h-[22px] w-[22px]" strokeWidth={2} />
+                <User className="h-[22px] w-[22px]" weight="duotone" />
                 <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
               </Link>
             </Button>
@@ -475,7 +475,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                   tooltip="Masuk ke Komunikasi"
                 >
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground group-hover/login:scale-110 transition-transform duration-300">
-                    <User className="size-4" />
+                    <User weight="duotone" className="size-4" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                     <span className="truncate font-semibold">Masuk Akun</span>

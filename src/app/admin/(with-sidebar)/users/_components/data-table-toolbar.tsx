@@ -1,7 +1,7 @@
 "use client";
 
 import { Table } from "@tanstack/react-table";
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export function DataTableToolbar<TData>({
               className="h-8 px-2 lg:px-3"
             >
               Reset
-              <X />
+              <X weight="duotone" />
             </Button>
           )}
         </div> */}

@@ -3,7 +3,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import { MessageSquare, Crown, UserMinus, LogOut, UserPlus, X } from "lucide-react";
+import { ChatTeardropText, Crown, UserMinus, SignOut, UserPlus, X } from "@phosphor-icons/react/dist/ssr";
 import { createRoom, removeParticipant } from "../room.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -98,7 +98,7 @@ export function MobileMemberList({
                   size="sm"
                   className="h-8 w-8 p-0"
                 >
-                  <UserPlus className="size-4" />
+                  <UserPlus weight="duotone" className="size-4" />
                 </Button>
               )}
             </SheetTitle>

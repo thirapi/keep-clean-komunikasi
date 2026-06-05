@@ -7,7 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPublicProfileAction, followUserAction, unfollowUserAction, followRemoteUserAction, unfollowRemoteUserAction } from "@/app/(with-sidebar)/user.action";
-import { Loader2, UserPlus, UserMinus } from "lucide-react";
+import { CircleNotch, UserPlus, UserMinus } from "@phosphor-icons/react/dist/ssr";
 import { toast } from "sonner";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
@@ -129,15 +129,15 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
                                     disabled={followMutation.isPending || isLoading}
                                 >
                                     {followMutation.isPending ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <CircleNotch weight="duotone" className="h-3 w-3 animate-spin" />
                                     ) : displayData.isFollowing ? (
                                         <>
-                                            <UserMinus className="h-3.5 w-3.5" />
+                                            <UserMinus weight="duotone" className="h-3.5 w-3.5" />
                                             <span>Mengikuti</span>
                                         </>
                                     ) : (
                                         <>
-                                            <UserPlus className="h-3.5 w-3.5" />
+                                            <UserPlus weight="duotone" className="h-3.5 w-3.5" />
                                             <span>Ikuti</span>
                                         </>
                                     )}
@@ -159,7 +159,7 @@ export function UserHoverCard({ user, currentUserId, children }: UserHoverCardPr
 
                         {isLoading ? (
                             <div className="flex items-center gap-2 py-2">
-                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                <CircleNotch weight="duotone" className="h-3 w-3 animate-spin text-muted-foreground" />
                                 <span className="text-xs text-muted-foreground">Memuat profil...</span>
                             </div>
                         ) : (

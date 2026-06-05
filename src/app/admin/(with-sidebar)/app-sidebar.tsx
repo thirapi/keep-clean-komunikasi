@@ -1,26 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-  Fingerprint,
-  Briefcase,
-  Home,
-  Users,
-  User,
-  Hash,
-  FlameKindling,
-  Logs,
-} from "lucide-react";
+import { User, Log } from "@phosphor-icons/react/dist/ssr";
 
 import { NavBrand } from "@/app/(with-sidebar)/nav-brand";
 import { NavMain } from "./nav-main";
@@ -53,7 +34,7 @@ const sidebarItems = [
     id: "2",
     name: "Log Login",
     url: "/admin/log",
-    icon: Logs,
+    icon: Log,
   },
 ];
 

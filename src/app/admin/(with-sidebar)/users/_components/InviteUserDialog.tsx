@@ -32,7 +32,7 @@
 //     SelectValue,
 // } from "@/components/ui/select";
 // import { Button } from "@/components/ui/button";
-// import { UserPlus } from "lucide-react";
+// import { UserPlus } from "@phosphor-icons/react/dist/ssr";
 // // import { UserRole } from "@/lib/entities/models/user.model";
 // // import { inviteUserAction } from "../user-management.action";
 
@@ -79,7 +79,7 @@
 //                     size="sm"
 //                     className="ml-2 hidden h-8 lg:flex"
 //                 >
-//                     <UserPlus />
+//                     <UserPlus weight="duotone" />
 //                     Invite User
 //                 </Button>
 //             </DialogTrigger>

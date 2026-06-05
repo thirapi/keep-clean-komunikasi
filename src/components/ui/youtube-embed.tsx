@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Play } from "lucide-react";
+import { Play } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { CaretDown, CaretUp } from "@phosphor-icons/react/dist/ssr";
 
 interface YouTubeEmbedProps {
     videoId: string;
@@ -22,7 +22,7 @@ export function YouTubeEmbed({ videoId, className }: YouTubeEmbedProps) {
                 onClick={() => setIsVisible((v) => !v)}
                 className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors mb-1"
             >
-                {isVisible ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {isVisible ? <CaretUp weight="duotone" className="w-3.5 h-3.5" /> : <CaretDown weight="duotone" className="w-3.5 h-3.5" />}
                 YouTube
             </button>
 
@@ -41,7 +41,7 @@ export function YouTubeEmbed({ videoId, className }: YouTubeEmbedProps) {
                             {/* Lucide Play button overlay */}
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="bg-black/50 group-hover/thumb:bg-black/70 transition-colors rounded-full p-4">
-                                    <Play className="w-8 h-8 text-white fill-white" />
+                                    <Play weight="duotone" className="w-8 h-8 text-white fill-white" />
                                 </div>
                             </div>
                         </div>

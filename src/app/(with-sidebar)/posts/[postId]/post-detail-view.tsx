@@ -6,7 +6,7 @@ import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/pos
 import { SimpleReplyInput } from "@/app/(with-sidebar)/profile/[username]/components/simple-reply-input";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { ChevronLeft } from "lucide-react";
+import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,7 +91,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                 className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
                                 aria-label="Toggle sidebar"
                             >
-                                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                                <CaretLeft weight="duotone" className="h-7 w-7" />
                             </Button>
                         </div>
 
@@ -108,7 +108,7 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                     }
                                 }}
                             >
-                                <ChevronLeft strokeWidth="3" className="h-6 w-6" />
+                                <CaretLeft weight="duotone" className="h-6 w-6" />
                             </Button>
                         )}
 

@@ -27,15 +27,7 @@ import { useMemo, useState, Suspense } from "react";
 import { signInUser } from "@/app/auth.action";
 import { useSearchParams } from "next/navigation";
 import { ServerResponse } from "@/lib/entities/models/response.model";
-import {
-  CircleX,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Link,
-  LoaderCircle,
-  UserRound,
-} from "lucide-react";
+import { XCircle, Eye, EyeSlash, Key, Link, CircleNotch, User } from "@phosphor-icons/react/dist/ssr";
 
 const formSchema = z.object({
   username: z.string().min(3),
@@ -109,7 +101,7 @@ export function SignInForm({
                         <FormLabel>Username</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             <Input
                               placeholder="Enter your username"
                               className="pl-10"
@@ -131,7 +123,7 @@ export function SignInForm({
                         <FormLabel>Password</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Key className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             <Input
                               type={showPassword ? "text" : "password"}
                               placeholder="••••••••"
@@ -145,9 +137,9 @@ export function SignInForm({
                               tabIndex={-1}
                             >
                               {showPassword ? (
-                                <EyeOff className="h-5 w-5" />
+                                <EyeSlash weight="duotone" className="h-5 w-5" />
                               ) : (
-                                <Eye className="h-5 w-5" />
+                                <Eye weight="duotone" className="h-5 w-5" />
                               )}
                             </button>
                           </div>
@@ -166,7 +158,7 @@ export function SignInForm({
                   {formStatus === "pending" ? (
                     <>
                       <span>Sign In</span>
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" />
                     </>
                   ) : (
                     "Sign In"

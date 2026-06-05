@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { EmojiPicker } from "frimousse";
-import { Smile, Search as SearchIcon } from "lucide-react";
+import { Smiley, MagnifyingGlass as MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import {
     Popover,
     PopoverContent,
@@ -50,7 +50,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                     size={triggerSize ?? "icon"}
                     className={triggerClassName ?? "h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all shrink-0 hover:scale-105 active:scale-95 flex items-center justify-center"}
                 >
-                    <Smile className="h-4 w-4" />
+                    <Smiley weight="duotone" className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -60,7 +60,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                 className="w-[320px] p-0 border-border/50 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden rounded-xl bg-popover"
             >
                 <div className="relative mx-3 mt-3 mb-2">
-                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                    <MagnifyingGlass weight="duotone" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
                     <input
                         className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/30 border border-border/40 rounded-lg placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all hover:bg-muted/50"
                         placeholder="Cari emoji..."
@@ -110,10 +110,6 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                             }}
                             columns={8}
                         >
-                            <div className="hidden">
-                                <EmojiPicker.Search />
-                            </div>
-
                             <EmojiPicker.Viewport className="px-2">
                                 <EmojiPicker.Loading className="flex flex-col items-center justify-center py-10 gap-2 text-sm text-muted-foreground/60">
                                     <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -123,7 +119,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                                 <EmojiPicker.Empty className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground/50 p-6 text-center">
                                     {Object.keys(groupedCustomEmojis).length === 0 && (
                                         <>
-                                            <SearchIcon className="h-10 w-10 opacity-20" />
+                                            <MagnifyingGlass weight="duotone" className="h-10 w-10 opacity-20" />
                                             <p className="text-xs leading-relaxed">
                                                 Tidak ada emoji yang cocok dengan pencarian Anda.
                                             </p>

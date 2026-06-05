@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ArrowSquareOut, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { LinkPreview } from "@/lib/application/services/link-preview.service.interface";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export function LinkPreviewCard({ url, preview }: LinkPreviewCardProps) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-1.5 px-2 text-[10px] text-muted-foreground/40">
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <CircleNotch weight="duotone" className="h-3 w-3 animate-spin" />
         Memuat pratinjau...
       </div>
     );
@@ -91,7 +91,7 @@ export function LinkPreviewCard({ url, preview }: LinkPreviewCardProps) {
                 onError={(e) => (e.currentTarget.style.display = "none")}
               />
             ) : (
-              <ExternalLink className="w-3 h-3 text-muted-foreground/30 shrink-0" />
+              <ArrowSquareOut weight="duotone" className="w-3 h-3 text-muted-foreground/30 shrink-0" />
             )}
             <span className="text-[11px] font-medium text-muted-foreground/70 truncate tracking-tight">
               {data.siteName || hostname}

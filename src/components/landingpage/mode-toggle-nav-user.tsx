@@ -1,6 +1,6 @@
 "use client"
 
-import { Moon, Sun } from "lucide-react"
+import { Moon, Sun } from "@phosphor-icons/react/dist/ssr"
 import { useTheme } from "next-themes"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
@@ -15,9 +15,9 @@ export function ModeToggleItem() {
       className="flex items-center gap-2"
     >
       {theme === "dark" ? (
-        <Sun className="h-4 w-4" />
+        <Sun weight="duotone" className="h-4 w-4" />
       ) : (
-        <Moon className="h-4 w-4" />
+        <Moon weight="duotone" className="h-4 w-4" />
       )}
       <span>{theme === "dark" ? "Mode Terang" : "Mode Gelap"}</span>
     </DropdownMenuItem>

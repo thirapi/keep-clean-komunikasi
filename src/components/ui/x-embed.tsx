@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { CaretDown, CaretUp } from "@phosphor-icons/react/dist/ssr";
 
 interface XEmbedProps {
     tweetUrl: string;
@@ -56,7 +56,7 @@ export function XEmbed({ tweetUrl, className }: XEmbedProps) {
                 onClick={() => setIsVisible((v) => !v)}
                 className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors mb-1"
             >
-                {isVisible ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {isVisible ? <CaretUp weight="duotone" className="w-3.5 h-3.5" /> : <CaretDown weight="duotone" className="w-3.5 h-3.5" />}
                 X / Twitter
             </button>
 

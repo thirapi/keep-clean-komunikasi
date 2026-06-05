@@ -2,7 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserMinus, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { toast } from "sonner";
 import { followUserAction, unfollowUserAction, followRemoteUserAction, unfollowRemoteUserAction } from "@/app/(with-sidebar)/user.action";
 
@@ -61,15 +61,15 @@ export function FollowButton({ targetUserId, currentUserId, initialIsFollowing, 
             className="rounded-full gap-2 min-w-[100px]"
         >
             {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" />
             ) : isFollowing ? (
                 <>
-                    <UserMinus className="h-4 w-4" />
+                    <UserMinus weight="duotone" className="h-4 w-4" />
                     <span>Unfollow</span>
                 </>
             ) : (
                 <>
-                    <UserPlus className="h-4 w-4" />
+                    <UserPlus weight="duotone" className="h-4 w-4" />
                     <span>Follow</span>
                 </>
             )}

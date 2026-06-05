@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Users, Bookmark, Bell, User, Home } from "lucide-react";
+import { Globe, Users, Bookmark, Bell, User, House } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,7 @@ export function NavFeed({ userName }: { userName?: string }) {
         {
             name: "Timeline",
             url: "/timeline",
-            icon: Home,
+            icon: House,
         },
         {
             name: "Following",
@@ -90,8 +90,8 @@ export function NavFeed({ userName }: { userName?: string }) {
                                 <Link href={item.url} className="flex items-center justify-between w-full">
                                     <div className="flex items-center gap-3.5">
                                         <item.icon 
-                                            className={cn("size-5 transition-transform", isActive && "scale-105")} 
-                                            strokeWidth={isActive ? 2.5 : 2}
+                                            className={cn("size-5 transition-transform", isActive && "scale-105")}
+                                            weight={isActive ? "duotone" : "regular"}
                                         />
                                         <span className="text-[14px]">{item.name}</span>
                                     </div>

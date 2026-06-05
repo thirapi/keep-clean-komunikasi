@@ -9,7 +9,7 @@ import {
 } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bold, Italic, Strikethrough, Code, Terminal } from "lucide-react";
+import { TextB, TextItalic, TextStrikethrough, Code, Terminal } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -112,28 +112,28 @@ export function FloatingToolbarPlugin() {
                 >
                     <ToolbarButton
                         onClick={() => wrapSelection("**")}
-                        icon={<Bold className="h-3.5 w-3.5" />}
-                        label="Bold (**)"
+                        icon={<TextB weight="duotone" className="h-3.5 w-3.5" />}
+                        label="TextB (**)"
                     />
                     <ToolbarButton
                         onClick={() => wrapSelection("_")}
-                        icon={<Italic className="h-3.5 w-3.5" />}
-                        label="Italic (_)"
+                        icon={<TextItalic weight="duotone" className="h-3.5 w-3.5" />}
+                        label="TextItalic (_)"
                     />
                     <ToolbarButton
                         onClick={() => wrapSelection("~~")}
-                        icon={<Strikethrough className="h-3.5 w-3.5" />}
-                        label="Strikethrough (~~)"
+                        icon={<TextStrikethrough weight="duotone" className="h-3.5 w-3.5" />}
+                        label="TextStrikethrough (~~)"
                     />
                     <div className="w-[1px] h-4 bg-white/10 mx-1" />
                     <ToolbarButton
                         onClick={wrapInlineCode}
-                        icon={<Code className="h-3.5 w-3.5" />}
+                        icon={<Code weight="duotone" className="h-3.5 w-3.5" />}
                         label="Inline Code (`)"
                     />
                     <ToolbarButton
                         onClick={wrapCodeBlock}
-                        icon={<Terminal className="h-3.5 w-3.5" />}
+                        icon={<Terminal weight="duotone" className="h-3.5 w-3.5" />}
                         label="Code Block (```)"
                     />
                 </motion.div>

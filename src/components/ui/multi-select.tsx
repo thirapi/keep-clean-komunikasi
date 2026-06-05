@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Command as CommandPrimitive } from "cmdk";
-import { X as RemoveIcon, Check } from "lucide-react";
+import { X as X, Check } from "@phosphor-icons/react/dist/ssr";
 import React, {
   KeyboardEvent,
   createContext,
@@ -256,7 +256,7 @@ const MultiSelectorTrigger = forwardRef<
             onClick={() => onValueChange(item)}
           >
             <span className="sr-only">Remove {item} option</span>
-            <RemoveIcon className="h-4 w-4 hover:stroke-destructive" />
+            <X weight="duotone" className="h-4 w-4 hover:stroke-destructive" />
           </button>
         </Badge>
       ))}
@@ -370,7 +370,7 @@ const MultiSelectorItem = forwardRef<
       onMouseDown={mousePreventDefault}
     >
       {children}
-      {isIncluded && <Check className="h-4 w-4" />}
+      {isIncluded && <Check weight="duotone" className="h-4 w-4" />}
     </CommandItem>
   );
 });

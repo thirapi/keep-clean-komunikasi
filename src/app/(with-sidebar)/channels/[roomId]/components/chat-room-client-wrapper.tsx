@@ -6,7 +6,7 @@ import { getLastReadAt, getMessage } from "../messages.action";
 import { getRoom } from "../room.action";
 import { ChatRoom } from "./chat-room";
 import { clientChatCache } from "@/lib/infrastructure/cache/client-cache";
-import { AlertTriangle } from "lucide-react";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 import LoadingRoom from "../room-skeleton";
 
 export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
@@ -109,7 +109,7 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center space-y-4">
-        <AlertTriangle className="text-red-500 w-20 h-20" />
+        <Warning weight="duotone" className="text-red-500 w-20 h-20" />
         <h1 className="text-xl font-semibold">{error}</h1>
       </div>
     );

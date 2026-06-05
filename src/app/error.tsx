@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 export default function Error({
   error,
@@ -19,7 +19,7 @@ export default function Error({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
       <div className="bg-destructive/10 p-6 rounded-full mb-6">
-        <AlertCircle className="w-12 h-12 text-destructive" />
+        <WarningCircle weight="duotone" className="w-12 h-12 text-destructive" />
       </div>
       <h2 className="text-2xl font-bold mb-2">Terjadi kesalahan!</h2>
       <p className="text-muted-foreground mb-8 max-w-md">

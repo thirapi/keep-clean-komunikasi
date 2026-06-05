@@ -1,5 +1,4 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Hash } from "lucide-react";
 import K from "@/components/icons/k";
 import { ChatRoomClientWrapper } from "@/app/(with-sidebar)/channels/[roomId]/components/chat-room-client-wrapper";
 import { getUserSession } from "@/app/auth.action";
@@ -65,8 +64,7 @@ export default async function ChatPage({
 
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70">
             <span>Atau</span>
-            <Link
-              href={"/channels/general-channel"}
+            <Link href={"/channels/general-channel"}
               className="text-primary hover:underline font-medium"
             >
               masuk ke #general

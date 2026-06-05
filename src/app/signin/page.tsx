@@ -2,9 +2,9 @@ import { SignInForm } from "@/app/signin/sign-in-form";
 import K from "@/components/icons/k";
 import Link from "next/link";
 import { Suspense } from "react";
-import { LoaderCircle } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 
-export default function Home() {
+export default function House() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background">
       <Link href={"./"}>
@@ -15,7 +15,7 @@ export default function Home() {
       </Link>
 
       <div className="w-full max-w-md">
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary" /></div>}>
           <SignInForm />
         </Suspense>
       </div>

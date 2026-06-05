@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Users, Info, Search, ChevronLeft } from "lucide-react";
+import { Users, Info, MagnifyingGlass, CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import {
   Tooltip,
   TooltipContent,
@@ -78,7 +78,7 @@ export function ChatHeader({
               aria-label="Back to channels"
             >
               <Link href="/channels/default">
-                <ChevronLeft strokeWidth="4" className="h-7 w-7" />
+                <CaretLeft weight="bold" className="h-7 w-7" />
               </Link>
             </Button>
           </div>
@@ -193,7 +193,7 @@ export function ChatHeader({
                   onClick={onToggleSearch}
                   className="hidden md:flex items-center gap-3 h-9 px-3 text-muted-foreground hover:text-foreground transition-all border-dashed bg-muted/30 hover:bg-muted/50 rounded-lg group"
                 >
-                  <Search className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                  <MagnifyingGlass weight="duotone" className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-medium">Cari pesan...</span>
                 </Button>
 
@@ -204,7 +204,7 @@ export function ChatHeader({
                   onClick={onToggleSearch}
                   className="md:hidden transition-colors duration-200 flex-shrink-0"
                 >
-                  <Search className="h-4 w-4" />
+                  <MagnifyingGlass weight="duotone" className="h-4 w-4" />
                 </Button>
               </div>
             </TooltipTrigger>
@@ -221,7 +221,7 @@ export function ChatHeader({
                 onClick={() => setShowDetails(true)}
                 className="transition-colors duration-200 flex-shrink-0"
               >
-                <Info className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Info weight="duotone" className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -240,7 +240,7 @@ export function ChatHeader({
                   membersVisible && "bg-accent text-accent-foreground",
                 )}
               >
-                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Users weight="duotone" className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

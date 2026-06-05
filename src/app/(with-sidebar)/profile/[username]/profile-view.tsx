@@ -6,19 +6,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePresence } from "@/components/presence-provider";
-import {
-    MessageSquare,
-    Sparkles,
-    ArrowLeft,
-    Share2,
-    Info,
-    UserPen,
-    Loader2,
-    ChevronLeft,
-    ExternalLink,
-    VolumeX,
-    Gauge
-} from "lucide-react";
+import { ChatTeardropText, Sparkle, ArrowLeft, Share, Info, UserCircle, CircleNotch, CaretLeft, ArrowSquareOut, SpeakerX, Gauge, Pencil, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 import { useRouter } from "next/navigation";
 import { createRoom } from "../../channels/[roomId]/room.action";
 import { getProfileFeedAction, getProfileFeedCountAction } from "../../../posts.action";
@@ -266,7 +254,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                             className="rounded-xl hover:bg-muted h-9 w-9"
                                             title="Edit Profil"
                                         >
-                                            <UserPen className="h-4 w-4" />
+                                            <Pencil className="h-4 w-4" />
                                         </Button>
                                     }
                                 />
@@ -279,7 +267,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                     className="rounded-xl hover:bg-muted text-primary h-9 w-9"
                                     title="Kirim Pesan"
                                 >
-                                    <MessageSquare className="h-4 w-4" />
+                                    <ChatTeardropText weight="duotone" className="h-4 w-4" />
                                 </Button>
                             )}
                         </div>
@@ -330,7 +318,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                             className="rounded-full border border-border/50 text-muted-foreground hover:text-foreground"
                                                         >
                                                             <a href={user.id} target="_blank" rel="noopener noreferrer">
-                                                                <ExternalLink className="h-4 w-4" />
+                                                                <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                                                             </a>
                                                         </Button>
                                                     </TooltipTrigger>
@@ -346,7 +334,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                             onClick={handleCopyLink}
                                             className="rounded-full border border-border/50"
                                         >
-                                            <Share2 className="h-4 w-4" />
+                                            <ShareNetwork className="h-4 w-4" />
                                         </Button>
                                         {!isOwnProfile && currentUser && (
                                             <FollowButton
@@ -375,7 +363,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                     <>
                                                         <span className="text-border">•</span>
                                                         <span className="flex items-center gap-1 text-amber-500/80">
-                                                            <Sparkles className="h-3 w-3" />
+                                                            <Sparkle weight="duotone" className="h-3 w-3" />
                                                             {user.customStatus}
                                                         </span>
                                                     </>
@@ -396,7 +384,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                             {activeFilter.type === "reduce_intensity" ? (
                                                                 <Gauge className="h-3 w-3" />
                                                             ) : (
-                                                                <VolumeX className="h-3 w-3" />
+                                                                <SpeakerX className="h-3 w-3" />
                                                             )}
                                                             {activeFilter.type === "reduce_intensity" ? "Intensitas Terbatas" : "Dibisukan"}
                                                         </div>
@@ -421,7 +409,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
                                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-1">
                                         <div className="flex items-center gap-1">
-                                            <Info className="h-3.5 w-3.5" />
+                                            <Info weight="duotone" className="h-3.5 w-3.5" />
                                             <span>Joined {formattedJoinDate}</span>
                                         </div>
                                         <div className="flex items-center gap-4">
@@ -491,7 +479,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
 
                                 {isLoading ? (
                                     <div className="flex flex-col items-center justify-center p-20 gap-4">
-                                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                                        <CircleNotch weight="duotone" className="h-8 w-8 text-primary animate-spin" />
                                         <p className="text-muted-foreground text-sm">Memuat...</p>
                                     </div>
                                 ) : posts.length > 0 ? (
@@ -513,7 +501,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                         {hasMore && (
                                             <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
                                                 {isLoadingMore && (
-                                                    <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                                                    <CircleNotch weight="duotone" className="h-6 w-6 animate-spin text-primary" />
                                                 )}
                                             </div>
                                         )}

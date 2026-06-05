@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
   DialogContent,
@@ -149,7 +149,7 @@ export function CreateChannelDialog({
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <CircleNotch weight="duotone" className="mr-2 h-4 w-4 animate-spin" />
                 memproses...
               </>
             ) : (

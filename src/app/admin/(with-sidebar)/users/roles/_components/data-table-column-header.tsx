@@ -1,5 +1,5 @@
 import { Column } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowUp, CaretUpDown, EyeSlash } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,26 +37,26 @@ export function DataTableColumnHeader<TData, TValue>({
           >
             <span>{title}</span>
             {column.getIsSorted() === "desc" ? (
-              <ArrowDown />
+              <ArrowDown weight="duotone" />
             ) : column.getIsSorted() === "asc" ? (
-              <ArrowUp />
+              <ArrowUp weight="duotone" />
             ) : (
-              <ChevronsUpDown />
+              <CaretUpDown weight="duotone" />
             )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-            <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
+            <ArrowUp weight="duotone" className="h-3.5 w-3.5 text-muted-foreground/70" />
             Asc
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-            <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+            <ArrowDown weight="duotone" className="h-3.5 w-3.5 text-muted-foreground/70" />
             Desc
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
-            <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
+            <EyeSlash weight="duotone" className="h-3.5 w-3.5 text-muted-foreground/70" />
             Hide
           </DropdownMenuItem>
         </DropdownMenuContent>

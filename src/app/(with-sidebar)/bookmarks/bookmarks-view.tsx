@@ -2,13 +2,12 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
+import { CaretLeft, CircleNotch, Bookmark } from "@phosphor-icons/react/dist/ssr";
 import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
 import { getBookmarkedPostsAction } from "@/app/posts.action";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Loader2, Bookmark } from "lucide-react";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
 import Link from "next/link";
 
@@ -87,7 +86,7 @@ export default function BookmarksView({
                                     className="h-9 w-9 text-foreground rounded-full hover:bg-muted"
                                 >
                                     <Link href="/channels/default">
-                                        <ChevronLeft className="h-5 w-5" />
+                                        <CaretLeft weight="duotone" className="h-5 w-5" />
                                     </Link>
                                 </Button>
                             </div>
@@ -108,7 +107,7 @@ export default function BookmarksView({
                         <div className="flex flex-col">
                             {isLoading ? (
                                 <div className="p-20 flex flex-col items-center justify-center gap-3 text-muted-foreground select-none">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary" />
                                     <span className="text-sm font-medium">Memuat bookmark...</span>
                                 </div>
                             ) : posts.length > 0 ? (
@@ -128,7 +127,7 @@ export default function BookmarksView({
                             ) : (
                                 <div className="p-20 flex flex-col items-center justify-center gap-4 text-center opacity-40 select-none">
                                     <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
-                                        <Bookmark className="h-8 w-8 text-muted-foreground" />
+                                        <Bookmark weight="duotone" className="h-8 w-8 text-muted-foreground" />
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <p className="font-bold text-lg text-foreground">Belum ada bookmark</p>
@@ -142,7 +141,7 @@ export default function BookmarksView({
                             {hasMore && (
                                 <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
                                     {isLoadingMore && (
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <CircleNotch weight="duotone" className="h-6 w-6 animate-spin text-primary" />
                                     )}
                                 </div>
                             )}

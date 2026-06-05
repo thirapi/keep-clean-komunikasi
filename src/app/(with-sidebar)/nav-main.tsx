@@ -14,7 +14,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { stripMarkdown } from "@/lib/strip-markdown";
 import { Button } from "@/components/ui/button";
-import { Plus, Compass, Hash } from "lucide-react";
+import { Plus, Compass, Hash } from "@phosphor-icons/react/dist/ssr";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Tooltip,
@@ -84,7 +84,7 @@ export function NavMain({
                     onClick={onExplore}
                     title="Jelajahi Channel"
                   >
-                    <Compass className="size-3.5" />
+                    <Compass weight="duotone" className="size-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -102,7 +102,7 @@ export function NavMain({
                     onClick={onCreate}
                     title="Buat Channel"
                   >
-                    <Plus className="size-3.5" />
+                    <Plus weight="duotone" className="size-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -131,8 +131,7 @@ export function NavMain({
                     : "hover:bg-sidebar-accent/80 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground",
                 )}
               >
-                <Link
-                  href={item.url}
+                <Link href={item.url}
                   onClick={() => isMobile && setOpenMobile(false)}
                   className={cn(
                     "flex items-center",

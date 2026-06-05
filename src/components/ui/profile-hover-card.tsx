@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, MessageSquare, Loader2 } from "lucide-react";
+import { Sparkle, ChatTeardropText, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -69,7 +69,7 @@ export function ProfileHoverCard({
         {/* Subtle Loading Indicator in Banner */}
         {isLoading && (
           <div className="absolute top-2 right-2 p-1 bg-black/40 backdrop-blur-sm rounded-full">
-            <Loader2 className="w-3 h-3 animate-spin text-white/70" />
+            <CircleNotch weight="duotone" className="w-3 h-3 animate-spin text-white/70" />
           </div>
         )}
       </div>
@@ -96,7 +96,7 @@ export function ProfileHoverCard({
             </h3>
             {profile.customStatus && (
               <div className="flex items-center gap-1.5 mt-1 opacity-80">
-                <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                <Sparkle weight="duotone" className="w-2.5 h-2.5 text-amber-500" />
                 <p className="text-[11px] text-zinc-300 leading-none truncate">{profile.customStatus}</p>
               </div>
             )}
@@ -114,7 +114,7 @@ export function ProfileHoverCard({
                 className="w-full gap-2 h-9 text-xs font-bold shadow-lg bg-primary hover:bg-primary/90"
                 onClick={() => onStartDM(profile.id)}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <ChatTeardropText weight="duotone" className="w-3.5 h-3.5" />
                 Kirim Pesan
               </Button>
             )}

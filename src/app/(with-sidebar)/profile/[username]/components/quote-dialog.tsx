@@ -11,7 +11,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
-import { ImagePlus, X, FileIcon, Loader2 } from "lucide-react";
+import { Image, X, File, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { PostMedia } from "./post-media";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
@@ -190,14 +190,14 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                                                 )
                                             ) : (
                                                 <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                                    <FileIcon className="h-8 w-8 text-zinc-500" />
+                                                    <File weight="duotone" className="h-8 w-8 text-zinc-500" />
                                                 </div>
                                             )}
                                             <button
                                                 onClick={() => removeFile(index)}
                                                 className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 p-1.5 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
                                             >
-                                                <X className="h-4 w-4" />
+                                                <X weight="duotone" className="h-4 w-4" />
                                             </button>
                                         </div>
                                     ))}
@@ -233,17 +233,17 @@ export function QuoteDialog({ isOpen, onClose, targetPost, currentUser, onQuoteC
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 text-sky-500 rounded-full hover:bg-sky-500/10"
+                        className="h-9 w-9 text-primary rounded-full hover:bg-primary/10"
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        <ImagePlus className="h-5 w-5" />
+                        <Image weight="duotone" className="h-5 w-5" />
                     </Button>
                     <Button
                         onClick={handleSend}
                         disabled={(!content.trim() && selectedFiles.length === 0) || isSending}
-                        className="rounded-full bg-white text-black hover:bg-zinc-200 px-6 font-bold"
+                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 font-bold"
                     >
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+                        {isSending ? <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" /> : "Post"}
                     </Button>
                 </div>
             </DialogContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Loader2, MessageSquare } from "lucide-react";
+import { MagnifyingGlass, CircleNotch, ChatTeardropText } from "@phosphor-icons/react/dist/ssr";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Dialog,
@@ -93,7 +93,7 @@ export function ExploreChannelsDialog({
 
         <div className="px-6 py-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="cari berdasarkan nama atau deskripsi..."
               value={searchQuery}
@@ -107,12 +107,12 @@ export function ExploreChannelsDialog({
           <div className="space-y-2 pb-6">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+                <CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary/60" />
                 <p className="text-sm font-medium">mencari channel publik...</p>
               </div>
             ) : filteredChannels.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-muted/50 rounded-2xl gap-4">
-                <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
+                <ChatTeardropText weight="duotone" className="h-10 w-10 text-muted-foreground/30" />
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-muted-foreground">
                     {searchQuery ? "tidak ada channel yang cocok" : "belum ada channel publik tersedia"}
@@ -156,7 +156,7 @@ export function ExploreChannelsDialog({
                     disabled={isJoining !== null}
                   >
                     {isJoining === channel.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <CircleNotch weight="duotone" className="w-4 h-4 animate-spin" />
                     ) : (
                       "bergabung"
                     )}

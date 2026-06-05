@@ -2,7 +2,7 @@
 
 import { PostWithUserDTO } from "@/lib/entities/models/post.model";
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
+import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import { PostInput } from "@/app/(with-sidebar)/profile/[username]/components/post-input";
 import { PostItem } from "@/app/(with-sidebar)/profile/[username]/components/post-item";
 import { useFeedWithOptimistic } from "@/hooks/use-feed-with-optimistic";
@@ -11,7 +11,7 @@ import { useCreatePost } from "@/hooks/use-create-post";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkle, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -171,7 +171,7 @@ export default function TimelineView({
                                         className="h-9 w-9 text-foreground rounded-full hover:bg-muted"
                                     >
                                         <Link href="/channels/default">
-                                            <ChevronLeft className="h-5 w-5" />
+                                            <CaretLeft weight="duotone" className="h-5 w-5" />
                                         </Link>
                                     </Button>
                                 </div>
@@ -230,9 +230,9 @@ export default function TimelineView({
                                     <Button
                                         onClick={handleRefresh}
                                         size="sm"
-                                        className="bg-sky-500 hover:bg-sky-600 text-white rounded-full shadow-lg h-9 px-4 flex items-center gap-2 border-none"
+                                        className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg h-9 px-4 flex items-center gap-2 border-none"
                                     >
-                                        <Sparkles className="h-4 w-4" />
+                                        <Sparkle weight="duotone" className="h-4 w-4" />
                                         <span className="font-bold">{newPostsCount} postingan baru</span>
                                     </Button>
                                 </div>
@@ -256,7 +256,7 @@ export default function TimelineView({
                         <div className="flex flex-col">
                             {isLoading ? (
                                 <div className="p-20 flex flex-col items-center justify-center gap-3 text-muted-foreground select-none">
-                                    <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+                                    <CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary" />
                                     <span className="text-sm font-medium">Memuat timeline...</span>
                                 </div>
                             ) : posts.length > 0 ? (
@@ -348,7 +348,7 @@ export default function TimelineView({
                             {hasMore && (
                                 <div ref={loadMoreRef} className="p-8 flex justify-center min-h-[64px] items-center">
                                     {isLoadingMore && (
-                                        <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                                        <CircleNotch weight="duotone" className="h-6 w-6 animate-spin text-primary" />
                                     )}
                                 </div>
                             )}

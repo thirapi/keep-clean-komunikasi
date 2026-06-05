@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Column } from "@tanstack/react-table";
-import { Check, PlusCircle } from "lucide-react";
+import { Check, PlusCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,7 @@ export function DataTableFacetedFilter<TData, TValue>({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 border-dashed">
-          <PlusCircle />
+          <PlusCircle weight="duotone" />
           {title}
           {selectedValues?.size > 0 && (
             <>
@@ -111,7 +111,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                           : "opacity-50 [&_svg]:invisible"
                       )}
                     >
-                      <Check />
+                      <Check weight="duotone" />
                     </div>
                     {option.icon && (
                       <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />

@@ -112,7 +112,7 @@ export function PostContent({
                                         {...props} 
                                         href={href}
                                         className={cn(
-                                            "text-sky-500 hover:underline",
+                                            "text-primary hover:underline",
                                             (isHashtag || isMention) && "font-medium"
                                         )} 
                                         target={isInternal ? undefined : "_blank"} 

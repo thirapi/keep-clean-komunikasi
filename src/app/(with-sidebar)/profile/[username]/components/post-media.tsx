@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Play } from "lucide-react";
+import { Play } from "@phosphor-icons/react/dist/ssr";
 
 interface Attachment {
     id?: string;
@@ -79,7 +79,7 @@ export function PostMedia({ attachments, onImageClick, isQuoted = false }: PostM
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
                                     <div className="h-12 w-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-xl">
-                                        <Play className="w-6 h-6 fill-current ml-1" />
+                                        <Play weight="duotone" className="w-6 h-6 fill-current ml-1" />
                                     </div>
                                 </div>
                             </div>

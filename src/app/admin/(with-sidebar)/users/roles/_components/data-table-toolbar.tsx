@@ -1,7 +1,7 @@
 "use client";
 
 import { Table } from "@tanstack/react-table";
-import { UserPlus } from "lucide-react";
+import { UserPlus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export function DataTableToolbar<TData>({
               className="h-8 px-2 lg:px-3"
             >
               Reset
-              <X />
+              <X weight="duotone" />
             </Button>
           )}
         </div> */}
@@ -57,7 +57,7 @@ export function DataTableToolbar<TData>({
       <DataTableViewOptions table={table} />
       <Link href="./roles/create" passHref>
         <Button variant="outline" size="sm" className="ml-2 hidden h-8 lg:flex">
-          <UserPlus />
+          <UserPlus weight="duotone" />
           Create
         </Button>
       </Link>

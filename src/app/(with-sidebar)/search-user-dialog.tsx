@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Loader2 } from "lucide-react";
+import { MagnifyingGlass, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { searchUsersAction } from "./user.action";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import Link from "next/link";
@@ -59,7 +59,7 @@ export function SearchUserDialog({ open, onOpenChange }: SearchUserDialogProps) 
         
         <div className="px-6 py-2">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
+            <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
             <input
               className="w-full bg-muted/30 hover:bg-muted/40 focus:bg-muted/50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm transition-all outline-none ring-1 ring-border/50 focus:ring-2 focus:ring-primary/20"
               placeholder="cari username atau handle fediverse..."
@@ -73,14 +73,13 @@ export function SearchUserDialog({ open, onOpenChange }: SearchUserDialogProps) 
         <div className="max-h-[350px] overflow-y-auto custom-scrollbar px-3 pb-4 mt-2">
           {isSearching ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-              <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+              <CircleNotch weight="duotone" className="h-7 w-7 animate-spin text-primary/60" />
               <p className="text-sm font-medium">mencari pengguna...</p>
             </div>
           ) : results.length > 0 ? (
             <div className="flex flex-col gap-1">
               {results.map((user) => (
-                <Link
-                  key={user.id}
+                <Link key={user.id}
                   href={user.isRemote ? `/profile/${user.id.startsWith("@") ? user.id : user.handle || `@${user.username}`}` : `/profile/${user.username}`}
                   onClick={() => onOpenChange(false)}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent/40 active:bg-accent/60 transition-all group"

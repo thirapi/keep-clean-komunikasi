@@ -1,9 +1,4 @@
-import {
-    UserCheck,
-    UserX,
-    UserCog,
-    User,
-  } from "lucide-react"
+import { UserCheck, UserMinus, UserCircleGear, User } from "@phosphor-icons/react/dist/ssr"
 
 export const statuses = [
     {
@@ -14,7 +9,7 @@ export const statuses = [
     {
       value: "INACTIVE",
       label: "Inactive",
-      icon: UserX,
+      icon: UserMinus,
     },
   ]
   
@@ -22,7 +17,7 @@ export const statuses = [
     {
       value: "ADMIN",
       label: "Admin",
-      icon: UserCog,
+      icon: UserCircleGear,
     },
     {
       value: "STAFF",

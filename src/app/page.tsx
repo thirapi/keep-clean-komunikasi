@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { InteractiveText } from "@/components/landingpage/interactive-text";
 import { AuthContainer } from "@/components/landingpage/auth-container";
 import { Suspense } from "react";
-import { LoaderCircle } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Home() {
+export default async function House() {
   const session = await getUserSession();
 
   // If user is already logged in, redirect to the app immediately
@@ -78,7 +78,7 @@ export default async function Home() {
 
         <main className="flex-1 flex flex-col items-center justify-center px-6 lg:px-20 pb-20 z-10">
           <AnimateInView direction="up" className="w-full max-w-md space-y-8">            
-            <Suspense fallback={<div className="flex items-center justify-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-12"><CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary" /></div>}>
               <div className="glass-morphism rounded-2xl overflow-hidden shadow-2xl">
                 <AuthContainer />
               </div>

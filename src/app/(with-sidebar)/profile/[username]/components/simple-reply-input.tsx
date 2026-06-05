@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
-import { ImagePlus, X, FileIcon, Loader2 } from "lucide-react";
+import { Image, X, File, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/utils";
 
@@ -197,14 +197,14 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                                         )
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
-                                            <FileIcon className="h-8 w-8 text-muted-foreground" />
+                                            <File weight="duotone" className="h-8 w-8 text-muted-foreground" />
                                         </div>
                                     )}
                                     <button
                                         onClick={() => removeFile(index)}
                                         className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 p-1.5 rounded-full text-white backdrop-blur-md transition-all shadow-lg"
                                     >
-                                        <X className="h-4 w-4" />
+                                        <X weight="duotone" className="h-4 w-4" />
                                     </button>
                                 </div>
                             ))}
@@ -212,40 +212,40 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                     )}
 
                     <div className="flex items-center justify-between border-t border-border/10 pt-3">
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 text-sky-500 rounded-full hover:bg-sky-500/10 transition-colors"
-                                onClick={() => fileInputRef.current?.click()}
-                                title="Tambahkan Gambar"
-                            >
-                                <ImagePlus className="h-[18px] w-[18px]" />
-                            </Button>
-                        </div>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-primary rounded-full hover:bg-primary/10 transition-colors"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Tambahkan Gambar"
+                        >
+                            <Image weight="duotone" className="h-[18px] w-[18px]" />
+                        </Button>
+                    </div>
 
-                        <div className="flex items-center gap-4">
-                            {content.length > 0 && (
-                                <div className={cn(
-                                    "text-[13px] font-medium tabular-nums",
-                                    remaining < 0 ? "text-destructive" : remaining < 20 ? "text-amber-500" : "text-muted-foreground"
-                                )}>
-                                    {remaining}
-                                </div>
+                    <div className="flex items-center gap-4">
+                        {content.length > 0 && (
+                            <div className={cn(
+                                "text-[13px] font-medium tabular-nums",
+                                remaining < 0 ? "text-destructive" : remaining < 20 ? "text-amber-500" : "text-muted-foreground"
+                            )}>
+                                {remaining}
+                            </div>
+                        )}
+
+                        <Button
+                            onClick={handleSend}
+                            disabled={(!content.trim() && selectedFiles.length === 0) || isSending || isOverLimit}
+                            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-5 h-9 text-[15px] transition-colors shadow-sm shrink-0"
+                        >
+                            {isSending ? (
+                                <CircleNotch weight="duotone" className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>Balas</>
                             )}
-                            
-                            <Button
-                                onClick={handleSend}
-                                disabled={(!content.trim() && selectedFiles.length === 0) || isSending || isOverLimit}
-                                className="rounded-full bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 h-9 text-[15px] transition-colors shadow-sm shrink-0"
-                            >
-                                {isSending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <>Balas</>
-                                )}
-                            </Button>
-                        </div>
+                        </Button>
+                    </div>
                     </div>
                 </div>
             </div>

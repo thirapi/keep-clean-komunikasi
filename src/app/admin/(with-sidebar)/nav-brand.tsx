@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { CaretUpDown, Plus } from "@phosphor-icons/react/dist/ssr"
 
 import {
   DropdownMenu,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { UserPlus, Search, Loader2, Check, X, Link as LinkIcon } from "lucide-react";
+import { UserPlus, MagnifyingGlass, CircleNotch, Check, X, Link as LinkIcon } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
   DialogContent,
@@ -93,7 +93,7 @@ export function InviteMemberDialog({
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-primary" />
+            <UserPlus weight="duotone" className="w-5 h-5 text-primary" />
             Undang Anggota
           </DialogTitle>
           <DialogDescription>
@@ -104,7 +104,7 @@ export function InviteMemberDialog({
 
         {/* Search Input */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Cari nama pengguna..."
             value={query}
@@ -113,7 +113,7 @@ export function InviteMemberDialog({
             autoFocus
           />
           {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+            <CircleNotch weight="duotone" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
           )}
         </div>
 
@@ -121,14 +121,14 @@ export function InviteMemberDialog({
         <div className="min-h-[140px] max-h-[240px] overflow-y-auto space-y-1.5 pr-1">
           {query.length < 2 && (
             <div className="flex flex-col items-center justify-center h-[140px] text-center text-muted-foreground">
-              <Search className="w-8 h-8 mb-2 opacity-30" />
+              <MagnifyingGlass weight="duotone" className="w-8 h-8 mb-2 opacity-30" />
               <p className="text-sm">Ketik minimal 2 huruf untuk mencari</p>
             </div>
           )}
 
           {!isSearching && query.length >= 2 && results.length === 0 && (
             <div className="flex flex-col items-center justify-center h-[140px] text-center text-muted-foreground">
-              <X className="w-8 h-8 mb-2 opacity-30" />
+              <X weight="duotone" className="w-8 h-8 mb-2 opacity-30" />
               <p className="text-sm">Tidak ada pengguna yang ditemukan</p>
               <p className="text-xs">Coba nama yang berbeda</p>
             </div>
@@ -158,7 +158,7 @@ export function InviteMemberDialog({
                     variant="secondary"
                     className="gap-1 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 shrink-0"
                   >
-                    <Check className="w-3 h-3" />
+                    <Check weight="duotone" className="w-3 h-3" />
                     Diundang
                   </Badge>
                 ) : (
@@ -170,9 +170,9 @@ export function InviteMemberDialog({
                     disabled={isInviting}
                   >
                     {isInviting ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <CircleNotch weight="duotone" className="w-3 h-3 animate-spin" />
                     ) : (
-                      <UserPlus className="w-3 h-3" />
+                      <UserPlus weight="duotone" className="w-3 h-3" />
                     )}
                     {isInviting ? "Mengundang..." : "Undang"}
                   </Button>
@@ -205,7 +205,7 @@ export function InviteMemberDialog({
                   toast.success("Tautan disalin ke papan klip");
                 }}
               >
-                <LinkIcon className="w-3.5 h-3.5" />
+                <LinkIcon weight="duotone" className="w-3.5 h-3.5" />
               </Button>
             </div>
             <Button

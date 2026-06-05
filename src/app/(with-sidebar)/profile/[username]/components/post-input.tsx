@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { createPostAction } from "@/app/posts.action";
 import { uploadFileAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { toast } from "sonner";
-import { SendHorizontal, ImagePlus, X, FileIcon, Loader2, Globe, Users, Lock, ChevronDown, PlusCircle } from "lucide-react";
+import { PaperPlaneRight, Image as ImageIcon, X, File as FileIcon, CircleNotch, Globe, Users, Lock, CaretDown, PlusCircle } from "@phosphor-icons/react/dist/ssr";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -322,13 +322,13 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 shrink-0 transition-colors"
+                                        className="h-10 w-10 text-brand rounded-full hover:bg-brand/10 hover:text-brand/80 shrink-0 transition-colors"
                                         onClick={() => {
                                             setIsExpanded(true);
                                             setTimeout(() => fileInputRefs.current[item.id]?.click(), 0);
                                         }}
                                     >
-                                        <ImagePlus className="h-5 w-5" />
+                                        <ImageIcon className="h-5 w-5" />
                                     </Button>
                                 </div>
                             ) : (
@@ -394,18 +394,18 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 transition-colors"
+                                                className="h-8 w-8 text-brand rounded-full hover:bg-brand/10 hover:text-brand/80 transition-colors"
                                                 onClick={() => fileInputRefs.current[item.id]?.click()}
                                                 title="Tambahkan Gambar"
                                             >
-                                                <ImagePlus className="h-4 w-4" />
+                                                <ImageIcon className="h-4 w-4" />
                                             </Button>
 
                                             {index === thread.length - 1 && (
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 transition-colors"
+                                                    className="h-8 w-8 text-brand rounded-full hover:bg-brand/10 hover:text-brand/80 transition-colors"
                                                     onClick={addThreadItem}
                                                     disabled={!item.content.trim() && item.selectedFiles.length === 0}
                                                     title="Tambah ke Utas"
@@ -433,12 +433,12 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                             <div className="flex items-center gap-2">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="h-9 px-3 gap-1.5 text-sky-500 dark:text-sky-400 rounded-full hover:bg-sky-500/10 dark:hover:bg-sky-400/10 hover:text-sky-600 dark:hover:text-sky-300 transition-all">
+                                                        <Button variant="ghost" size="sm" className="h-9 px-3 gap-1.5 text-brand rounded-full hover:bg-brand/10 hover:text-brand/80 transition-all">
                                                             {visibility === "public" ? <Globe className="h-4 w-4" /> : visibility === "unlisted" ? <Users className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                                                             <span className="text-[13px] font-medium">
                                                                 {visibility === "public" ? "Publik" : visibility === "unlisted" ? "Pengikut" : "Privat"}
                                                             </span>
-                                                            <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                                            <CaretDown className="h-3.5 w-3.5 opacity-50" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="start" className="bg-popover border-border text-popover-foreground w-48 z-[1000]">
@@ -476,10 +476,10 @@ export function PostInput({ currentUser, onPostCreated }: PostInputProps) {
                                             <Button
                                                 onClick={handleSend}
                                                 disabled={isSending || thread.some(it => !it.content.trim() && it.selectedFiles.length === 0)}
-                                                className="rounded-full bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400 text-white px-6 font-bold disabled:opacity-40 h-10 min-w-[100px] shadow-none"
+                                                className="rounded-full bg-brand hover:bg-brand/90 text-primary-foreground px-6 font-bold disabled:opacity-40 h-10 min-w-[100px] shadow-none"
                                             >
                                                 {isSending ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <CircleNotch className="h-4 w-4 animate-spin" />
                                                 ) : (
                                                     <>{thread.length > 1 ? "Posting Utas" : "Posting"}</>
                                                 )}

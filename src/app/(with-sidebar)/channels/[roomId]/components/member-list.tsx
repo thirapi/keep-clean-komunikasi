@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/hover-card";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Crown, UserMinus, LogOut, UserPlus } from "lucide-react";
+import { ChatTeardropText, Crown, UserMinus, SignOut, UserPlus } from "@phosphor-icons/react/dist/ssr";
 import { createRoom, removeParticipant } from "../room.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -99,7 +99,7 @@ export function MemberList({
               className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
               title="Undang Anggota"
             >
-              <UserPlus className="size-3.5" />
+              <UserPlus weight="duotone" className="size-3.5" />
             </button>
           )}
         </div>

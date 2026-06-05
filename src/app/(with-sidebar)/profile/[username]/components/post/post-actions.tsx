@@ -1,14 +1,6 @@
 "use client";
 
-import { 
-    MessageSquare, 
-    Repeat2, 
-    Heart, 
-    Share2, 
-    Bookmark, 
-    PenLine,
-    Smile
-} from "lucide-react";
+import { ChatTeardropText, ArrowsClockwise, Heart, Share, Bookmark, PencilLine, Smiley, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { 
     DropdownMenu, 
@@ -85,17 +77,17 @@ export function PostActions({
         return (
             <div className="flex items-center justify-around py-1 mb-1">
                 <ActionButton 
-                    icon={MessageSquare} 
+                    icon={ChatTeardropText} 
                     onClick={onReply} 
-                    hoverColor="hover:text-sky-500" 
-                    hoverBg="hover:bg-sky-500/10"
+                    hoverColor="hover:text-primary" 
+                    hoverBg="hover:bg-primary/10"
                     size="large"
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <div onClick={(e) => e.stopPropagation()}>
                             <ActionButton 
-                                icon={Repeat2} 
+                                icon={ArrowsClockwise} 
                                 active={isReposted}
                                 activeColor="text-emerald-500"
                                 hoverColor="hover:text-emerald-500" 
@@ -117,7 +109,7 @@ export function PostActions({
                             }} 
                             className="gap-2 py-3 cursor-pointer"
                         >
-                            <Repeat2 className="h-5 w-5" />
+                            <ArrowsClockwise weight="duotone" className="h-5 w-5" />
                             <span className="font-medium">{isReposted ? "Batal Repost" : "Repost"}</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
@@ -127,7 +119,7 @@ export function PostActions({
                             }} 
                             className="gap-2 py-3 cursor-pointer"
                         >
-                            <PenLine className="h-5 w-5" />
+                            <PencilLine className="h-5 w-5" />
                             <span className="font-medium">Kutip</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -160,10 +152,10 @@ export function PostActions({
                     size="large"
                 />
                 <ActionButton 
-                    icon={Share2} 
+                    icon={ShareNetwork} 
                     onClick={onShare} 
-                    hoverColor="hover:text-sky-500" 
-                    hoverBg="hover:bg-sky-500/10"
+                    hoverColor="hover:text-primary" 
+                    hoverBg="hover:bg-primary/10"
                     size="large"
                 />
             </div>
@@ -176,17 +168,17 @@ export function PostActions({
             className="flex items-center justify-between mt-3 w-full max-w-md -ml-2"
         >
             <ActionButton 
-                icon={MessageSquare} 
+                icon={ChatTeardropText} 
                 label={replyCount}
                 onClick={onReply} 
-                hoverColor="hover:text-sky-500" 
-                hoverBg="hover:bg-sky-500/10" 
+                hoverColor="hover:text-primary" 
+                hoverBg="hover:bg-primary/10" 
             />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <div onClick={(e) => e.stopPropagation()}>
                         <ActionButton 
-                            icon={Repeat2} 
+                            icon={ArrowsClockwise} 
                             label={repostCount}
                             active={isReposted}
                             activeColor="text-emerald-500"
@@ -208,7 +200,7 @@ export function PostActions({
                         }} 
                         className="gap-2 py-2.5 cursor-pointer"
                     >
-                        <Repeat2 className="h-4 w-4" />
+                        <ArrowsClockwise weight="duotone" className="h-4 w-4" />
                         <span>{isReposted ? "Batal Repost" : "Repost"}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
@@ -218,7 +210,7 @@ export function PostActions({
                         }} 
                         className="gap-2 py-2.5 cursor-pointer"
                     >
-                        <PenLine className="h-4 w-4" />
+                        <PencilLine className="h-4 w-4" />
                         <span>Kutip</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -250,10 +242,10 @@ export function PostActions({
                 hoverBg="hover:bg-amber-500/10" 
             />
             <ActionButton 
-                icon={Share2} 
+                icon={Share} 
                 onClick={onShare} 
-                hoverColor="hover:text-sky-500" 
-                hoverBg="hover:bg-sky-500/10" 
+                hoverColor="hover:text-primary" 
+                hoverBg="hover:bg-primary/10" 
             />
         </div>
     );

@@ -4,19 +4,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import Link from "next/link";
-import { 
-    MoreHorizontal, 
-    Share2, 
-    Flag, 
-    Trash2,
-    Globe,
-    Lock,
-    Users,
-    ExternalLink,
-    VolumeX,
-    Gauge,
-    Info
-} from "lucide-react";
+import { DotsThreeVertical, Share, Flag, Trash, Globe, Lock, Users, ArrowSquareOut, SpeakerX, Gauge, Info, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 import { 
     DropdownMenu, 
     DropdownMenuContent, 
@@ -141,11 +129,11 @@ export function PostHeader({
     };
 
     const VisibilityIcon = ({ visibility, className }: { visibility?: string, className?: string }) => {
-        let icon = <Globe className={cn("h-3 w-3", className)} />;
+        let icon = <Globe weight="duotone" className={cn("h-3 w-3", className)} />;
         let label = "Publik";
         
         if (visibility === "unlisted") {
-            icon = <Users className={cn("h-3 w-3", className)} />;
+            icon = <Users weight="duotone" className={cn("h-3 w-3", className)} />;
             label = "Tidak Terdaftar";
         } else if (visibility === "private") {
             icon = <Lock className={cn("h-3 w-3", className)} />;
@@ -247,7 +235,7 @@ export function PostHeader({
                                             </div>
                                         )}
                                         <p className="text-[11px] text-muted-foreground italic flex items-center gap-1 pt-2">
-                                            <Info className="h-3 w-3" />
+                                            <Info weight="duotone" className="h-3 w-3" />
                                             Tindakan ini hanya berpengaruh pada akun Anda sendiri.
                                         </p>
                                     </div>
@@ -353,7 +341,7 @@ export function PostHeader({
                                         </div>
                                     )}
                                     <p className="text-[11px] text-muted-foreground italic flex items-center gap-1 pt-2">
-                                        <Info className="h-3 w-3" />
+                                        <Info weight="duotone" className="h-3 w-3" />
                                         Tindakan ini hanya berpengaruh pada akun Anda sendiri.
                                     </p>
                                 </div>
@@ -408,12 +396,12 @@ function PostMenu({
                                 variant="ghost" 
                                 size="icon" 
                                 className={cn(
-                                    "text-muted-foreground rounded-full hover:bg-sky-500/10 hover:text-sky-500 transition-colors",
+                                    "text-muted-foreground rounded-full hover:bg-primary/10 hover:text-primary transition-colors",
                                     size === "small" ? "h-8 w-8" : "h-9 w-9"
                                 )}
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                             >
-                                <MoreHorizontal className={size === "small" ? "h-4 w-4" : "h-5 w-5"} />
+                                <DotsThreeVertical weight="duotone" className={size === "small" ? "h-4 w-4" : "h-5 w-5"} />
                             </Button>
                         </DropdownMenuTrigger>
                     </TooltipTrigger>
@@ -428,7 +416,7 @@ function PostMenu({
                 className="w-56 shadow-xl"
             >
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopyLink?.(); }} className="gap-2 py-2.5">
-                    <Share2 className="h-4 w-4" />
+                    <ShareNetwork className="h-4 w-4" />
                     <span>Salin Tautan</span>
                 </DropdownMenuItem>
                 {originalUrl && isRemote && (
@@ -440,7 +428,7 @@ function PostMenu({
                             className="flex items-center gap-2 py-2.5 px-2 text-sm cursor-pointer hover:bg-accent transition-colors"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <ExternalLink className="h-4 w-4" />
+                            <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                             <span>Buka di Instance Asli</span>
                         </a>
                     </DropdownMenuItem>
@@ -466,7 +454,7 @@ function PostMenu({
                                 activeFilterType === "mute" && "text-destructive focus:text-destructive font-medium"
                             )}
                         >
-                            <VolumeX className="h-4 w-4" />
+                            <SpeakerX className="h-4 w-4" />
                             <span>{activeFilterType === "mute" ? "Batal Bisukan Akun" : "Bisukan Akun"}</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReport?.(); }} className="gap-2 py-2.5 text-amber-500 focus:text-amber-500">
@@ -480,7 +468,7 @@ function PostMenu({
                     <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="gap-2 py-2.5 text-destructive focus:text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                            <Trash weight="duotone" className="h-4 w-4" />
                             <span>Hapus</span>
                         </DropdownMenuItem>
                     </>

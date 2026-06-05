@@ -24,7 +24,7 @@ export function CurrentAvatar({
       <div>
         <h3 className="text-lg font-semibold text-foreground">{user.name}</h3>
         <p className="text-sm text-muted-foreground">{user.email}</p>
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mt-1">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary mt-1">
           {user.role}
         </span>
       </div>

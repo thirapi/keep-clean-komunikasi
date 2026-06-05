@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Plus } from "lucide-react";
+import { Plus } from "@phosphor-icons/react/dist/ssr";
 import { usePresence } from "@/components/presence-provider";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -99,7 +99,7 @@ export function NavMainDirectMessage({
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
                     onClick={() => setOpenDMDialog(true)}
                   >
-                    <Plus className="size-3.5" />
+                    <Plus weight="duotone" className="size-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -124,7 +124,7 @@ export function NavMainDirectMessage({
                     className="flex items-center justify-center"
                     title="Mulai Percakapan"
                   >
-                    <Plus />
+                    <Plus weight="duotone" />
                     <span className="ml-1 lg:inline">
                       Mulai Percakapan
                     </span>{" "}
@@ -149,8 +149,7 @@ export function NavMainDirectMessage({
                     )}
                     tooltip={item.name}
                   >
-                    <Link
-                      href={item.url}
+                    <Link href={item.url}
                       onClick={() => isMobile && setOpenMobile(false)}
                       className="flex items-center w-full"
                     >

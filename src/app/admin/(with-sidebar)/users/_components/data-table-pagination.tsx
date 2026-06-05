@@ -1,10 +1,5 @@
 import { Table } from "@tanstack/react-table";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { CaretLeft, CaretRight, CaretDoubleLeft, CaretDoubleRight } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +56,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanPreviousPage()}
           >
             <span className="sr-only">Go to first page</span>
-            <ChevronsLeft />
+            <CaretDoubleLeft />
           </Button>
           <Button
             variant="outline"
@@ -70,7 +65,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanPreviousPage()}
           >
             <span className="sr-only">Go to previous page</span>
-            <ChevronLeft />
+            <CaretLeft weight="duotone" />
           </Button>
           <Button
             variant="outline"
@@ -79,7 +74,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanNextPage()}
           >
             <span className="sr-only">Go to next page</span>
-            <ChevronRight />
+            <CaretRight weight="duotone" />
           </Button>
           <Button
             variant="outline"
@@ -88,7 +83,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanNextPage()}
           >
             <span className="sr-only">Go to last page</span>
-            <ChevronsRight />
+            <CaretDoubleRight />
           </Button>
         </div>
       </div>

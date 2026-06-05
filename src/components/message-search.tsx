@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, X, MessageSquare, Loader2 } from "lucide-react";
+import { MagnifyingGlass, X, ChatTeardropText, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,7 @@ export function MessageSearch({
         setResults(response.data);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.error("MagnifyingGlass error:", error);
     } finally {
       setIsSearching(false);
     }
@@ -101,7 +101,7 @@ export function MessageSearch({
 
         <div className="px-6 py-2">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
+            <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary/60" />
             <Input
               placeholder={roomId ? "cari pesan di channel ini..." : "cari pesan di semua channel..."}
               value={query}
@@ -116,7 +116,7 @@ export function MessageSearch({
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-transparent"
                 onClick={() => setQuery("")}
               >
-                <X className="h-4 w-4 text-muted-foreground" />
+                <X weight="duotone" className="h-4 w-4 text-muted-foreground" />
               </Button>
             )}
           </div>
@@ -126,7 +126,7 @@ export function MessageSearch({
           <div className="p-1">
             {isSearching ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
-                <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+                <CircleNotch weight="duotone" className="h-7 w-7 animate-spin text-primary/60" />
                 <p className="text-sm font-medium">mencari pesan...</p>
               </div>
             ) : results.length > 0 ? (
@@ -165,7 +165,7 @@ export function MessageSearch({
             ) : query.length >= 2 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
                 <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center">
-                  <MessageSquare className="h-8 w-8 text-muted-foreground/20" />
+                  <ChatTeardropText weight="duotone" className="h-8 w-8 text-muted-foreground/20" />
                 </div>
                 <div className="space-y-1 px-4">
                   <p className="text-sm font-semibold text-muted-foreground">tidak ada hasil ditemukan</p>
@@ -175,7 +175,7 @@ export function MessageSearch({
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
                 <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center">
-                  <Search className="h-8 w-8 text-muted-foreground/20" />
+                  <MagnifyingGlass weight="duotone" className="h-8 w-8 text-muted-foreground/20" />
                 </div>
                 <div className="space-y-1 px-8">
                   <p className="text-sm font-medium text-muted-foreground/60">cari riwayat pesan</p>

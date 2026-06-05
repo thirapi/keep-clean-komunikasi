@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ArrowSquareOut, DownloadSimple, CaretLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
@@ -65,7 +65,7 @@ export function ImageLightbox({
                 className="h-9 w-9 text-white hover:bg-white/20 rounded-full"
               >
                 <a href={currentImage.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
+                  <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                 </a>
               </Button>
               <Button
@@ -75,11 +75,11 @@ export function ImageLightbox({
                 className="h-9 w-9 text-white hover:bg-white/20 rounded-full"
               >
                 <a href={currentImage.url} download={currentImage.filename}>
-                  <Download className="h-4 w-4" />
+                  <DownloadSimple weight="duotone" className="h-4 w-4" />
                 </a>
               </Button>
               <DialogPrimitive.Close className="h-9 w-9 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors">
-                <X className="h-5 w-5" />
+                <X weight="duotone" className="h-5 w-5" />
               </DialogPrimitive.Close>
             </div>
           </div>
@@ -112,7 +112,7 @@ export function ImageLightbox({
                   onClick={prev}
                   className="absolute left-4 h-12 w-12 text-white hover:bg-white/10 rounded-full hidden sm:flex"
                 >
-                  <ChevronLeft className="h-8 w-8" />
+                  <CaretLeft weight="duotone" className="h-8 w-8" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -120,7 +120,7 @@ export function ImageLightbox({
                   onClick={next}
                   className="absolute right-4 h-12 w-12 text-white hover:bg-white/10 rounded-full hidden sm:flex"
                 >
-                  <ChevronRight className="h-8 w-8" />
+                  <CaretRight weight="duotone" className="h-8 w-8" />
                 </Button>
 
                 {/* Mobile Navigation Area */}
