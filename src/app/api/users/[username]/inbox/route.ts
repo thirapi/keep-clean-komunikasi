@@ -136,7 +136,21 @@ async function handleEmojiReact(userId: string, username: string, activity: any)
         const actor = await ensureRemoteActor(activity.actor, userId);
         if (!actor) throw new Error("Could not ensure remote actor");
 
-        console.log("[Inbox] Post " + post.id + " reacted with " + emoji + " by remote actor " + actor.id);
+        // --- NEW: Custom Emoji Registration ---
+        // Extract emoji tag if it's a shortcode reaction
+        if (emoji.startsWith(":") && emoji.endsWith(":")) {
+            const tags = Array.isArray(activity.tag) ? activity.tag : (activity.tag ? [activity.tag] : []);
+            const emojiTag = tags.find((t: any) => t.type === "Emoji" && t.name === emoji);
+            if (emojiTag && emojiTag.icon?.url) {
+                await customEmojiRepository.upsert({
+                    shortcode: emoji,
+                    url: emojiTag.icon.url,
+                    category: "federated"
+                });
+            }
+        }
+
+        console.log(`[Inbox] Post ${post.id} reacted with ${emoji} by remote actor ${actor.id}`);
         await postRepository.addReaction(post.id, null, emoji, actor.id);
 
         // Notification: Remote reaction
@@ -328,6 +342,19 @@ async function handleLike(userId: string, username: string, activity: any) {
         const emoji = activity.content || "❤️";
         const isStandardLike = emoji === "❤️";
         const notificationType = isStandardLike ? "like" : "reaction";
+
+        // --- NEW: Custom Emoji Registration for Like-based reactions ---
+        if (!isStandardLike && emoji.startsWith(":") && emoji.endsWith(":")) {
+            const tags = Array.isArray(activity.tag) ? activity.tag : (activity.tag ? [activity.tag] : []);
+            const emojiTag = tags.find((t: any) => t.type === "Emoji" && t.name === emoji);
+            if (emojiTag && emojiTag.icon?.url) {
+                await customEmojiRepository.upsert({
+                    shortcode: emoji,
+                    url: emojiTag.icon.url,
+                    category: "federated"
+                });
+            }
+        }
 
         console.log(`[Inbox] Post ${post.id} ${notificationType} by remote actor ${actor.id} with ${emoji}`);
         await postRepository.addReaction(post.id, null, emoji, actor.id);

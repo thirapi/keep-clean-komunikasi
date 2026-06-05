@@ -779,6 +779,23 @@ export class ActivityPubService implements IActivityPubService {
                     const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
                     const context = fetched.context || fetched.conversation;
 
+                    // --- NEW: Reaction Summary & Custom Emojis from Tags ---
+                    const reactionSummary = fetched.reactions || null;
+                    const reactionCount = fetched.reactionCount || 0;
+
+                    // Register custom emojis found in tags
+                    if (emojis) {
+                        for (const emoji of emojis) {
+                            if (emoji.name && emoji.url) {
+                                await this.customEmojiRepository.upsert({
+                                    shortcode: emoji.name,
+                                    url: emoji.url,
+                                    category: "federated"
+                                }).catch(() => {}); // Best effort
+                            }
+                        }
+                    }
+
                     let savedPost: any;
                     if (existing) {
                         const hasNewMeta = (parentPostId && !existing.replyToId) || (quoteOfId && !existing.quoteOfId) || (context && !existing.context);
@@ -795,7 +812,9 @@ export class ActivityPubService implements IActivityPubService {
                                 apMetadata: {
                                     originalTags: tags,
                                     isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote,
-                                    summary: summary || (existing.apMetadata as any)?.summary
+                                    summary: summary || (existing.apMetadata as any)?.summary,
+                                    reactionSummary: reactionSummary || (existing.apMetadata as any)?.reactionSummary,
+                                    reactionCount: reactionCount || (existing.apMetadata as any)?.reactionCount
                                 } as any,
                                 updatedAt: new Date()
                             }, attachments);
@@ -819,7 +838,9 @@ export class ActivityPubService implements IActivityPubService {
                             emojis: emojis as any,
                             apMetadata: {
                                 originalTags: tags,
-                                summary: summary
+                                summary: summary,
+                                reactionSummary: reactionSummary,
+                                reactionCount: reactionCount
                             } as any,
                             isDeleted: false,
                             createdAt: new Date(fetched.published || Date.now()),

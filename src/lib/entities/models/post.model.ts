@@ -15,6 +15,9 @@ export interface PostRecord {
     apMetadata?: {
         originalTags?: any[];
         isFepE232Quote?: boolean;
+        summary?: string | null;
+        reactionSummary?: Record<string, number> | null;
+        reactionCount?: number;
     } | null;
     visibility: "public" | "unlisted" | "private";
     emojis?: { name: string; url: string }[] | null;
@@ -64,6 +67,8 @@ export interface PostWithUserDTO extends PostRecord {
     isBookmarkedByCurrentUser?: boolean;
     repostCount?: number;
     replyCount?: number;
+    reactionCount?: number;
+    reactionSummary?: Record<string, number> | null;
     optimisticId?: string;
 }
 

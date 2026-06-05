@@ -905,6 +905,11 @@ export class PostRepository implements IPostRepository {
 
     private async mapPostsWithStates(posts: any[], currentUserId?: string): Promise<PostWithUserDTO[]> {
         return posts.map(post => {
+            // Priority for counts: apMetadata (remote summary) > actual local records
+            const apMeta = post.apMetadata as any;
+            const remoteReactionCount = apMeta?.reactionCount;
+            const localReactionCount = post.reactions?.length || 0;
+
             const mappedPost = {
                 ...post,
                 isLikedByCurrentUser: currentUserId ? post.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
@@ -912,10 +917,17 @@ export class PostRepository implements IPostRepository {
                 isBookmarkedByCurrentUser: currentUserId ? post.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                 replyCount: post.replies?.length || 0,
                 repostCount: post.reposts?.length || 0,
-                reactionCount: post.reactions?.length || 0,
+                reactionCount: (post.remoteActorId && remoteReactionCount !== undefined) 
+                    ? Math.max(remoteReactionCount, localReactionCount) 
+                    : localReactionCount,
+                reactionSummary: apMeta?.reactionSummary || null
             };
 
             if (mappedPost.repostOf) {
+                const rApMeta = mappedPost.repostOf.apMetadata as any;
+                const rRemoteReactionCount = rApMeta?.reactionCount;
+                const rLocalReactionCount = mappedPost.repostOf.reactions?.length || 0;
+
                 mappedPost.repostOf = {
                     ...mappedPost.repostOf,
                     isLikedByCurrentUser: currentUserId ? mappedPost.repostOf.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
@@ -923,11 +935,18 @@ export class PostRepository implements IPostRepository {
                     isBookmarkedByCurrentUser: currentUserId ? mappedPost.repostOf.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                     replyCount: mappedPost.repostOf.replies?.length || 0,
                     repostCount: mappedPost.repostOf.reposts?.length || 0,
-                    reactionCount: mappedPost.repostOf.reactions?.length || 0,
+                    reactionCount: (mappedPost.repostOf.remoteActorId && rRemoteReactionCount !== undefined)
+                        ? Math.max(rRemoteReactionCount, rLocalReactionCount)
+                        : rLocalReactionCount,
+                    reactionSummary: rApMeta?.reactionSummary || null
                 };
             }
 
             if (mappedPost.quoteOf) {
+                const qApMeta = mappedPost.quoteOf.apMetadata as any;
+                const qRemoteReactionCount = qApMeta?.reactionCount;
+                const qLocalReactionCount = mappedPost.quoteOf.reactions?.length || 0;
+
                 mappedPost.quoteOf = {
                     ...mappedPost.quoteOf,
                     isLikedByCurrentUser: currentUserId ? mappedPost.quoteOf.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
@@ -935,11 +954,18 @@ export class PostRepository implements IPostRepository {
                     isBookmarkedByCurrentUser: currentUserId ? mappedPost.quoteOf.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                     replyCount: mappedPost.quoteOf.replies?.length || 0,
                     repostCount: mappedPost.quoteOf.reposts?.length || 0,
-                    reactionCount: mappedPost.quoteOf.reactions?.length || 0,
+                    reactionCount: (mappedPost.quoteOf.remoteActorId && qRemoteReactionCount !== undefined)
+                        ? Math.max(qRemoteReactionCount, qLocalReactionCount)
+                        : qLocalReactionCount,
+                    reactionSummary: qApMeta?.reactionSummary || null
                 };
             }
 
             if (mappedPost.replyTo) {
+                const pApMeta = mappedPost.replyTo.apMetadata as any;
+                const pRemoteReactionCount = pApMeta?.reactionCount;
+                const pLocalReactionCount = mappedPost.replyTo.reactions?.length || 0;
+
                 mappedPost.replyTo = {
                     ...mappedPost.replyTo,
                     isLikedByCurrentUser: currentUserId ? mappedPost.replyTo.reactions?.some((r: any) => r.userId === currentUserId && r.emoji === "❤️") : false,
@@ -947,7 +973,10 @@ export class PostRepository implements IPostRepository {
                     isBookmarkedByCurrentUser: currentUserId ? mappedPost.replyTo.bookmarks?.some((b: any) => b.userId === currentUserId) : false,
                     replyCount: mappedPost.replyTo.replies?.length || 0,
                     repostCount: mappedPost.replyTo.reposts?.length || 0,
-                    reactionCount: mappedPost.replyTo.reactions?.length || 0,
+                    reactionCount: (mappedPost.replyTo.remoteActorId && pRemoteReactionCount !== undefined)
+                        ? Math.max(pRemoteReactionCount, pLocalReactionCount)
+                        : pLocalReactionCount,
+                    reactionSummary: pApMeta?.reactionSummary || null
                 };
             }
 
