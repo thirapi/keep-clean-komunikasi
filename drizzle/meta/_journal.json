@@ -148,6 +148,13 @@
       "when": 1780509537113,
       "tag": "0020_add_custom_emojis_table",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780659883019,
+      "tag": "0021_kind_sentinels",
+      "breakpoints": true
     }
   ]
 }

@@ -16,4 +16,6 @@ export interface IActivityPubService {
     fetchRemoteObject(url: string): Promise<any>;
     fetchRemoteObjectSigned(url: string, userId: string): Promise<any>;
     resolveRemotePost(uri: string, localUserId: string, forceRefresh?: boolean, prefetchedObject?: any, depth?: number): Promise<any | null>;
+    discoverReplies(uri: string, localUserId: string, prefetchedObject?: any): Promise<void>;
+    backfillActor(actorUrl: string, localUserId: string): Promise<void>;
 }

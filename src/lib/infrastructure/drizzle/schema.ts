@@ -230,6 +230,7 @@ export const attachments = pgTable("Attachment", {
     fileType: text("fileType").notNull(),
     size: integer("size"),
     description: text("description"), // Accessibility alt text
+    blurhash: text("blurhash"), // Placeholder for images
     messageId: text("messageId").references(() => messages.id),
     postId: text("postId").references(() => posts.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),

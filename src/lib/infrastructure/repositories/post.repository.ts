@@ -8,7 +8,7 @@ import { createId } from "@paralleldrive/cuid2";
 export class PostRepository implements IPostRepository {
     constructor(private client: typeof db) { }
 
-    async create(post: PostRecord, attachments?: { url: string; key: string; fileType: string; size?: number }[]): Promise<PostRecord> {
+    async create(post: PostRecord, attachments?: { url: string; key: string; fileType: string; size?: number; blurhash?: string; description?: string }[]): Promise<PostRecord> {
         return await this.client.transaction(async (tx) => {
             const [result] = await tx.insert(posts).values({
                 ...post,
@@ -23,6 +23,8 @@ export class PostRepository implements IPostRepository {
                         key: a.key,
                         fileType: a.fileType,
                         size: a.size,
+                        blurhash: a.blurhash,
+                        description: a.description
                     }))
                 );
             }
@@ -31,7 +33,7 @@ export class PostRepository implements IPostRepository {
         });
     }
 
-    async update(id: string, post: Partial<PostRecord>, attachments?: { url: string; key: string; fileType: string; size?: number }[]): Promise<PostRecord> {
+    async update(id: string, post: Partial<PostRecord>, attachments?: { url: string; key: string; fileType: string; size?: number; blurhash?: string; description?: string }[]): Promise<PostRecord> {
         return await this.client.transaction(async (tx) => {
             const [result] = await tx
                 .update(posts)
@@ -42,7 +44,6 @@ export class PostRepository implements IPostRepository {
             if (attachments && attachments.length > 0) {
                 // For updates, we often just want to add attachments if they were missing
                 // To avoid duplicates, we check if they exist or just try to insert with conflict handling
-                // For simplicity in this AP context, we'll insert them if they don't exist for this post
                 const existing = await tx.select().from(attachmentsTable).where(eq(attachmentsTable.postId, id));
                 const existingUrls = new Set(existing.map(e => e.url));
 
@@ -57,6 +58,8 @@ export class PostRepository implements IPostRepository {
                             key: a.key,
                             fileType: a.fileType,
                             size: a.size,
+                            blurhash: a.blurhash,
+                            description: a.description
                         }))
                     );
                 }

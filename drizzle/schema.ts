@@ -265,6 +265,7 @@ export const attachment = pgTable("Attachment", {
 	key: text().notNull(),
 	fileType: text().notNull(),
 	size: integer(),
+	blurhash: text(),
 	messageId: text(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),

@@ -28,7 +28,8 @@ export class GetPostThreadUseCase {
 
         if (!post && currentUserId && postId.startsWith("http")) {
             // Heal on Demand: If not found, try to resolve from Fediverse
-            const resolved = await this.activityPubService.resolveRemotePost(postId, currentUserId);
+            // This will also trigger reply discovery and parent resolution recursively (up to depth 10)
+            const resolved = await this.activityPubService.resolveRemotePost(postId, currentUserId, true);
             if (resolved) {
                 post = await this.postRepository.findByIdWithDetails(resolved.id, currentUserId);
             }
@@ -36,14 +37,6 @@ export class GetPostThreadUseCase {
 
         if (!post) {
             throw new Error("Post not found");
-        }
-
-        // Deep Healing: If the post is remote, ensure we have its full context
-        if (post.uri && post.remoteActorId && currentUserId) {
-            await this.ensureRemoteContextRecursive(post, currentUserId);
-            // Re-fetch to get updated metadata (replyToId, quoteOfId, cleaned content, context)
-            const updated = await this.postRepository.findByIdWithDetails(post.id, currentUserId);
-            if (updated) post = updated;
         }
 
         // Context-based Fetching: If we have a conversation context, use it to get everything
@@ -82,36 +75,5 @@ export class GetPostThreadUseCase {
         const filteredReplies = replies.filter(r => !threadIds.has(r.id));
 
         return { post, replies: filteredReplies, parents, thread };
-    }
-
-    private async ensureRemoteContextRecursive(post: PostWithUserDTO, currentUserId: string) {
-        if (!post.uri) return;
-
-        try {
-            const fetched = await this.activityPubService.fetchRemoteObjectSigned(post.uri, currentUserId);
-            if (fetched) {
-                // This will recursively resolve parents and quotes, and update the current post if needed
-                await this.activityPubService.resolveRemotePost(post.uri, currentUserId, false, fetched);
-
-                // Discovery of replies (resolveRemotePost doesn't handle children discovery)
-                if (fetched.replies) {
-                    const repliesUrl = typeof fetched.replies === 'string' ? fetched.replies : fetched.replies.first?.id || fetched.replies.id;
-                    if (repliesUrl) {
-                        const rRes = await this.activityPubService.fetchRemoteObjectSigned(repliesUrl, currentUserId);
-                        if (rRes) {
-                            const items = rRes.orderedItems || rRes.items || [];
-                            for (const item of items.slice(0, 10)) {
-                                const replyUri = typeof item === 'string' ? item : item.id;
-                                if (replyUri) {
-                                    await this.activityPubService.resolveRemotePost(replyUri, currentUserId);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.error(`[GetPostThread] Failed deep healing for ${post.uri}`, e);
-        }
     }
 }

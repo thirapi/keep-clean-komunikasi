@@ -8,7 +8,7 @@ import { HttpSignatureService } from "./http-signature.service";
 import { createId } from "@paralleldrive/cuid2";
 
 export class ActivityPubService implements IActivityPubService {
-    private pendingResolutions = new Set<string>();
+    private pendingResolutions = new Map<string, Promise<any>>();
 
     constructor(
         private userRepository: IUserRepository,
@@ -17,6 +17,7 @@ export class ActivityPubService implements IActivityPubService {
         private remoteActorRepository: IRemoteActorRepository,
         private customEmojiRepository: ICustomEmojiRepository
     ) { }
+
 
     private validateRemoteUrl(urlStr: string): boolean {
         try {
@@ -329,6 +330,9 @@ export class ActivityPubService implements IActivityPubService {
         });
         
         await this.followerRepository.followLocalToRemote(localUserId, remoteActorUrl);
+        
+        // Background backfill for new follow
+        this.backfillActor(remoteActorUrl, localUserId).catch(e => console.error(`[FollowRemote] Backfill failed for ${remoteActorUrl}:`, e));
     }
 
     async unfollowRemote(localUserId: string, remoteActorUrl: string): Promise<void> {
@@ -684,146 +688,252 @@ export class ActivityPubService implements IActivityPubService {
         const needsHydration = (forceRefresh || (prefetchedObject && !isLikelyLocal) || isRemoteAndMissingMeta);
 
         if (!existing || needsHydration) {
-            if (this.pendingResolutions.has(uri) && !prefetchedObject) {
-                return await this.postRepository.findByUri(uri);
+            // Concurrency Lock: Check if a resolution for this URI is already in progress
+            const existingPromise = this.pendingResolutions.get(uri);
+            if (existingPromise && !prefetchedObject) {
+                return await existingPromise;
             }
 
-            try {
-                if (!prefetchedObject) this.pendingResolutions.add(uri);
-
-                const fetched = prefetchedObject || await this.fetchRemoteObjectSigned(uri, localUserId);
-                if (!fetched || (fetched.type !== "Note" && fetched.type !== "Page" && fetched.type !== "Question")) {
-                    return existing;
-                }
-
-                const actor = await this.ensureRemoteActor(fetched.attributedTo, localUserId);
-                if (!actor) return existing;
-
-                // Recursive Resolution: Parent Post (Reply)
-                let parentPostId: string | null = null;
-                if (fetched.inReplyTo) {
-                    let parentUri: string | null = null;
-                    if (typeof fetched.inReplyTo === 'string') {
-                        parentUri = fetched.inReplyTo;
-                    } else if (Array.isArray(fetched.inReplyTo)) {
-                        const first = fetched.inReplyTo[0];
-                        parentUri = typeof first === 'string' ? first : first?.id;
-                    } else if (fetched.inReplyTo.id) {
-                        parentUri = fetched.inReplyTo.id;
+            const resolutionPromise = (async () => {
+                try {
+                    const fetched = prefetchedObject || await this.fetchRemoteObjectSigned(uri, localUserId);
+                    if (!fetched || (fetched.type !== "Note" && fetched.type !== "Page" && fetched.type !== "Question")) {
+                        return existing;
                     }
 
-                    if (parentUri) {
-                        const parent = await this.resolveRemotePost(parentUri, localUserId, false, null, depth + 1);
-                        if (parent) parentPostId = parent.id;
-                    }
-                }
+                    const actor = await this.ensureRemoteActor(fetched.attributedTo, localUserId);
+                    if (!actor) return existing;
 
-                // Recursive Resolution: Quoted Post
-                let quoteOfId: string | null = null;
-                let quoteUri = fetched.quoteUrl || fetched._misskey_quote;
-
-                if (!quoteUri && Array.isArray(fetched.tag)) {
-                    const quoteTag = fetched.tag.find((t: any) => 
-                        (t.type === 'Mention' || t.type === 'Link') && 
-                        (t.mediaType === 'application/activity+json' || t.rel === 'quote')
-                    );
-                    if (quoteTag) quoteUri = quoteTag.href;
-                }
-
-                if (!quoteUri && fetched.quoteOf) {
-                    quoteUri = typeof fetched.quoteOf === 'string' ? fetched.quoteOf : fetched.quoteOf.id;
-                }
-
-                if (quoteUri) {
-                    const quoted = await this.resolveRemotePost(quoteUri, localUserId, false, null, depth + 1);
-                    if (quoted) quoteOfId = quoted.id;
-                }
-
-                // Robust tag and attachment parsing
-                const tags = Array.isArray(fetched.tag) ? fetched.tag : (fetched.tag ? [fetched.tag] : []);
-                const apAttachments = Array.isArray(fetched.attachment) ? fetched.attachment : (fetched.attachment ? [fetched.attachment] : []);
-                const summary = fetched.summary || null; // Content Warning (CW)
-                
-                const emojis = this.extractEmojis(tags);
-                const attachments = apAttachments
-                    .map((a: any) => {
-                        let url = "";
-                        if (typeof a.url === 'string') {
-                            url = a.url;
-                        } else if (Array.isArray(a.url)) {
-                            // Find best link in array
-                            const best = a.url.find((l: any) => l.mediaType?.startsWith('image/') || l.mediaType?.startsWith('video/')) || a.url[0];
-                            url = typeof best === 'string' ? best : best?.href || best?.url;
-                        } else if (a.url) {
-                            url = a.url.href || a.url.url || a.url;
+                    // Recursive Resolution: Parent Post (Reply)
+                    let parentPostId: string | null = null;
+                    if (fetched.inReplyTo) {
+                        let parentUri: string | null = null;
+                        if (typeof fetched.inReplyTo === 'string') {
+                            parentUri = fetched.inReplyTo;
+                        } else if (Array.isArray(fetched.inReplyTo)) {
+                            const first = fetched.inReplyTo[0];
+                            parentUri = typeof first === 'string' ? first : first?.id;
+                        } else if (fetched.inReplyTo.id) {
+                            parentUri = fetched.inReplyTo.id;
                         }
 
-                        if (!url) return null;
+                        if (parentUri) {
+                            const parent = await this.resolveRemotePost(parentUri, localUserId, false, null, depth + 1);
+                            if (parent) parentPostId = parent.id;
+                        }
+                    }
 
-                        return {
-                            url: url,
-                            key: a.name || createId(),
-                            fileType: a.mediaType || "application/octet-stream",
-                            size: a.size,
-                            description: a.name || a.summary || null
-                        };
-                    })
-                    .filter((a: any): a is NonNullable<typeof a> => a !== null);
+                    // Recursive Resolution: Quoted Post
+                    let quoteOfId: string | null = null;
+                    let quoteUri = fetched.quoteUrl || fetched._misskey_quote;
 
-                const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
-                const context = fetched.context || fetched.conversation;
+                    if (!quoteUri && Array.isArray(fetched.tag)) {
+                        const quoteTag = fetched.tag.find((t: any) => 
+                            (t.type === 'Mention' || t.type === 'Link') && 
+                            (t.mediaType === 'application/activity+json' || t.rel === 'quote')
+                        );
+                        if (quoteTag) quoteUri = quoteTag.href;
+                    }
 
-                if (existing) {
-                    const hasNewMeta = (parentPostId && !existing.replyToId) || (quoteOfId && !existing.quoteOfId) || (context && !existing.context);
-                    const contentChanged = finalContent !== existing.content;
-                    const hasAttachments = attachments.length > 0;
+                    if (!quoteUri && fetched.quoteOf) {
+                        quoteUri = typeof fetched.quoteOf === 'string' ? fetched.quoteOf : fetched.quoteOf.id;
+                    }
+
+                    if (quoteUri) {
+                        const quoted = await this.resolveRemotePost(quoteUri, localUserId, false, null, depth + 1);
+                        if (quoted) quoteOfId = quoted.id;
+                    }
+
+                    // Robust tag and attachment parsing
+                    const tags = Array.isArray(fetched.tag) ? fetched.tag : (fetched.tag ? [fetched.tag] : []);
+                    const apAttachments = Array.isArray(fetched.attachment) ? fetched.attachment : (fetched.attachment ? [fetched.attachment] : []);
+                    const summary = fetched.summary || null; // Content Warning (CW)
                     
-                    if (hasNewMeta || contentChanged || hasAttachments || forceRefresh || prefetchedObject) {
-                        return await this.postRepository.update(existing.id, {
-                            content: finalContent || existing.content,
-                            replyToId: parentPostId || existing.replyToId,
-                            quoteOfId: quoteOfId || existing.quoteOfId,
-                            context: context || existing.context,
-                            emojis: emojis as any || existing.emojis,
+                    const emojis = this.extractEmojis(tags);
+                    const attachments = apAttachments
+                        .map((a: any) => {
+                            let url = "";
+                            if (typeof a.url === 'string') {
+                                url = a.url;
+                            } else if (Array.isArray(a.url)) {
+                                // Find best link in array
+                                const best = a.url.find((l: any) => l.mediaType?.startsWith('image/') || l.mediaType?.startsWith('video/')) || a.url[0];
+                                url = typeof best === 'string' ? best : best?.href || best?.url;
+                            } else if (a.url) {
+                                url = a.url.href || a.url.url || a.url;
+                            }
+
+                            if (!url) return null;
+
+                            return {
+                                url: url,
+                                key: a.name || createId(),
+                                fileType: a.mediaType || "application/octet-stream",
+                                size: a.size,
+                                blurhash: a.blurhash || null,
+                                description: a.name || a.summary || null
+                            };
+                        })
+                        .filter((a: any): a is NonNullable<typeof a> => a !== null);
+
+                    const finalContent = this.getCleanContent(fetched, !!quoteOfId || !!fetched.inReplyTo);
+                    const context = fetched.context || fetched.conversation;
+
+                    let savedPost: any;
+                    if (existing) {
+                        const hasNewMeta = (parentPostId && !existing.replyToId) || (quoteOfId && !existing.quoteOfId) || (context && !existing.context);
+                        const contentChanged = finalContent !== existing.content;
+                        const hasAttachments = attachments.length > 0;
+                        
+                        if (hasNewMeta || contentChanged || hasAttachments || forceRefresh || prefetchedObject) {
+                            savedPost = await this.postRepository.update(existing.id, {
+                                content: finalContent || existing.content,
+                                replyToId: parentPostId || existing.replyToId,
+                                quoteOfId: quoteOfId || existing.quoteOfId,
+                                context: context || existing.context,
+                                emojis: emojis as any || existing.emojis,
+                                apMetadata: {
+                                    originalTags: tags,
+                                    isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote,
+                                    summary: summary || (existing.apMetadata as any)?.summary
+                                } as any,
+                                updatedAt: new Date()
+                            }, attachments);
+                        } else {
+                            savedPost = existing;
+                        }
+                    } else {
+                        const newId = createId();
+                        savedPost = await this.postRepository.create({
+                            id: newId,
+                            content: finalContent,
+                            userId: null as any,
+                            remoteActorId: actor.id,
+                            uri: fetched.id,
+                            url: fetched.url,
+                            replyToId: parentPostId,
+                            repostOfId: null,
+                            quoteOfId: quoteOfId,
+                            context: context,
+                            visibility: "public",
+                            emojis: emojis as any,
                             apMetadata: {
                                 originalTags: tags,
-                                isFepE232Quote: !!quoteUri && !fetched.quoteUrl && !fetched._misskey_quote,
-                                summary: summary || (existing.apMetadata as any)?.summary
+                                summary: summary
                             } as any,
-                            updatedAt: new Date()
+                            isDeleted: false,
+                            createdAt: new Date(fetched.published || Date.now()),
+                            updatedAt: new Date(),
                         }, attachments);
                     }
-                    return existing;
-                } else {
-                    const newId = createId();
-                    return await this.postRepository.create({
-                        id: newId,
-                        content: finalContent,
-                        userId: null as any,
-                        remoteActorId: actor.id,
-                        uri: fetched.id,
-                        url: fetched.url,
-                        replyToId: parentPostId,
-                        repostOfId: null,
-                        quoteOfId: quoteOfId,
-                        context: context,
-                        visibility: "public",
-                        emojis: emojis as any,
-                        apMetadata: {
-                            originalTags: tags,
-                            summary: summary
-                        } as any,
-                        isDeleted: false,
-                        createdAt: new Date(fetched.published || Date.now()),
-                        updatedAt: new Date(),
-                    }, attachments);
+
+                    // Background: Discover Replies if it's a new or forced refresh post
+                    if (!existing || forceRefresh) {
+                        this.discoverReplies(uri, localUserId, fetched).catch(e => console.error(`[ResolveRemotePost] Reply discovery failed for ${uri}:`, e));
+                    }
+
+                    // Background: Pre-fetch media to warm up Proxy/CDN cache
+                    if (attachments.length > 0) {
+                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+                        attachments.forEach((a: any) => {
+                            const proxyUrl = `${baseUrl}/api/media-proxy?url=${encodeURIComponent(a.url)}`;
+                            fetch(proxyUrl).catch(() => {}); // Fire and forget
+                        });
+                    }
+
+                    return savedPost;
+                } finally {
+                    this.pendingResolutions.delete(uri);
                 }
-            } finally {
-                this.pendingResolutions.delete(uri);
+            })();
+
+            if (!prefetchedObject) {
+                this.pendingResolutions.set(uri, resolutionPromise);
             }
+
+            return await resolutionPromise;
         }
 
         return existing;
+    }
+
+    async discoverReplies(uri: string, localUserId: string, prefetchedObject?: any): Promise<void> {
+        try {
+            const fetched = prefetchedObject || await this.fetchRemoteObjectSigned(uri, localUserId);
+            if (!fetched || !fetched.replies) return;
+
+            let repliesCollection: any = null;
+            if (typeof fetched.replies === 'string') {
+                repliesCollection = await this.fetchRemoteObjectSigned(fetched.replies, localUserId);
+            } else if (fetched.replies.first) {
+                // If it's an object with 'first' link
+                const firstPageUrl = typeof fetched.replies.first === 'string' ? fetched.replies.first : fetched.replies.first.id;
+                if (firstPageUrl) {
+                    repliesCollection = await this.fetchRemoteObjectSigned(firstPageUrl, localUserId);
+                }
+            } else if (fetched.replies.items || fetched.replies.orderedItems) {
+                // If items are inline
+                repliesCollection = fetched.replies;
+            }
+
+            if (!repliesCollection) return;
+
+            const items = repliesCollection.orderedItems || repliesCollection.items || [];
+            console.log(`[DiscoverReplies] Found ${items.length} replies for ${uri}. Resolving first 20...`);
+
+            // Resolve top 20 replies to keep it manageable
+            for (const item of items.slice(0, 20)) {
+                const replyUri = typeof item === 'string' ? item : item.id;
+                if (replyUri && this.validateRemoteUrl(replyUri)) {
+                    // We don't await here to keep it moving, but we do await resolutionPromise internally via Map
+                    this.resolveRemotePost(replyUri, localUserId).catch(e => console.error(`[DiscoverReplies] Failed to resolve reply ${replyUri}:`, e));
+                }
+            }
+        } catch (e) {
+            console.error(`[DiscoverReplies] Error discovering replies for ${uri}:`, e);
+        }
+    }
+
+    async backfillActor(actorUrl: string, localUserId: string): Promise<void> {
+        try {
+            const actor = await this.fetchRemoteObjectSigned(actorUrl, localUserId);
+            if (!actor || !actor.outbox) return;
+
+            console.log(`[Backfill] Starting backfill for actor ${actorUrl}...`);
+
+            // 1. Fetch Outbox
+            const outbox = await this.fetchRemoteObjectSigned(actor.outbox, localUserId);
+            if (!outbox || !outbox.first) return;
+
+            // 2. Fetch first page of outbox
+            const firstPageUrl = typeof outbox.first === 'string' ? outbox.first : outbox.first.id;
+            const page = await this.fetchRemoteObjectSigned(firstPageUrl, localUserId);
+            
+            if (!page || (!page.orderedItems && !page.items)) return;
+
+            const items = page.orderedItems || page.items || [];
+            console.log(`[Backfill] Pulling ${items.length} recent activities from outbox...`);
+
+            // 3. Process items (usually Create or Announce activities)
+            for (const activity of items.slice(0, 20)) {
+                try {
+                    const object = activity.object;
+                    if (!object) continue;
+
+                    if (activity.type === "Create" || activity.type === "Announce") {
+                        const objectUri = typeof object === 'string' ? object : object.id;
+                        if (objectUri) {
+                            await this.resolveRemotePost(objectUri, localUserId, false, typeof object === 'object' ? object : undefined);
+                        }
+                    }
+                } catch (err) {
+                    console.error(`[Backfill] Failed to process activity in outbox:`, err);
+                }
+            }
+            console.log(`[Backfill] Completed backfill for ${actorUrl}`);
+        } catch (e) {
+            console.error(`[Backfill] Error backfilling actor ${actorUrl}:`, e);
+        }
     }
 
     private getCleanContent(object: any, isLinked: boolean = false): string {
@@ -873,6 +983,7 @@ export class ActivityPubService implements IActivityPubService {
     private async ensureRemoteActor(actorUrl: string, localUserIdForSignedFetch?: string) {
         if (!this.validateRemoteUrl(actorUrl)) return null;
         const existing = await this.remoteActorRepository.findById(actorUrl);
+        
         if (existing) return existing;
 
         let senderActorData;
@@ -907,7 +1018,14 @@ export class ActivityPubService implements IActivityPubService {
             updatedAt: new Date()
         });
 
-        return await this.remoteActorRepository.findById(actorUrl);
+        const newActor = await this.remoteActorRepository.findById(actorUrl);
+        
+        // Trigger backfill for new discovery
+        if (newActor && localUserIdForSignedFetch) {
+            this.backfillActor(actorUrl, localUserIdForSignedFetch).catch(e => console.error(`[EnsureActor] Backfill failed for ${actorUrl}:`, e));
+        }
+
+        return newActor;
     }
 
     async sendDeleteActivity(userId: string, postUri: string): Promise<void> {
