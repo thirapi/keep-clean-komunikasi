@@ -15,7 +15,7 @@ export function parseFediverseContent(content: string, emojis: { name: string; u
         
         const emojiUrl = emojiMap.get(shortcode);
         if (emojiUrl) {
-            return `<img src="${emojiUrl}" alt="${shortcode}" title="${shortcode}" class="fediverse-emoji inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5" />`;
+            return `<img src="${emojiUrl}" alt="${shortcode}" title="${shortcode}" class="fediverse-emoji inline-block h-[1.4em] w-[1.4em] align-text-bottom mx-0.5" />`;
         }
         
         return match; // Return as is if no emoji found

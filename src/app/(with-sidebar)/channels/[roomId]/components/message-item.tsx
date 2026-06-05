@@ -633,7 +633,7 @@ export function MessageItem({
           {...props} 
           className={cn(
               props.className,
-              props.className?.includes('fediverse-emoji') && "inline-block h-[1.2em] w-[1.2em] align-text-bottom mx-0.5"
+              props.className?.includes('fediverse-emoji') && "inline-block h-[1.4em] w-[1.4em] align-text-bottom mx-0.5"
           )} 
       />
     )

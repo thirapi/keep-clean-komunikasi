@@ -290,10 +290,10 @@
 /* Custom Fediverse Emoji Styles */
 .fediverse-emoji {
   display: inline-block;
-  height: 1.25em;
-  width: 1.25em;
+  height: 1.6em;
+  width: 1.6em;
   vertical-align: text-bottom;
-  margin: 0 0.1em;
+  margin: 0 0.125em;
   object-fit: contain;
 }
 
