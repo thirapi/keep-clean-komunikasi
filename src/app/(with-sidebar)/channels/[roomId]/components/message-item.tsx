@@ -821,17 +821,17 @@ export function MessageItem({
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggleReaction(group.emoji); }}
                       className={cn(
-                        "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all border select-none active:scale-90",
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all border select-none active:scale-95 hover:scale-105 shadow-sm duration-150 ease-out",
                         group.hasReacted
-                          ? "bg-primary/10 border-primary/30 text-primary shadow-sm ring-1 ring-primary/20"
-                          : "bg-muted/30 border-transparent hover:bg-muted/60 text-muted-foreground"
+                          ? "bg-primary/15 border-primary/45 text-primary shadow-md shadow-primary/5 ring-1 ring-primary/30"
+                          : "bg-muted/40 border-border/80 hover:bg-muted/70 hover:border-muted-foreground/30 text-muted-foreground"
                       )}
                     >
                       <span 
-                        className="text-sm flex items-center justify-center"
+                        className="text-base leading-none flex items-center justify-center min-w-[18px] min-h-[18px] transform hover:scale-115 transition-transform duration-100"
                         dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, emojiMeta) }}
                       />
-                      <span className={cn("font-bold tabular-nums", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
+                      <span className={cn("font-bold tabular-nums text-[11px]", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
                         {group.count}
                       </span>
                     </button>

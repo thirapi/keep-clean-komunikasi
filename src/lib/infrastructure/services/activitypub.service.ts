@@ -371,7 +371,7 @@ export class ActivityPubService implements IActivityPubService {
         await this.followerRepository.unfollowLocalToRemote(localUserId, remoteActorUrl);
     }
 
-    async sendLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void> {
+    async sendLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string, targetActorUri?: string): Promise<void> {
         const user = await this.userRepository.findById(userId);
         if (!user || !user.privateKey) return;
 
@@ -383,7 +383,9 @@ export class ActivityPubService implements IActivityPubService {
             "id": `${actorUri}#like-${Date.now()}`,
             "type": "Like",
             "actor": actorUri,
-            "object": targetPostUri
+            "object": targetPostUri,
+            "content": "❤️",
+            "to": targetActorUri ? [targetActorUri] : undefined
         };
 
         await this.deliverToRemoteInbox(targetActorInbox, likeActivity, {
@@ -392,7 +394,7 @@ export class ActivityPubService implements IActivityPubService {
         });
     }
 
-    async sendUndoLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void> {
+    async sendUndoLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string, targetActorUri?: string): Promise<void> {
         const user = await this.userRepository.findById(userId);
         if (!user || !user.privateKey) return;
 
@@ -407,7 +409,9 @@ export class ActivityPubService implements IActivityPubService {
             "object": {
                 "type": "Like",
                 "actor": actorUri,
-                "object": targetPostUri
+                "object": targetPostUri,
+                "content": "❤️",
+                "to": targetActorUri ? [targetActorUri] : undefined
             }
         };
 

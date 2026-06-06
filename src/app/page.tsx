@@ -51,9 +51,9 @@ export default async function House() {
       />
 
       {/* Full-width Gravity Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+      {/* <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <GravityBackground />
-      </div>
+      </div> */}
 
       {/* Left Side: Visuals & Interactive Text */}
       <div className="hidden lg:flex lg:w-1/2 relative z-10 items-center justify-center">

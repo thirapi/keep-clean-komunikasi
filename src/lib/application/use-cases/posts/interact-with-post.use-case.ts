@@ -85,7 +85,7 @@ export class InteractWithPostUseCase {
                     // 1. If had an existing reaction, always send Undo for it first
                     if (existingReaction) {
                         if (existingReaction.emoji === "❤️") {
-                            await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox);
+                            await this.activityPubService.sendUndoLikeActivity(userId, post.uri, actor.inbox, post.remoteActorId);
                         } else {
                             await this.activityPubService.sendUndoEmojiReactionActivity(userId, post.uri, actor.inbox, existingReaction.emoji);
                         }
@@ -94,7 +94,7 @@ export class InteractWithPostUseCase {
                     // 2. If we are setting a NEW (or different) reaction, send the new activity
                     if (!existingReaction || existingReaction.emoji !== emoji) {
                         if (emoji === "❤️") {
-                            await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox);
+                            await this.activityPubService.sendLikeActivity(userId, post.uri, actor.inbox, post.remoteActorId);
                         } else {
                             await this.activityPubService.sendEmojiReactionActivity(userId, post.uri, actor.inbox, emoji);
                         }

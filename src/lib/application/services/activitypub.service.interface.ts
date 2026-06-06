@@ -5,8 +5,8 @@ export interface IActivityPubService {
     sendAcceptActivity(localUserId: string, followActivity: any, inboxUrl?: string): Promise<void>;
     followRemote(localUserId: string, remoteActorUrl: string): Promise<void>;
     unfollowRemote(localUserId: string, remoteActorUrl: string): Promise<void>;
-    sendLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
-    sendUndoLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
+    sendLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string, targetActorUri?: string): Promise<void>;
+    sendUndoLikeActivity(userId: string, targetPostUri: string, targetActorInbox: string, targetActorUri?: string): Promise<void>;
     sendAnnounceActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
     sendUndoAnnounceActivity(userId: string, targetPostUri: string, targetActorInbox: string): Promise<void>;
     broadcastUndoAnnounceActivity(userId: string, targetPostUri: string): Promise<void>;
