@@ -3,16 +3,19 @@ import { InputParsedError } from "@/lib/entities/errors/common";
 import { SessionRepository } from "@/lib/infrastructure/repositories/session.repository";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
+import { DrizzleActivityLogRepository } from "@/lib/infrastructure/repositories/activity-log.repository";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
 
 const userRepository = new UserRepository(db);
 const sessionRepository = new SessionRepository(db);
+const activityLogRepository = new DrizzleActivityLogRepository();
 
 const authenticationService = new AuthenticationService(
     sessionRepository,
-    userRepository
+    userRepository,
+    activityLogRepository
 );
 
 const signOutUseCase = new SignOutUseCase(authenticationService);
@@ -21,7 +24,7 @@ const sessionSchema = z.object({
     token: z.string(),
 });
 
-export const signOutController = async (token: string) => {
+export const signOutController = async (token: string, context?: { ip?: string; userAgent?: string }) => {
     const parsedSession = sessionSchema.safeParse({token})
 
     if (!parsedSession.success) {
@@ -31,5 +34,5 @@ export const signOutController = async (token: string) => {
         throw new InputParsedError("Invalid input: ", errorField)
     }
 
-    return await signOutUseCase.execute(parsedSession.data.token);
+    return await signOutUseCase.execute(parsedSession.data.token, context);
 };

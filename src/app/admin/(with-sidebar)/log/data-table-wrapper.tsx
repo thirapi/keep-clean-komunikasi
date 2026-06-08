@@ -2,20 +2,25 @@
 
 import { useBreadcrumbs } from "@/components/breadcrumb/breadcrumb-context";
 import { columns } from "./columns";
+import { activityLogColumns } from "./activity-log-columns";
 import { DataTable } from "./data-table";
 import { useEffect } from "react";
 import { SessionLogRecord } from "@/lib/entities/models/session.model";
+import { ActivityLogRecord } from "@/lib/entities/models/activity-log.model";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   sessions: SessionLogRecord[];
+  activityLogs: ActivityLogRecord[];
 }
 
-export function DataTableWrapper({ sessions }: Props) {
+export function DataTableWrapper({ sessions, activityLogs }: Props) {
     const { setBreadcrumbs } = useBreadcrumbs();
   
     useEffect(() => {
       setBreadcrumbs([
         { label: "Admin", href: "/admin" },
+        { label: "Logs", href: "/admin/log" },
       ]);
     }, [setBreadcrumbs]);
 
@@ -24,14 +29,26 @@ export function DataTableWrapper({ sessions }: Props) {
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
-            User Role Management
+            System Logs & Activity
           </h2>
           <p className="text-muted-foreground">
-            Manage and oversee all registered users in the system.
+            Monitor user sessions and security activity logs.
           </p>
         </div>
       </div>
-      <DataTable data={sessions} columns={columns} />
+
+      <Tabs defaultValue="activity" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="activity">Activity Logs</TabsTrigger>
+          <TabsTrigger value="sessions">Active Sessions</TabsTrigger>
+        </TabsList>
+        <TabsContent value="activity" className="space-y-4">
+            <DataTable data={activityLogs} columns={activityLogColumns} />
+        </TabsContent>
+        <TabsContent value="sessions" className="space-y-4">
+            <DataTable data={sessions} columns={columns} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

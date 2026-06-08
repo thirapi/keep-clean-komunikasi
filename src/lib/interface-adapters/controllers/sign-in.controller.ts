@@ -6,6 +6,7 @@ import { UserRepository } from "@/lib/infrastructure/repositories/user.repositor
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
 import { KeyService } from "@/lib/infrastructure/services/key.service";
+import { DrizzleActivityLogRepository } from "@/lib/infrastructure/repositories/activity-log.repository";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -13,10 +14,12 @@ import { db } from "@/lib/db";
 const userRepository = new UserRepository(db);
 const sessionRepository = new SessionRepository(db);
 const keyService = new KeyService();
+const activityLogRepository = new DrizzleActivityLogRepository();
 
 const authenticationService = new AuthenticationService(
     sessionRepository,
-    userRepository
+    userRepository,
+    activityLogRepository
 );
 const passwordService = new PasswordService();
 
@@ -30,9 +33,9 @@ const signInUseCase = new SignInUseCase(
 const formSchema = z.object({
     username: z.string(),
     password: z.string(),
-})
+});
 
-export const signInController = async (userCredential: SignInUserDTO) => {
+export const signInController = async (userCredential: SignInUserDTO, context?: { ip?: string; userAgent?: string }) => {
     const parsedUserCredential = formSchema.safeParse(userCredential);
 
     if (!parsedUserCredential.success) {
@@ -44,6 +47,7 @@ export const signInController = async (userCredential: SignInUserDTO) => {
 
     return await signInUseCase.execute(
         parsedUserCredential.data.username,
-        parsedUserCredential.data.password
+        parsedUserCredential.data.password,
+        context
     )
 }

@@ -2,14 +2,26 @@ import { AuthenticationService } from "@/lib/infrastructure/services/authenticat
 
 export class SignOutUseCase {
     constructor(private authenticationService: AuthenticationService) { }
-    async execute(session_id: string) {
+    async execute(session_id: string, context?: { ip?: string; userAgent?: string }) {
         const session = await this.authenticationService.validateSession(
-            session_id
+            session_id,
+            context
         )
         if (!session.session) {
             throw new Error("You dont have a session");
         }
 
+        const userId = session.session.userId;
+
         await this.authenticationService.invalidateSession(session.session.id);
+
+        // Log successful logout
+        await this.authenticationService.logEvent({
+            userId: userId,
+            category: "auth",
+            action: "logout",
+            ip: context?.ip,
+            userAgent: context?.userAgent,
+        });
     }
 }

@@ -427,3 +427,18 @@ export const customEmojis = pgTable("CustomEmoji", {
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
+
+export const activityLogs = pgTable("ActivityLog", {
+    id: text("id").primaryKey(),
+    userId: text("userId").references(() => users.id),
+    category: text("category").notNull(), // 'auth', 'security', 'activity'
+    action: text("action").notNull(), // 'login', 'logout', 'session_active', 'password_change', etc.
+    metadata: jsonb("metadata"),
+    ipAddress: text("ipAddress"),
+    userAgent: text("userAgent"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+    user: one(users, { fields: [activityLogs.userId], references: [users.id] }),
+}));

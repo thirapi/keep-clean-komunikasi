@@ -7,6 +7,7 @@ import { IUserRepository } from "@/lib/application/repositories/user.repository.
 import { ISessionRepository } from "@/lib/application/repositories/session.repository.interface";
 import { SessionRecord, SessionDTO } from "@/lib/entities/models/session.model";
 import { AuthenticationError } from "@/lib/entities/errors/common";
+import { IActivityLogRepository } from "@/lib/application/repositories/activity-log.repository.interface";
 
 export class AuthenticationService {
     private SESSION_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30;
@@ -14,7 +15,8 @@ export class AuthenticationService {
 
     constructor(
         private sessionRepository: ISessionRepository,
-        private userRepository: IUserRepository
+        private userRepository: IUserRepository,
+        private activityLogRepository: IActivityLogRepository
     ) { }
 
     generateSessionToken(): string {
@@ -42,7 +44,7 @@ export class AuthenticationService {
         }
     }
 
-    async validateSession(token: string): Promise<SessionDTO> {
+    async validateSession(token: string, context?: { ip?: string; userAgent?: string }): Promise<SessionDTO> {
         const sessionId = encodeHexLowerCase(
             sha256(new TextEncoder().encode(token))
         );
@@ -79,10 +81,48 @@ export class AuthenticationService {
             throw new AuthenticationError("User not Found!");
         }
 
+        // Log session activity (max once per 24 hours)
+        const hasRecentLog = await this.activityLogRepository.hasLogWithinLast24Hours(
+            userData.id,
+            "session_active"
+        );
+
+        if (!hasRecentLog) {
+            await this.activityLogRepository.insertLog({
+                id: crypto.randomUUID(),
+                userId: userData.id,
+                category: "activity",
+                action: "session_active",
+                ipAddress: context?.ip,
+                userAgent: context?.userAgent,
+                createdAt: new Date(),
+            });
+        }
+
         return { session: sessionData, user: userData };
     }
 
     async invalidateSession(sessionId: string): Promise<void> {
         await this.sessionRepository.deleteSession(sessionId);
+    }
+
+    async logEvent(params: {
+        userId: string | null;
+        category: "auth" | "security" | "activity";
+        action: string;
+        metadata?: Record<string, any>;
+        ip?: string;
+        userAgent?: string;
+    }): Promise<void> {
+        await this.activityLogRepository.insertLog({
+            id: crypto.randomUUID(),
+            userId: params.userId,
+            category: params.category,
+            action: params.action,
+            metadata: params.metadata,
+            ipAddress: params.ip,
+            userAgent: params.userAgent,
+            createdAt: new Date(),
+        });
     }
 }

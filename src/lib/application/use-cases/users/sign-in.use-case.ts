@@ -12,7 +12,7 @@ export class SignInUseCase {
         private keyService: IKeyService
     ) { }
 
-    async execute(username: string, password: string): Promise<string> {
+    async execute(username: string, password: string, context?: { ip?: string; userAgent?: string }): Promise<string> {
 
         const findUser = await this.userRepository.findByUsername(username)
 
@@ -26,6 +26,15 @@ export class SignInUseCase {
         )
 
         if (!validatePassword) {
+            // Log failed login attempt
+            await this.authenticationService.logEvent({
+                userId: findUser.id,
+                category: "auth",
+                action: "login_failed",
+                metadata: { reason: "invalid_password" },
+                ip: context?.ip,
+                userAgent: context?.userAgent,
+            });
             throw new AuthenticationError("Password didn't match!")
         }
 
@@ -41,6 +50,15 @@ export class SignInUseCase {
 
         const token = await this.authenticationService.generateSessionToken();
         await this.authenticationService.createSession(token, findUser.id)
+
+        // Log successful login
+        await this.authenticationService.logEvent({
+            userId: findUser.id,
+            category: "auth",
+            action: "login",
+            ip: context?.ip,
+            userAgent: context?.userAgent,
+        });
 
         return token;
     }
