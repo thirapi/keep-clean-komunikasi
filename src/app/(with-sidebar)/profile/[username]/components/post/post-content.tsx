@@ -157,15 +157,18 @@ export function PostContent({
             />
 
             {urls.length > 0 && (
-                <div className="mt-3 space-y-2">
-                    {urls.map((url) => (
-                        <div key={url} onClick={(e) => e.stopPropagation()}>
-                            <LinkPreviewCard 
-                                url={url} 
-                                preview={linkPreviews?.find(lp => lp.url === url)} 
-                            />
-                        </div>
-                    ))}
+                <div className="mt-3">
+                    <div key={urls[0]} onClick={(e) => e.stopPropagation()}>
+                        <LinkPreviewCard 
+                            url={urls[0]} 
+                            preview={linkPreviews?.find(lp => lp.url === urls[0])} 
+                        />
+                    </div>
+                    {urls.length > 1 && (
+                        <p className="text-[11px] text-muted-foreground ml-1 mt-2 opacity-60 italic">
+                            +{urls.length - 1} tautan lainnya dalam konten
+                        </p>
+                    )}
                 </div>
             )}
         </div>

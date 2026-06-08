@@ -339,25 +339,31 @@ export function MessageItem({
     const urls = extractUrls(message.content);
 
     const embeds: React.ReactNode[] = [];
-    const seen = new Set<string>();
-
-    urls.forEach((url) => {
-      if (seen.has(url)) return;
-      seen.add(url);
-
+    
+    // STRICT MANDATE: Only ONE link preview per message (focus on the first content link)
+    if (urls.length > 0) {
+      const url = urls[0];
       const ytMatch = url.match(YOUTUBE_REGEX);
       if (ytMatch) {
         embeds.push(<YouTubeEmbed key={url} videoId={ytMatch[1]} />);
-        return;
+      } else {
+        const xMatch = url.match(X_REGEX);
+        if (xMatch) {
+          embeds.push(<XEmbed key={url} tweetUrl={url} />);
+        } else {
+          embeds.push(<LinkPreviewCard key={url} url={url} />);
+        }
       }
 
-      const xMatch = url.match(X_REGEX);
-      if (xMatch) {
-        embeds.push(<XEmbed key={url} tweetUrl={url} />);
-      } else {
-        embeds.push(<LinkPreviewCard key={url} url={url} />);
+      // Show indicator for other links
+      if (urls.length > 1) {
+        embeds.push(
+          <div key="more-links" className="text-[10px] text-muted-foreground/40 ml-1 py-1 italic">
+            +{urls.length - 1} tautan lainnya
+          </div>
+        );
       }
-    });
+    }
 
     return embeds;
   }, [message.content]);

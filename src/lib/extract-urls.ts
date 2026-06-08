@@ -1,52 +1,65 @@
 /**
- * Regex pattern to match URLs with protocol
- */
-export const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
-
-/**
- * Regex for protocol-less URLs (e.g. x.com/path, www.google.com)
- * We require it to start with www. OR have a path component to avoid matching things like "v1.2"
- */
-export const LOOSE_URL_REGEX = /\b(?:www\.|[a-zA-Z0-9-]+\.[a-z]{2,}\/)[-a-zA-Z0-9()@:%_\+.~#?&//=]*/gi;
-
-/**
- * Extract all unique URLs from a given text string,
- * including URLs in href attributes and plain text.
+ * Extract all unique content URLs from a given text string (HTML or plain text).
+ * Filters out Fediverse mentions, hashtags, and internal system links.
  */
 export function extractUrls(text: string): string[] {
   if (!text) return [];
 
   const urls: string[] = [];
   
-  // 1. Extract from href attributes (common in Fediverse HTML content)
-  const hrefRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
-  let match;
-  while ((match = hrefRegex.exec(text)) !== null) {
-    urls.push(match[1]);
+  // 1. Semantic extraction from <a> tags (for HTML content)
+  // Pattern to match <a> tags and capture their attributes and content
+  const anchorRegex = /<a\s+([^>]+)>(.*?)<\/a>/gi;
+  let anchorMatch;
+  
+  while ((anchorMatch = anchorRegex.exec(text)) !== null) {
+    const attributes = anchorMatch[1];
+    const content = anchorMatch[2];
+    
+    // Extract href
+    const hrefMatch = /href=["'](https?:\/\/[^"']+)["']/i.exec(attributes);
+    if (!hrefMatch) continue;
+    
+    const href = hrefMatch[1];
+    const classMatch = /class=["']([^"']*)["']/i.exec(attributes);
+    const className = classMatch ? classMatch[1] : "";
+    
+    // --- SEMANTIC EXCLUSION LIST ---
+    // Skip Mentions
+    if (className.includes("mention") || className.includes("u-url") || href.includes("/users/")) continue;
+    
+    // Skip Hashtags
+    if (className.includes("hashtag") || href.includes("/tags/")) continue;
+    
+    // Skip Custom Emojis (anchor containing img)
+    if (content.includes("<img")) continue;
+    
+    // Skip Internal Media Links (common patterns)
+    const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'komunikasi.qzz.io';
+    if (href.includes(currentDomain) && (href.includes("/attachments/") || href.includes("/media/"))) continue;
+
+    urls.push(href);
   }
 
-  // 2. Extract remaining URLs from the text
-  // We strip tags for text extraction to avoid matching URLs in other attributes
-  const strippedText = text.replace(/<[^>]*>/g, " ");
+  // 2. Extract remaining URLs from plain text (ignoring already processed <a> tags)
+  const textWithoutAnchors = text.replace(/<a[^>]*>.*?<\/a>/gi, " ");
+  const strippedText = textWithoutAnchors.replace(/<[^>]*>/g, " ");
   
-  // Match URLs with protocol
+  const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+  const LOOSE_URL_REGEX = /\b(?:www\.|[a-zA-Z0-9-]+\.[a-z]{2,}\/)[-a-zA-Z0-9()@:%_\+.~#?&//=]*/gi;
+
   const textMatches = strippedText.match(URL_REGEX);
   if (textMatches) {
     textMatches.forEach(m => {
-      // Remove trailing punctuation common in sentences
       const clean = m.replace(/[.,!?;:]+$/, "");
       urls.push(clean);
     });
   }
 
-  // Match protocol-less URLs
   const looseMatches = strippedText.match(LOOSE_URL_REGEX);
   if (looseMatches) {
     looseMatches.forEach(m => {
-       // Remove trailing punctuation
        const clean = m.replace(/[.,!?;:]+$/, "");
-       // Only add if it doesn't already have a protocol
-       // and prepend https:// if missing
        const normalized = clean.startsWith('http') ? clean : 'https://' + clean;
        urls.push(normalized);
     });
@@ -55,7 +68,6 @@ export function extractUrls(text: string): string[] {
   // Return unique URLs only
   const uniqueUrls = Array.from(new Set(urls));
   
-  // Filter out invalid URLs and ensure they look like real web URLs
   return uniqueUrls.filter(u => {
     try {
       const parsed = new URL(u);
