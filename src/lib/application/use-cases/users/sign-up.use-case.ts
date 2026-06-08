@@ -38,6 +38,7 @@ export class SignUpUseCase {
         await this.userRepository.insert({
             id,
             username,
+            name: username,
             password: hashPassword,
             avatar: this.avatarService.generateAvatarUrl(username),
             publicKey,

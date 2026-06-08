@@ -11,11 +11,53 @@ import { getAllUsersWithRolesController } from "@/lib/interface-adapters/control
 import { getRoleByIdController } from "@/lib/interface-adapters/controllers/roles/get-role-by-id.controller";
 import { updateRoleController } from "@/lib/interface-adapters/controllers/roles/update-role.controller";
 import { updateUserRolesController } from "@/lib/interface-adapters/controllers/roles/update-user-roles.controller";
+import { deleteUserController } from "@/lib/interface-adapters/controllers/users/delete-user.controller";
+import { adminGuard } from "@/lib/middlewares/role-guard.middleware";
+import { revalidatePath } from "next/cache";
 
 export const getAllUsersWithRoles = async () => {
   const users = await getAllUsersWithRolesController();
 
   return users;
+};
+
+export const deleteUserAction = async (
+  actorUserId: string,
+  targetUserId: string
+): Promise<ServerResponse<null>> => {
+  try {
+    const isAdmin = await adminGuard();
+    if (!isAdmin) {
+      return {
+        status: "error",
+        data: null,
+        error: {
+          type: "UNAUTHORIZED",
+          message: "Hanya admin yang dapat menghapus user",
+        },
+      };
+    }
+
+    await deleteUserController(actorUserId, targetUserId);
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      data: null,
+      error: null,
+    };
+  } catch (err: any) {
+    console.error(err);
+    return {
+      status: "error",
+      data: null,
+      error: {
+        type: "UNKNOWN_ERROR",
+        message: err.message || "Something went wrong",
+      },
+    };
+  }
 };
 
 export const updateUserRolesAction = async (

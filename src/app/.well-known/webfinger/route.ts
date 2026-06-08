@@ -21,10 +21,17 @@ export async function GET(request: Request) {
   const username = match[1];
   const domain = match[2];
 
-  // In a real implementation, we would verify the user exists in our database
-  // For now, we return a successful response to demonstrate readiness
-  
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${domain}`;
+
+  // We need to fetch the user to get their stable ID
+  const { UserRepository } = await import("@/lib/infrastructure/repositories/user.repository");
+  const { db } = await import("@/lib/db");
+  const userRepository = new UserRepository(db);
+  const user = await userRepository.findByUsername(username);
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   return NextResponse.json({
     subject: resource,
@@ -37,7 +44,7 @@ export async function GET(request: Request) {
       {
         rel: "self",
         type: "application/activity+json",
-        href: `${baseUrl}/api/users/${username}`
+        href: `${baseUrl}/api/users/id/${user.id}`
       }
     ]
   }, {

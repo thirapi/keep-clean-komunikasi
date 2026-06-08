@@ -26,6 +26,7 @@ interface Props {
   onStartEditLast: () => void;
   user: {
     id: string;
+    name: string;
     username: string;
     avatar: string;
   };
@@ -200,6 +201,7 @@ export function MessageInput({
           optimisticId,
           user: {
             username: user.username,
+            name: user.name,
             avatar: user.avatar,
           },
         } as any;

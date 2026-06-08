@@ -60,6 +60,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: {
     id: string;
     name: string;
+    username: string;
     initial: string;
     role: string;
     email: string;
@@ -454,7 +455,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
               asChild
               className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
             >
-              <Link href={user ? `/profile/${user.name}` : "/"}>
+              <Link href={user ? `/profile/${user.username}` : "/"}>
                 <User className="h-[22px] w-[22px]" weight="duotone" />
                 <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
               </Link>

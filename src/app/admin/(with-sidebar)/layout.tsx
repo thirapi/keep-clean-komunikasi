@@ -36,6 +36,7 @@ export default async function layout({
   const user = {
     id: userId.user.id,
     name: session.name,
+    username: session.username,
     initial: getInitials(session.name),
     role: session.role,
     email: session.email,
@@ -47,7 +48,7 @@ export default async function layout({
       <SidebarProvider>
         <UnreadProvider>
           <RealtimeNotificationListener
-            user={{ id: user.id, username: user.name }}
+            user={{ id: user.id, username: user.username }}
           />
           <BreadcrumbProvider>
             <AppSidebar

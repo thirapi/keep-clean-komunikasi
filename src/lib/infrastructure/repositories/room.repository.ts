@@ -50,6 +50,7 @@ export class RoomRepository implements IRoomRepository {
         user: {
           id: p.user.id,
           username: p.user.username,
+          name: p.user.name,
           avatar: p.user.avatar,
           bio: p.user.bio,
           banner: p.user.banner,
@@ -137,6 +138,7 @@ export class RoomRepository implements IRoomRepository {
         user: {
           id: p.user.id,
           username: p.user.username,
+          name: p.user.name,
           avatar: p.user.avatar,
           bio: p.user.bio,
           banner: p.user.banner,
@@ -345,6 +347,7 @@ export class RoomRepository implements IRoomRepository {
         user: {
           id: p.user.id,
           username: p.user.username,
+          name: p.user.name,
           avatar: p.user.avatar,
           bio: p.user.bio,
           banner: p.user.banner,

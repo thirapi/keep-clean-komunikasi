@@ -18,8 +18,12 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 
 ### 1. Identity Layer (Identity & Discovery)
 *   **WebFinger (`.well-known/webfinger`)**: Discovery protocol agar user dapat dicari dengan format `@user@domain.com`. Mendukung URI Encoding untuk kompatibilitas Misskey.
+*   **Stable Actor URIs**: Mengadopsi standar identitas permanen menggunakan URI berbasis internal ID (`/api/users/id/[id]`) alih-alih username. Hal ini memungkinkan pengguna mengganti username tanpa merusak federasi atau kehilangan pengikut.
+*   **Account Migration Support**: 
+    *   **alsoKnownAs (Aliases)**: Mendukung penautan identitas dari instance lain untuk verifikasi kepemilikan akun silang.
+    *   **movedTo (Migration)**: Implementasi properti `movedTo` untuk mengarahkan pengikut ke akun baru saat terjadi perpindahan instance.
 *   **Case-Insensitive Resolution**: Pencarian handle dan domain sekarang bersifat *case-insensitive* untuk mencegah duplikasi data.
-*   **Rich Actor Profile (`api/users/[username]`)**: Endpoint profil publik yang menyajikan kunci publik dan koleksi Followers/Following.
+*   **Rich Actor Profile (`api/users/id/[id]`)**: Endpoint profil publik permanen yang menyajikan kunci publik, koleksi Followers/Following, serta metadata migrasi.
 *   **Automated Key Generation**: Setiap user baru/lama otomatis mendapatkan Public/Private key secara transparan.
 
 ### 2. Security Layer (HTTP Signatures)
@@ -78,5 +82,14 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 *   **Security First**: Mengimplementasikan proteksi **SSRF**, batas kedalaman rekursi, dan *locking* request untuk menjaga integritas sistem dan mencegah penyalahgunaan resource.
 *   **Robust Content Cleaning**: Memperbarui regex parser untuk membersihkan sisa HTML redundan dari instance Misskey/Mastodon, memastikan konten federasi tampil setara dengan konten lokal.
 
+## 🎨 UX Rationale (Identity Management)
+
+Untuk memastikan fitur identitas Fediverse dapat digunakan oleh pengguna awam, kami menerapkan beberapa prinsip desain:
+
+1.  **Jargon-Free Interface**: Mengganti istilah teknis (Actor URI, `alsoKnownAs`, `movedTo`) dengan istilah yang lebih deskriptif seperti "Hubungkan Akun Lain" dan "Pindah ke Server Lain".
+2.  **Safety First (Migration Guard)**: Fitur pindah akun (`movedTo`) memiliki dampak publik yang luas. Kami mewajibkan modal konfirmasi (`AlertDialog`) untuk mengedukasi pengguna tentang dampak dari aksi tersebut sebelum dieksekusi.
+3.  **Visual Verification**: Penggunaan ikon `Fingerprint` untuk alias menekankan aspek verifikasi identitas, sementara `UserSwitch` untuk migrasi memberikan kesan perpindahan tempat.
+4.  **Handshake Awareness**: Meskipun validasi dilakukan di latar belakang, UI memberikan feedback visual (loading/handshake state) untuk memberikan kepastian kepada pengguna bahwa sistem sedang bekerja memverifikasi identitas terdistribusi mereka.
+
 ---
-*Dokumentasi diperbarui oleh Gemini CLI - Mei 2026*
+*Dokumentasi diperbarui oleh Gemini CLI - Juni 2026*

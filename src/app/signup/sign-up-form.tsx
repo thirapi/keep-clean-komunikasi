@@ -30,7 +30,7 @@ import { ServerResponse } from "@/lib/entities/models/response.model";
 import { XCircle, Eye, EyeSlash, Key, CircleNotch, User } from "@phosphor-icons/react/dist/ssr";
 
 const formSchema = z.object({
-  username: z.string().min(3),
+  username: z.string().min(3).regex(/^[a-z0-9_]+$/, "Username hanya boleh huruf kecil, angka, dan underscore"),
   password: z.string().min(4),
   confirm_password: z.string().min(4),
 });

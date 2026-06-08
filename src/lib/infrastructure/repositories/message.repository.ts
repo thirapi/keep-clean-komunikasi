@@ -47,6 +47,7 @@ export class MessageRepository implements IMessageRepository {
           user: {
             columns: {
               username: true,
+              name: true,
               avatar: true,
               bio: true,
               banner: true,
@@ -58,6 +59,7 @@ export class MessageRepository implements IMessageRepository {
               user: {
                 columns: {
                   username: true,
+                  name: true,
                 },
               },
             },
@@ -68,6 +70,7 @@ export class MessageRepository implements IMessageRepository {
               user: {
                 columns: {
                   username: true,
+                  name: true,
                 },
               },
             },
@@ -96,6 +99,7 @@ export class MessageRepository implements IMessageRepository {
         user: {
           columns: {
             username: true,
+            name: true,
             avatar: true,
           },
         },
@@ -104,6 +108,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },
@@ -114,6 +119,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },
@@ -138,6 +144,7 @@ export class MessageRepository implements IMessageRepository {
         user: {
           columns: {
             username: true,
+            name: true,
             avatar: true,
           },
         },
@@ -146,6 +153,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },
@@ -156,6 +164,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },
@@ -206,6 +215,7 @@ export class MessageRepository implements IMessageRepository {
         user: {
           columns: {
             username: true,
+            name: true,
             avatar: true,
           },
         },
@@ -214,6 +224,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },
@@ -224,6 +235,7 @@ export class MessageRepository implements IMessageRepository {
             user: {
               columns: {
                 username: true,
+                name: true,
               },
             },
           },

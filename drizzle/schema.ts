@@ -176,6 +176,7 @@ export const hashtag = pgTable("Hashtag", {
 export const user = pgTable("User", {
 	id: text().primaryKey().notNull(),
 	username: text().notNull(),
+	name: text(),
 	password: text().notNull(),
 	avatar: text().default('/avatars/avatar1.png').notNull(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),

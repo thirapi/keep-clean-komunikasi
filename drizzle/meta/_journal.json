@@ -162,6 +162,20 @@
       "when": 1780923874418,
       "tag": "0022_unique_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1780940653896,
+      "tag": "0023_absent_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780946918016,
+      "tag": "0024_fluffy_darkhawk",
+      "breakpoints": true
     }
   ]
 }

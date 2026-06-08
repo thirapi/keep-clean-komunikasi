@@ -56,6 +56,7 @@ interface ProfileViewProps {
     currentUser: {
         id: string;
         name: string;
+        username: string;
         initial: string;
         role: string;
         email: string;
@@ -469,21 +470,21 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                         <PostInput
                                             currentUser={{
                                                 id: currentUser.id,
-                                                username: currentUser.name,
+                                                username: currentUser.username,
                                                 avatar: currentUser.avatar,
                                             }}
                                             onPostCreated={handlePostCreated}
                                         />
-                                    </div>
-                                )}
+                                        </div>
+                                        )}
 
-                                {isLoading ? (
-                                    <div className="flex flex-col items-center justify-center p-20 gap-4">
+                                        {isLoading ? (
+                                        <div className="flex flex-col items-center justify-center p-20 gap-4">
                                         <CircleNotch weight="duotone" className="h-8 w-8 text-primary animate-spin" />
                                         <p className="text-muted-foreground text-sm">Memuat...</p>
-                                    </div>
-                                ) : posts.length > 0 ? (
-                                    <div className="flex flex-col">
+                                        </div>
+                                        ) : posts.length > 0 ? (
+                                        <div className="flex flex-col">
                                         {posts.map((post: any) => (
                                             <PostItem
                                                 key={post.id}
@@ -491,7 +492,7 @@ export default function ProfileView({ user, currentUser }: ProfileViewProps) {
                                                 currentUserId={currentUser?.id}
                                                 currentUser={currentUser ? {
                                                     id: currentUser.id,
-                                                    username: currentUser.name,
+                                                    username: currentUser.username,
                                                     avatar: currentUser.avatar
                                                 } : undefined}
                                                 onUpdate={handlePostCreated}

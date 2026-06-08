@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Image, X, File, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/utils";
+import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 
 interface SimpleReplyInputProps {
     currentUser: {
@@ -222,6 +223,10 @@ export function SimpleReplyInput({ currentUser, postId, onReplyCreated, showConn
                         >
                             <Image weight="duotone" className="h-[18px] w-[18px]" />
                         </Button>
+                        <EmojiPickerComponent
+                            onEmojiSelect={(emoji: string) => setContent(prev => prev + emoji)}
+                            triggerClassName="h-9 w-9 text-primary rounded-full hover:bg-primary/10 flex items-center justify-center transition-colors"
+                        />
                     </div>
 
                     <div className="flex items-center gap-4">

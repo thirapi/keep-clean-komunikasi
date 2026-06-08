@@ -41,14 +41,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
     const finalCurrentUser = fullCurrentUser ? {
         id: fullCurrentUser.id,
-        name: fullCurrentUser.username,
-        initial: fullCurrentUser.username.charAt(0).toUpperCase(),
+        name: fullCurrentUser.name || fullCurrentUser.username,
+        username: fullCurrentUser.username,
+        initial: (fullCurrentUser.name || fullCurrentUser.username).charAt(0).toUpperCase(),
         role: fullCurrentUser.roles.map(r => r.name).join(", "),
         email: "komunikasi.qzz.io",
         avatar: fullCurrentUser.avatar || "/avatars/avatar1.png",
         bio: fullCurrentUser.bio,
         banner: fullCurrentUser.banner,
         customStatus: fullCurrentUser.customStatus,
+        alsoKnownAs: fullCurrentUser.alsoKnownAs,
+        movedTo: fullCurrentUser.movedTo,
     } : null;
 
     return (

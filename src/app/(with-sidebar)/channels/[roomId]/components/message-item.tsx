@@ -721,9 +721,10 @@ export function MessageItem({
               currentUserId={currentUserId}
               onStartDM={handleStartDM}
             >
-              <span className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2">
-                {message.user?.username ?? "Unknown User"}
-              </span>
+              <span 
+                className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2"
+                dangerouslySetInnerHTML={{ __html: parseFediverseContent(message.user?.name || message.user?.username || "Unknown User", emojiMeta) }}
+              />
             </ProfileHoverCard>
 
             <span className="text-[10px] font-medium text-muted-foreground/60">
@@ -739,9 +740,10 @@ export function MessageItem({
           >
             <ArrowBendUpLeft weight="duotone" className="h-3 w-3 text-primary/60" />
             <div className="text-[11px] text-muted-foreground line-clamp-1">
-              <span className="font-bold text-primary/70">
-                @{message.replyToMessage.user?.username ?? "user"}
-              </span>
+              <span 
+                className="font-bold text-primary/70"
+                dangerouslySetInnerHTML={{ __html: parseFediverseContent(message.replyToMessage.user?.name || message.replyToMessage.user?.username || "user", emojiMeta) }}
+              />
               <span className="ml-1 opacity-80 italic">
                 {truncate(
                   message.replyToMessage.content?.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {

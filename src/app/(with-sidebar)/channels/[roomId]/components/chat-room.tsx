@@ -33,6 +33,7 @@ interface ChatRoomProps {
   lastReadAt: Date | null;
   user: {
     id: string;
+    name: string;
     username: string;
     avatar: string;
   };

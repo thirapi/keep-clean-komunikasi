@@ -11,7 +11,7 @@ export class GetActorProfileUseCase {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
-    const actorId = `${baseUrl}/api/users/${user.username}`;
+    const actorId = `${baseUrl}/api/users/id/${user.id}`;
 
     return {
       "@context": [
@@ -21,7 +21,7 @@ export class GetActorProfileUseCase {
       "id": actorId,
       "type": "Person",
       "preferredUsername": user.username,
-      "name": user.username,
+      "name": user.name || user.username,
       "summary": user.bio || "",
       "url": `${baseUrl}/profile/${user.username}`,
       "published": user.createdAt.toISOString(),
@@ -44,7 +44,9 @@ export class GetActorProfileUseCase {
       "inbox": `${actorId}/inbox`,
       "outbox": `${actorId}/outbox`,
       "followers": `${actorId}/followers`,
-      "following": `${actorId}/following`
+      "following": `${actorId}/following`,
+      "alsoKnownAs": user.alsoKnownAs || [],
+      "movedTo": user.movedTo || undefined
     };
   }
 }

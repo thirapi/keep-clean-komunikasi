@@ -176,17 +176,21 @@ export const sidaBarUserInfo = async () => {
 
   if (session && userData) {
     return {
-      name: userData.username,
+      name: userData.name || userData.username,
+      username: userData.username,
       role: getRolesAsString(userData.roles),
       email: "komunikasi.qzz.io",
       avatar: userData.avatar || "/avatars/avatar1.png",
       bio: userData.bio,
       banner: userData.banner,
       customStatus: userData.customStatus,
+      alsoKnownAs: userData.alsoKnownAs,
+      movedTo: userData.movedTo,
     };
   } else {
     return {
       name: "error",
+      username: "error",
       role: "",
       email: "",
       avatar: "/avatars/avatar1.png",

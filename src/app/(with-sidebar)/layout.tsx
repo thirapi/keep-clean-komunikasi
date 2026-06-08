@@ -32,6 +32,7 @@ export default async function layout({
   const user = userId ? {
     id: userId,
     name: userInfo.name,
+    username: userInfo.username,
     initial: getInitials(userInfo.name),
     role: userInfo.role,
     email: userInfo.email,
@@ -39,6 +40,8 @@ export default async function layout({
     bio: userInfo.bio,
     banner: userInfo.banner,
     customStatus: userInfo.customStatus,
+    alsoKnownAs: userInfo.alsoKnownAs,
+    movedTo: userInfo.movedTo,
   } : null;
 
   return (
@@ -48,7 +51,7 @@ export default async function layout({
           <PresenceProvider userId={user.id}>
             <UnreadProvider>
               <RealtimeNotificationListener
-                user={{ id: user.id, username: user.name }}
+                user={{ id: user.id, username: user.username }}
               />
               <AppSidebar
                 user={user}

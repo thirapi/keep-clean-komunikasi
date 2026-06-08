@@ -86,7 +86,8 @@ export function ChatRoomClientWrapper({ roomId }: { roomId: string }) {
             lastReadAt: fetchedLastRead?.at ? new Date(fetchedLastRead.at) : null,
             user: {
               id: userId,
-              username: userInfo.name,
+              name: userInfo.name,
+              username: userInfo.username,
               avatar: userInfo.avatar,
             },
           });

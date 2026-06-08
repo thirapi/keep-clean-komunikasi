@@ -18,6 +18,7 @@ export interface MessageRecord {
 export interface MessageWithUserDTO extends MessageRecord {
   user: {
     username: string;
+    name?: string | null;
     avatar?: string | null;
     bio?: string | null;
     banner?: string | null;
@@ -28,6 +29,7 @@ export interface MessageWithUserDTO extends MessageRecord {
     content: string;
     user: {
       username: string;
+      name?: string | null;
     };
   } | null;
   reactions?: MessageReactionWithUserDTO[];

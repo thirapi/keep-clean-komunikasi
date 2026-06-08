@@ -42,6 +42,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: {
     id: string;
     name: string;
+    username: string;
     initial: string;
     role: string;
     email: string;

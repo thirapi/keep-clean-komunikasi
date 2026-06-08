@@ -139,7 +139,7 @@ export function MobileMemberList({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-bold truncate">
-                            {participant.user.username} {isSelf && "(Anda)"}
+                            {participant.user.name || participant.user.username} {isSelf && "(Anda)"}
                           </span>
                           {isParticipantOwner && <Crown className="size-3.5 text-amber-500 fill-amber-500" />}
                         </div>

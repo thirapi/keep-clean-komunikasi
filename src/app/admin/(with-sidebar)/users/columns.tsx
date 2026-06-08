@@ -7,6 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./_components/data-table-column-header";
 
 import { EditRoleDialog } from "./_components/edit-role-dialog";
+import { DeleteUserDialog } from "./_components/delete-user-dialog";
 import { AllUsers } from "./types";
 
 export function getColumns(allRoles: string[], actorUserId: string): ColumnDef<AllUsers>[] {
@@ -33,12 +34,19 @@ export function getColumns(allRoles: string[], actorUserId: string): ColumnDef<A
       cell: ({ row }) => {
         const roles = row.original.roles.map((r) => r.name);
         return (
-          <EditRoleDialog
-            targetUserId={row.original.id}
-            initialRoles={roles}
-            actorUserId={actorUserId}
-            allRoles={allRoles.map((role) => ({ id: role, name: role }))}
-          />
+          <div className="flex items-center gap-2">
+            <EditRoleDialog
+              targetUserId={row.original.id}
+              initialRoles={roles}
+              actorUserId={actorUserId}
+              allRoles={allRoles.map((role) => ({ id: role, name: role }))}
+            />
+            <DeleteUserDialog
+              targetUserId={row.original.id}
+              username={row.original.username}
+              actorUserId={actorUserId}
+            />
+          </div>
         );
       },
     },

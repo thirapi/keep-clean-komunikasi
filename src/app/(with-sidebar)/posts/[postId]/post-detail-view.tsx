@@ -87,19 +87,6 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => toggleSidebar()}
-                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full bg-accent/50 border-2 border-accent transition-colors duration-200 flex-shrink-0"
-                                aria-label="Toggle sidebar"
-                            >
-                                <CaretLeft weight="duotone" className="h-7 w-7" />
-                            </Button>
-                        </div>
-
-                        {isMounted && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 text-white rounded-full hover:bg-white/10"
                                 onClick={() => {
                                     if (document.referrer.includes(window.location.host) && window.history.length > 2) {
                                         router.back();
@@ -107,10 +94,12 @@ export default function PostDetailView({ initialPost, initialReplies, initialPar
                                         router.push("/timeline");
                                     }
                                 }}
+                                className="mr-1 -ml-2 -my-2 h-10 w-10 text-muted-foreground rounded-full transition-colors duration-200 flex-shrink-0"
+                                aria-label="Go back"
                             >
-                                <CaretLeft weight="duotone" className="h-6 w-6" />
+                                <CaretLeft weight="duotone" className="h-7 w-7" />
                             </Button>
-                        )}
+                        </div>
 
                         <h1 className="text-xl font-bold tracking-tight">Postingan</h1>
                     </div>

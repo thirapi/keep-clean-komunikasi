@@ -58,6 +58,7 @@ export class GetProfileUseCase {
             return {
                 id: user.id,
                 username: user.username,
+                displayName: user.name,
                 avatar: user.avatar,
                 bio: user.bio,
                 banner: user.banner,

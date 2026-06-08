@@ -4,6 +4,7 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("User", {
     id: text("id").primaryKey(),
     username: text("username").unique().notNull(),
+    name: text("name"),
     password: text("password").notNull(),
     avatar: text("avatar").default("/avatars/avatar1.png").notNull(),
     bio: text("bio"),
@@ -12,6 +13,8 @@ export const users = pgTable("User", {
     // Fediverse Compatibility
     publicKey: text("publicKey"),
     privateKey: text("privateKey"),
+    alsoKnownAs: jsonb("alsoKnownAs").default([]),
+    movedTo: text("movedTo"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });

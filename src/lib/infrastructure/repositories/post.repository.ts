@@ -103,7 +103,7 @@ export class PostRepository implements IPostRepository {
             orderBy: [asc(posts.createdAt)],
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -192,7 +192,7 @@ export class PostRepository implements IPostRepository {
             where: and(eq(posts.id, id), eq(posts.isDeleted, false)),
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -301,7 +301,7 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -401,7 +401,7 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -483,7 +483,7 @@ export class PostRepository implements IPostRepository {
             orderBy: [desc(posts.createdAt)],
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -642,7 +642,7 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -738,7 +738,7 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
@@ -828,7 +828,7 @@ export class PostRepository implements IPostRepository {
             offset,
             with: {
                 user: {
-                    columns: { username: true, avatar: true, bio: true, banner: true, customStatus: true },
+                    columns: { username: true, name: true, avatar: true, bio: true, banner: true, customStatus: true },
                 },
                 remoteActor: true,
                 attachments: true,
