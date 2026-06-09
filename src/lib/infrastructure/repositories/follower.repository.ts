@@ -197,7 +197,7 @@ export class FollowerRepository implements IFollowerRepository {
             .where(
                 and(
                     isNotNull(followers.followerId),
-                    eq(remoteActors.domain, domain)
+                    sql`lower(${remoteActors.domain}) = ${domain.toLowerCase()}`
                 )
             )
             .limit(1);

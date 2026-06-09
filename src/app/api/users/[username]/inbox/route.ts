@@ -62,11 +62,11 @@ export async function POST(
     
     // ALLOW if:
     // a) It's from the local domain
-    // b) It's a protocol-critical activity (Follow, Undo, Delete)
-    // c) We already follow someone from that domain
-    const CRITICAL_ACTIVITIES = ["Follow", "Undo", "Delete"];
+    // b) It's a protocol-critical activity or an interaction
+    //    (We only want to whitelist "Content" activities like Create and Announce)
+    const ALWAYS_ALLOWED = ["Follow", "Undo", "Delete", "Accept", "Reject", "Like", "EmojiReact"];
     
-    if (senderDomain !== localDomain && !CRITICAL_ACTIVITIES.includes(body.type)) {
+    if (senderDomain !== localDomain && !ALWAYS_ALLOWED.includes(body.type)) {
         const isFollowed = await followerRepository.isDomainFollowed(senderDomain);
         if (!isFollowed) {
             console.warn(`[Inbox] Blocking activity from unauthorized domain: ${senderDomain}`);

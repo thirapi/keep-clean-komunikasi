@@ -637,11 +637,7 @@ export class PostRepository implements IPostRepository {
                     ? isNotNull(posts.userId) 
                     : or(
                         isNotNull(posts.userId),
-                        exists(
-                            this.client.select()
-                                .from(followers)
-                                .where(eq(followers.remoteFollowingId, posts.remoteActorId))
-                        )
+                        isNotNull(posts.remoteActorId)
                     ),
                 excludedUserIds && excludedUserIds.length > 0 ? or(isNull(posts.userId), notInArray(posts.userId, excludedUserIds)) : undefined,
                 excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? or(isNull(posts.remoteActorId), notInArray(posts.remoteActorId, excludedRemoteActorIds)) : undefined
