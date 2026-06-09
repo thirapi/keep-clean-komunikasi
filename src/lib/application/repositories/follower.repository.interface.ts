@@ -18,4 +18,5 @@ export interface IFollowerRepository {
     unfollowLocalToRemote(localFollowerId: string, remoteFollowingId: string): Promise<void>;
     getRemoteFollowing(userId: string): Promise<string[]>;
     getRemoteFollowersInboxes(localUserId: string): Promise<string[]>;
+    isDomainFollowed(domain: string): Promise<boolean>;
 }

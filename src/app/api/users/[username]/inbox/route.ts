@@ -31,13 +31,56 @@ export async function POST(
 ) {
     const { username } = await params;
     
-    // 1. Check if user exists locally
+    // 1. Extract signature and sender domain
+    const sigHeader = request.headers.get("signature");
+    const keyIdMatch = sigHeader?.match(/keyId="([^"]+)"/);
+
+    if (!keyIdMatch) {
+        console.warn("[Inbox] Blocking activity: Missing or malformed signature header.");
+        return new Response("Unauthorized: Missing Signature", { status: 401 });
+    }
+
+    let senderDomain: string;
+    try {
+        senderDomain = new URL(keyIdMatch[1]).hostname;
+    } catch (e) {
+        console.error("[Inbox] Invalid KeyId URL in signature", e);
+        return new Response("Bad Request: Invalid KeyId URL", { status: 400 });
+    }
+
+    // 2. Parse body early for "Follow" exception check
+    let body: any;
+    try {
+        body = await request.json();
+    } catch (e) {
+        return new Response("Bad Request: Invalid JSON body", { status: 400 });
+    }
+
+    // 3. Dynamic Whitelist Check
+    const localUrl = process.env.NEXT_PUBLIC_APP_URL || "https://komunikasi.qzz.io";
+    const localDomain = new URL(localUrl).hostname;
+    
+    // ALLOW if:
+    // a) It's from the local domain
+    // b) It's a protocol-critical activity (Follow, Undo, Delete)
+    // c) We already follow someone from that domain
+    const CRITICAL_ACTIVITIES = ["Follow", "Undo", "Delete"];
+    
+    if (senderDomain !== localDomain && !CRITICAL_ACTIVITIES.includes(body.type)) {
+        const isFollowed = await followerRepository.isDomainFollowed(senderDomain);
+        if (!isFollowed) {
+            console.warn(`[Inbox] Blocking activity from unauthorized domain: ${senderDomain}`);
+            return new Response("Forbidden Domain", { status: 403 });
+        }
+    }
+
+    // 4. Check if user exists locally
     const user = await userRepository.findByUsername(username);
     if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2. Extract headers for signature verification
+    // 5. Extract headers for signature verification
     const headers: Record<string, string> = {};
     request.headers.forEach((value, key) => {
         headers[key] = value;
@@ -48,14 +91,8 @@ export async function POST(
         return NextResponse.json({ error: "Missing Signature header" }, { status: 401 });
     }
 
-    // 3. Parse keyId from signature to fetch the sender's public key
-    const keyIdMatch = signatureHeader.match(/keyId="([^"]+)"/);
-    if (!keyIdMatch) {
-        return NextResponse.json({ error: "Invalid Signature header format" }, { status: 401 });
-    }
+    // 6. Verify the signature
     const keyId = keyIdMatch[1];
-
-    // 4. Verify the signature
     let publicKey = await SignatureVerificationService.fetchRemotePublicKey(keyId);
     
     const actorIdFromKeyId = keyId.split("#")[0];
@@ -68,8 +105,6 @@ export async function POST(
             publicKey = cachedActor.publicKey;
         }
     }
-
-    const body = await request.json();
 
     if (!publicKey) {
         // Special case: If it's a Delete activity and we can't get the key, 

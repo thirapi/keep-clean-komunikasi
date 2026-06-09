@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { followers, remoteActors } from "@/lib/infrastructure/drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNotNull } from "drizzle-orm";
 import { IFollowerRepository } from "@/lib/application/repositories/follower.repository.interface";
 import { FollowerRecord } from "@/lib/entities/models/follower.model";
 import { createId } from "@paralleldrive/cuid2";
@@ -188,5 +188,19 @@ export class FollowerRepository implements IFollowerRepository {
         // Prefer sharedInbox if available to reduce traffic
         const inboxes = results.map(r => r.sharedInbox || r.inbox);
         return Array.from(new Set(inboxes));
+    }
+
+    async isDomainFollowed(domain: string): Promise<boolean> {
+        const result = await this.client.select({ id: followers.id })
+            .from(followers)
+            .innerJoin(remoteActors, eq(followers.remoteFollowingId, remoteActors.id))
+            .where(
+                and(
+                    isNotNull(followers.followerId),
+                    eq(remoteActors.domain, domain)
+                )
+            )
+            .limit(1);
+        return result.length > 0;
     }
 }

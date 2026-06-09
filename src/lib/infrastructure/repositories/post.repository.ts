@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { posts, postReactions, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
+import { posts, postReactions, attachments as attachmentsTable, followers } from "@/lib/infrastructure/drizzle/schema";
 import { eq, desc, asc, and, isNotNull, isNull, exists, sql, or, inArray, notInArray } from "drizzle-orm";
 import { IPostRepository } from "@/lib/application/repositories/post.repository.interface";
 import { PostRecord, PostWithUserDTO } from "@/lib/entities/models/post.model";
@@ -633,7 +633,16 @@ export class PostRepository implements IPostRepository {
             where: and(
                 eq(posts.isDeleted, false),
                 eq(posts.visibility, "public"),
-                filter === "local" ? isNotNull(posts.userId) : undefined,
+                filter === "local" 
+                    ? isNotNull(posts.userId) 
+                    : or(
+                        isNotNull(posts.userId),
+                        exists(
+                            this.client.select()
+                                .from(followers)
+                                .where(eq(followers.remoteFollowingId, posts.remoteActorId))
+                        )
+                    ),
                 excludedUserIds && excludedUserIds.length > 0 ? or(isNull(posts.userId), notInArray(posts.userId, excludedUserIds)) : undefined,
                 excludedRemoteActorIds && excludedRemoteActorIds.length > 0 ? or(isNull(posts.remoteActorId), notInArray(posts.remoteActorId, excludedRemoteActorIds)) : undefined
             ),
