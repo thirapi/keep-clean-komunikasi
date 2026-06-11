@@ -14,6 +14,31 @@ Implementasi ini mengikuti standar **Clean Architecture** yang sudah ada di proy
 3.  **Persistence**: Drizzle ORM dengan tabel tambahan untuk `RemoteActor` (mendukung kolom `jsonb` untuk metadata kaya) dan modifikasi pada tabel `Follower`.
 4.  **Content Parsing**: Pipeline transformasi konten kustom untuk menangani elemen unik Fediverse seperti emoji kustom dan tautan semantik.
 
+## 🛡️ Strategi Federasi: Dynamic Whitelist
+
+Platform ini menerapkan kebijakan **Dynamic Whitelist** untuk menjaga keseimbangan antara keterbukaan Fediverse (discovery) dan perlindungan terhadap spam/sampah data (integrity).
+
+### 1. Inbound Filtering (Benteng Pertahanan)
+Seluruh aktivitas masuk melalui endpoint `inbox` divalidasi dengan aturan ketat:
+- **Whitelisting Otomatis**: Sebuah domain dianggap "terpercaya" jika minimal ada satu user lokal yang mem-follow salah satu akun di domain tersebut.
+- **Blokir Konten Asing**: Aktivitas `Create` (postingan) dan `Announce` (repost) dari domain yang tidak ada dalam daftar diikuti akan ditolak dengan status **403 Forbidden**.
+- **Protokol Terbuka**: Aktivitas interaksi dasar (`Follow`, `Like`, `Undo`, `Accept`) tetap diperbolehkan dari domain mana pun agar user baru dari luar tetap bisa menjalin koneksi awal dengan user lokal.
+
+### 2. Outbound Fetching (Jembatan Informasi)
+Berbeda dengan Inbox, jalur **Outbound Fetch** (HTTP GET dari server kita ke luar) dibiarkan terbuka secara sengaja:
+- **Discovery**: User lokal harus bisa mencari URL profil atau postingan dari instance baru yang belum pernah terhubung sebelumnya. Membatasi fetch hanya ke domain yang sudah di-follow akan menciptakan "paradoks isolasi" di mana user tidak akan pernah bisa menemukan akun baru.
+- **Keamanan Inisiatif**: Karena fetch dilakukan atas inisiatif sadar server kita (misal: saat pencarian atau klik link), risiko injeksi spam massal sangat rendah dibandingkan dengan jalur Inbox.
+
+### 3. Integritas Konteks (Post-Thread Healing)
+Saat sistem melakukan *Thread Healing* untuk melengkapi percakapan, data dari domain yang tidak diikuti mungkin akan masuk ke database lokal sebagai referensi visual:
+- **Konteks Visual**: Postingan ini disimpan agar pohon percakapan tidak terputus saat dilihat oleh user.
+- **Status Whitelist Tetap Aman**: Meskipun data tersimpan, domain tersebut **TIDAK** otomatis masuk ke daftar whitelist. Jika domain tersebut mencoba mengirimkan postingan baru (push) di masa depan tanpa ada relasi follow yang sah, filter Inbox akan tetap memblokirnya.
+
+### 4. Filosofi Timeline Federasi
+Timeline "Federasi" (Global Feed) menampilkan apa yang sudah diketahui oleh sistem. Karena pintu masuk (Inbox) sudah dijaga ketat, maka database diasumsikan sudah bersih secara desain. Tidak diperlukan filter SQL tambahan di level query timeline, sehingga performa tetap optimal dan konteks percakapan tetap utuh.
+
+---
+
 ## ✅ Fitur yang SUDAH Diimplementasikan
 
 ### 1. Identity Layer (Identity & Discovery)

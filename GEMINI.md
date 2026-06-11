@@ -3,7 +3,7 @@
 ## Primary Mandates
 - **Clean Architecture**: Follow the patterns defined in [clean-architecture.md](./clean-architecture.md).
 - **Post Interactions**: All changes to Like, Repost, Quote, and Bookmark logic MUST follow [docs/post-actions.md](./docs/post-actions.md).
-- **Fediverse & ActivityPub**: Refer to [docs/fediverse-implementation.md](./docs/fediverse-implementation.md) untuk standar protokol. Mendukung standar **FEP-e232 (Object Links)** dan **_misskey_quote**.
+- **Fediverse & ActivityPub**: Refer to [docs/fediverse-implementation.md](./docs/fediverse-implementation.md) untuk standar protokol. Mendukung standar **FEP-e232 (Object Links)** dan **_misskey_quote**. Implementasi wajib mengikuti arsitektur **Dynamic Whitelist Federation** (Inbox filtering vs Outbound fetch) yang didokumentasikan di [docs/federation-whitelist-strategy.md](./docs/federation-whitelist-strategy.md).
 - **Security Hardening**: Semua request outbound Fediverse wajib melewati proteksi **SSRF** (no private IPs), memiliki limit rekursi thread (max 10), dan menggunakan **Authorized Fetch (Signed GET)**. Concurrent fetches untuk URI yang sama wajib di-lock in-memory.
 - **Mark as Read**: All changes related to message read status must adhere to the throttled and real-time synchronization strategy documented in [docs/mark-as-read.md](./docs/mark-as-read.md).
 - **Lexical Editor**: All chat input components use the Lexical rich text framework. Refer to [docs/lexical-editor.md](./docs/lexical-editor.md) for architecture decisions.
