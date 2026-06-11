@@ -176,6 +176,13 @@
       "when": 1780946918016,
       "tag": "0024_fluffy_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1781201448302,
+      "tag": "0025_sticky_triton",
+      "breakpoints": true
     }
   ]
 }

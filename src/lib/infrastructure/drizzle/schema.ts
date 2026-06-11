@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, unique, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, unique, integer, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const users = pgTable("User", {
@@ -294,6 +294,7 @@ export const followers = pgTable("Follower", {
     unq_local: unique().on(t.followerId, t.followingId),
     unq_remote: unique().on(t.followerId, t.remoteFollowingId),
     unq_incoming: unique().on(t.remoteFollowerId, t.followingId),
+    remoteFollowingIdx: index("Follower_remoteFollowingId_idx").on(t.remoteFollowingId),
 }));
 
 export const remoteActors = pgTable("RemoteActor", {
@@ -313,7 +314,9 @@ export const remoteActors = pgTable("RemoteActor", {
     emojis: jsonb("emojis"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+    domainIdx: index("RemoteActor_domain_idx").on(t.domain),
+}));
 
 export const remoteActorsRelations = relations(remoteActors, ({ many }) => ({
     followers: many(followers, { relationName: "remoteFollowers" }),

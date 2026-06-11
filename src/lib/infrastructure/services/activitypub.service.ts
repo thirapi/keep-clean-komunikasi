@@ -1068,9 +1068,14 @@ export class ActivityPubService implements IActivityPubService {
 
         const newActor = await this.remoteActorRepository.findById(actorUrl);
         
-        // Trigger backfill for new discovery
+        // Trigger backfill for new discovery ONLY if domain is whitelisted
         if (newActor && localUserIdForSignedFetch) {
-            this.backfillActor(actorUrl, localUserIdForSignedFetch).catch(e => console.error(`[EnsureActor] Backfill failed for ${actorUrl}:`, e));
+            const isWhitelisted = await this.followerRepository.isDomainFollowed(domain);
+            if (isWhitelisted) {
+                this.backfillActor(actorUrl, localUserIdForSignedFetch).catch(e => console.error(`[EnsureActor] Backfill failed for ${actorUrl}:`, e));
+            } else {
+                console.log(`[EnsureActor] Skipping backfill for non-whitelisted domain: ${domain}`);
+            }
         }
 
         return newActor;

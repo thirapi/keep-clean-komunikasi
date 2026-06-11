@@ -14,17 +14,26 @@ async function main() {
         console.log(`📊 Initial state: ${initialPosts} posts, ${initialActors} remote actors.`);
 
         // 2. Identify spam posts
-        // Posts with no local userId and whose remoteActor is not followed by any local user
-        console.log("🔍 Identifying spam posts...");
+        // Standalone posts from non-whitelisted domains that have no children (not replied to/reposted/quoted)
+        console.log("🔍 Identifying standalone spam posts...");
         await db.execute(sql`DROP TABLE IF EXISTS temp_spam_posts`);
         await db.execute(sql`
             CREATE TEMPORARY TABLE temp_spam_posts AS
             SELECT id FROM "Post"
             WHERE "userId" IS NULL
+            AND "replyToId" IS NULL
+            AND "repostOfId" IS NULL
+            AND "quoteOfId" IS NULL
             AND NOT EXISTS (
                 SELECT 1 FROM "Follower" 
                 WHERE "Follower"."remoteFollowingId" = "Post"."remoteActorId"
                 AND "Follower"."followerId" IS NOT NULL
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM "Post" p2 
+                WHERE p2."replyToId" = "Post"."id"
+                OR p2."repostOfId" = "Post"."id"
+                OR p2."quoteOfId" = "Post"."id"
             )
         `);
         const spamCountRes = await db.execute(sql`SELECT count(*) FROM temp_spam_posts`);
