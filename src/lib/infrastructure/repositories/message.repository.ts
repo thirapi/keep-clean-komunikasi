@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
 import { messages, attachments as attachmentsTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, asc, desc, lt, gt, and, ilike } from "drizzle-orm";
+import { eq, asc, desc, lt, gt, and, ilike, or, like } from "drizzle-orm";
 import { IMessageRepository } from "@/lib/application/repositories/message.repository.interface";
 import {
   MessageWithUserDTO,
 } from "@/lib/entities/models/message.model";
+import { AttachmentWithMessageDTO } from "@/lib/entities/models/attachment.model";
 import { createId } from "@paralleldrive/cuid2";
 
 export class MessageRepository implements IMessageRepository {
@@ -199,6 +200,58 @@ export class MessageRepository implements IMessageRepository {
 
   async deleteMessage(messageId: string): Promise<void> {
     await this.client.update(messages).set({ isDeleted: true }).where(eq(messages.id, messageId));
+  }
+
+  async getAttachmentsByUserId(userId: string, limit?: number): Promise<AttachmentWithMessageDTO[]> {
+    const rows = await this.client
+      .select()
+      .from(attachmentsTable)
+      .innerJoin(messages, eq(attachmentsTable.messageId, messages.id))
+      .where(
+        and(
+          eq(messages.userId, userId),
+          or(
+            like(attachmentsTable.fileType, "image/%"),
+            like(attachmentsTable.fileType, "video/%"),
+          ),
+        ),
+      )
+      .orderBy(desc(attachmentsTable.createdAt))
+      .limit(limit ?? 50);
+
+    return rows.map((row) => ({
+      ...row.Attachment,
+      message: {
+        userId: row.Message.userId,
+        roomId: row.Message.roomId,
+      },
+    }));
+  }
+
+  async getAttachmentsByRoomId(roomId: string, limit?: number): Promise<AttachmentWithMessageDTO[]> {
+    const rows = await this.client
+      .select()
+      .from(attachmentsTable)
+      .innerJoin(messages, eq(attachmentsTable.messageId, messages.id))
+      .where(
+        and(
+          eq(messages.roomId, roomId),
+          or(
+            like(attachmentsTable.fileType, "image/%"),
+            like(attachmentsTable.fileType, "video/%"),
+          ),
+        ),
+      )
+      .orderBy(desc(attachmentsTable.createdAt))
+      .limit(limit ?? 50);
+
+    return rows.map((row) => ({
+      ...row.Attachment,
+      message: {
+        userId: row.Message.userId,
+        roomId: row.Message.roomId,
+      },
+    }));
   }
 
   async searchMessages(query: string, roomId?: string, limit: number = 20): Promise<MessageWithUserDTO[]> {

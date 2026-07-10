@@ -1,4 +1,5 @@
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
+import { AttachmentWithMessageDTO } from "@/lib/entities/models/attachment.model";
 
 export interface IMessageRepository {
   createMessage(
@@ -13,4 +14,6 @@ export interface IMessageRepository {
   updateMessage(messageId: string, content: string): Promise<MessageWithUserDTO>;
   deleteMessage(messageId: string): Promise<void>;
   searchMessages(query: string, roomId?: string, limit?: number): Promise<MessageWithUserDTO[]>;
+  getAttachmentsByUserId(userId: string, limit?: number): Promise<AttachmentWithMessageDTO[]>;
+  getAttachmentsByRoomId(roomId: string, limit?: number): Promise<AttachmentWithMessageDTO[]>;
 }

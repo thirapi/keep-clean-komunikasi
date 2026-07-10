@@ -201,6 +201,32 @@ export class RoomRepository implements IRoomRepository {
     };
   }
 
+  async findDirectRoomBetweenUsers(userId1: string, userId2: string): Promise<{ id: string } | null> {
+    const rooms1 = await this.client
+      .select({ roomId: roomParticipants.roomId })
+      .from(roomParticipants)
+      .where(and(
+        eq(roomParticipants.userId, userId1),
+        eq(rooms.isDirect, true),
+      ))
+      .innerJoin(rooms, eq(roomParticipants.roomId, rooms.id));
+
+    const rooms2 = await this.client
+      .select({ roomId: roomParticipants.roomId })
+      .from(roomParticipants)
+      .where(and(
+        eq(roomParticipants.userId, userId2),
+        eq(rooms.isDirect, true),
+      ))
+      .innerJoin(rooms, eq(roomParticipants.roomId, rooms.id));
+
+    const intersection = rooms1.find(r1 =>
+      rooms2.some(r2 => r2.roomId === r1.roomId)
+    );
+
+    return intersection ? { id: intersection.roomId } : null;
+  }
+
   async getOtherParticipants(
     roomId: string,
     excludeUserId: string

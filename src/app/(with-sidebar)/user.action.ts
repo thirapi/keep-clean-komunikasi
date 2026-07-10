@@ -3,10 +3,12 @@
 import { requireNoImpersonation } from "@/lib/impersonate.guard";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
+import { AttachmentWithMessageDTO } from "@/lib/entities/models/attachment.model";
 import { updateUserController } from "@/lib/interface-adapters/controllers/users/update.controller";
 import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
 import { changePasswordController } from "@/lib/interface-adapters/controllers/users/change-password.controller";
 import { getProfileController } from "@/lib/interface-adapters/controllers/users/get-profile.controller";
+import { getSharedMediaController } from "@/lib/interface-adapters/controllers/users/get-shared-media.controller";
 
 export const updateUserAction = async (
   userId: string,
@@ -93,6 +95,26 @@ export const getPublicProfileAction = async (username: string, currentUserId?: s
       error: {
         type: "UNKNOWN_ERROR",
         message: err.message || "User not found",
+      },
+    };
+  }
+};
+
+export const getSharedMediaAction = async (currentUserId: string, profileUsername: string): Promise<ServerResponse<AttachmentWithMessageDTO[]>> => {
+  try {
+    const media = await getSharedMediaController(currentUserId, profileUsername);
+    return {
+      status: "success",
+      data: media,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: [],
+      error: {
+        type: "UNKNOWN_ERROR",
+        message: err.message || "Failed to load media",
       },
     };
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { createRoom } from "../../channels/[roomId]/room.action";
 import { getPublicProfileAction } from "../../user.action";
 import { toast } from "sonner";
 import { UserSettingsDialog } from "../../user-settings-dialog";
-import { cn } from "@/lib/utils";
+import { SharedMediaGrid } from "@/components/shared-media-grid";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface ProfileViewProps {
     user: {
@@ -42,7 +43,6 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ user: initialUser, currentUser }: ProfileViewProps) {
-    const isMobile = useIsMobile();
     const { onlineUserIds } = usePresence();
     const router = useRouter();
     const [isRedirecting, setIsRedirecting] = React.useState(false);
@@ -90,43 +90,58 @@ export default function ProfileView({ user: initialUser, currentUser }: ProfileV
         }
     }, [user.createdAt]);
 
+    const isMobile = useIsMobile();
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [showStickyHeader, setShowStickyHeader] = useState(false);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el || !isMobile) return;
+
+        const handleScroll = () => {
+            setShowStickyHeader(el.scrollTop > 120);
+        };
+
+        el.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll();
+        return () => el.removeEventListener("scroll", handleScroll);
+    }, [isMobile]);
+
     return (
         <div className="flex flex-col h-full bg-background/50 pb-[72px] md:pb-0">
             <div className="flex justify-center flex-1 overflow-hidden">
-                <div className="w-full max-w-lg border-x border-border/50 bg-background/30 flex flex-col h-full relative">
-                    <div className="px-4 py-2 md:px-6 md:py-3 sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 flex items-center justify-between shrink-0">
-                        <span className={cn("text-sm font-medium text-muted-foreground truncate", isMobile && "ml-4")}>
-                            @{user.username.toLowerCase()}
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={handleCopyLink} className="rounded-xl hover:bg-muted h-8 w-8" title="Salin link">
-                                <ShareNetwork className="h-4 w-4" />
-                            </Button>
-                            {isOwnProfile ? (
-                                <UserSettingsDialog
-                                    user={currentUser as any}
-                                    trigger={
-                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted h-8 w-8" title="Edit Profil">
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                    }
-                                />
-                            ) : (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleStartDM}
-                                    disabled={isRedirecting}
-                                    className="rounded-xl hover:bg-muted text-primary h-8 w-8"
-                                    title="Kirim Pesan"
-                                >
-                                    <ChatTeardropText weight="duotone" className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                <div className={cn(
+                    "w-full border-x border-border/50 bg-background/30 flex flex-col h-full relative",
+                    "max-w-lg lg:max-w-2xl",
+                )}>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+                    {isMobile && (
+                        <div
+                            className={cn(
+                                "absolute top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 transition-opacity duration-200",
+                                showStickyHeader ? "opacity-100" : "opacity-0 pointer-events-none",
+                            )}
+                        >
+                            <div className="flex items-center gap-3 px-4 h-12">
+                                <UserAvatar
+                                    src={user.avatar}
+                                    className="h-8 w-8 ring-2 ring-background shrink-0"
+                                />
+                                <div className="flex flex-col leading-tight min-w-0">
+                                    <span className="text-sm font-semibold truncate">Profil</span>
+                                    <span className="text-xs text-muted-foreground truncate">
+                                        @{user.username.toLowerCase()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {!isMobile && (
+                        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 shrink-0 h-0" />
+                    )}
+
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
+
                         {/* Banner */}
                         {user.banner && (
                             <div
@@ -141,14 +156,12 @@ export default function ProfileView({ user: initialUser, currentUser }: ProfileV
                             </div>
                         )}
 
-                        <div className="flex flex-col items-center px-6 pb-8">
+                        {/* Profile info */}
+                        <div className="flex flex-col items-center px-6 pb-4">
                             <div className={cn("relative", user.banner ? "-mt-10 sm:-mt-12 mb-3" : "mt-8 mb-3")}>
                                 <UserAvatar
                                     src={user.avatar}
-                                    className={cn(
-                                        "ring-4 ring-background shadow-xl",
-                                        user.banner ? "h-20 w-20 sm:h-24 sm:w-24" : "h-20 w-20 sm:h-24 sm:w-24 rounded-full",
-                                    )}
+                                    className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-xl rounded-full"
                                 />
                                 {isUserOnline && (
                                     <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 bg-emerald-500 rounded-full border-[3px] border-background shadow" />
@@ -177,21 +190,56 @@ export default function ProfileView({ user: initialUser, currentUser }: ProfileV
                                 </p>
                             )}
 
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-5">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-6">
                                 <span>Bergabung {formattedJoinDate}</span>
                             </div>
 
-                            {!isOwnProfile && currentUser && (
+                            {/* Action buttons */}
+                            <div className="flex items-center justify-center gap-3 mt-6">
                                 <Button
-                                    onClick={handleStartDM}
-                                    disabled={isRedirecting}
-                                    className="mt-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 h-10 w-full max-w-xs"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleCopyLink}
+                                    className="rounded-full h-10 w-10"
+                                    title="Salin link"
                                 >
-                                    <ChatTeardropText weight="duotone" className="h-4 w-4 mr-2" />
-                                    Kirim Pesan
+                                    <ShareNetwork className="h-4 w-4" />
                                 </Button>
-                            )}
+
+                                {isOwnProfile ? (
+                                    <UserSettingsDialog
+                                        user={currentUser as any}
+                                        trigger={
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="rounded-full h-10 w-10"
+                                                title="Edit Profil"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        }
+                                    />
+                                ) : currentUser ? (
+                                    <Button
+                                        onClick={handleStartDM}
+                                        disabled={isRedirecting}
+                                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 h-10"
+                                    >
+                                        <ChatTeardropText weight="duotone" className="h-4 w-4 mr-2" />
+                                        Kirim Pesan
+                                    </Button>
+                                ) : null}
+                            </div>
                         </div>
+
+                        {/* Shared media — full width */}
+                        {currentUser && (
+                            <SharedMediaGrid
+                                currentUserId={currentUser.id}
+                                profileUsername={user.username}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

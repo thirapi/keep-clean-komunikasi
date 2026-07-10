@@ -10,3 +10,10 @@ export interface AttachmentRecord {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface AttachmentWithMessageDTO extends AttachmentRecord {
+  message: {
+    userId: string;
+    roomId: string;
+  };
+}

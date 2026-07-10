@@ -13,6 +13,7 @@ export interface IRoomRepository {
     lastReadAt?: Date
   ): Promise<void>;
   getLastReadAt(userId: string, roomId: string): Promise<{ id: string | null; at: Date | null }>;
+  findDirectRoomBetweenUsers(userId1: string, userId2: string): Promise<{ id: string } | null>;
   getOtherParticipants(
     roomId: string,
     excludeUserId: string
