@@ -30,7 +30,7 @@ export default async function House() {
 
   // If user is already logged in, redirect to the app immediately
   if (session) {
-    redirect("/timeline");
+    redirect("/channels/default");
   }
 
   return (
