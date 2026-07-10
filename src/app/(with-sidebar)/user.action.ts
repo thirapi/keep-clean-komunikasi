@@ -1,5 +1,6 @@
 "use server";
 
+import { requireNoImpersonation } from "@/lib/impersonate.guard";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { UserRecord } from "@/lib/entities/models/user.model";
 import { updateUserController } from "@/lib/interface-adapters/controllers/users/update.controller";
@@ -12,6 +13,7 @@ export const updateUserAction = async (
   user: Partial<UserRecord>
 ): Promise<ServerResponse<null>> => {
   try {
+    await requireNoImpersonation();
     await updateUserController(userId, user);
 
     return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CaretUpDown, CreditCard, SealCheck, SignOut, Sparkle, UserCircle } from "@phosphor-icons/react/dist/ssr";
+import { Bell, CaretUpDown, CreditCard, SealCheck, SignOut, Sparkle, UserCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -20,6 +20,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutUserAction } from "../auth.action";
+import { stopImpersonation } from "../impersonate.action";
+import { useIsImpersonating } from "@/hooks/use-impersonation";
 import { useRouter } from "next/navigation";
 import UserPage from "../admin/(with-sidebar)/log/page";
 import { UserSettingsDialog } from "./user-settings-dialog";
@@ -53,10 +55,16 @@ export function NavUser({
   isMobileHeader?: boolean;
 }) {
   const { isMobile } = useSidebar();
+  const { isImpersonating, impersonatedUser } = useIsImpersonating();
   const isAdmin = checkRole?.roles.some(
     (role) => role.name.toLowerCase() === "admin"
   );
   const router = useRouter();
+
+  const handleStopImpersonation = async () => {
+    await stopImpersonation();
+    window.location.reload();
+  };
 
   const handleLogout = async () => {
     await signOutUserAction();
@@ -86,11 +94,17 @@ export function NavUser({
               {!isMobileHeader && (
                 <>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold text-prime">
-                      {user.name}
-                    </span>
+                    {isImpersonating ? (
+                      <span className="truncate font-semibold text-destructive">
+                        Impersonasi: @{impersonatedUser?.username}
+                      </span>
+                    ) : (
+                      <span className="truncate font-semibold text-prime">
+                        {user.name}
+                      </span>
+                    )}
                     <span className="truncate text-xs dark:text-slate-500">
-                      {user.role}
+                      {isImpersonating ? "Klik untuk stop" : user.role}
                     </span>
                   </div>
                   <CaretUpDown weight="duotone" className="ml-auto size-4" />
@@ -112,11 +126,17 @@ export function NavUser({
                   className="h-8 w-8 rounded-lg"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-prime">
-                    {user.name}
-                  </span>
+                  {isImpersonating ? (
+                    <span className="truncate font-semibold text-destructive">
+                      @{impersonatedUser?.username}
+                    </span>
+                  ) : (
+                    <span className="truncate font-semibold text-prime">
+                      {user.name}
+                    </span>
+                  )}
                   <span className="truncate text-xs dark:text-slate-500">
-                    {user.role}
+                    {isImpersonating ? "Impersonasi" : user.role}
                   </span>
                 </div>
               </div>
@@ -138,6 +158,15 @@ export function NavUser({
             <DropdownMenuItem asChild>
               <ModeToggleItem />
             </DropdownMenuItem>
+            {isImpersonating && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleStopImpersonation} className="text-destructive focus:text-destructive">
+                  <X weight="duotone" />
+                  Stop Impersonasi
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <SignOut weight="duotone" />

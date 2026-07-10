@@ -13,6 +13,7 @@ import { PresenceProvider } from "@/components/presence-provider";
 import { UnreadProvider } from "@/components/unread-provider";
 import { getInitials } from "@/lib/get-initials";
 import { MobileStackContent } from "@/app/(with-sidebar)/mobile-stack-content";
+import { getEffectiveUserId } from "@/lib/impersonate.guard";
 
 export default async function layout({
   children,
@@ -21,8 +22,9 @@ export default async function layout({
 }) {
   const sessionData = await getUserSession();
   const userId = sessionData?.user?.id;
+  const effectiveUserId = await getEffectiveUserId(userId || "");
 
-  const sidebarData = userId ? await getSidebarData(userId) : { data: { channels: [], directMessages: [] } };
+  const sidebarData = effectiveUserId ? await getSidebarData(effectiveUserId) : { data: { channels: [], directMessages: [] } };
   const directRooms = sidebarData.data?.directMessages ?? [];
   const groupRooms = sidebarData.data?.channels ?? [];
 

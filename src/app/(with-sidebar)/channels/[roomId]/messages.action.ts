@@ -1,5 +1,6 @@
 "use server";
 
+import { requireNoImpersonation } from "@/lib/impersonate.guard";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { getMessageController } from "@/lib/interface-adapters/controllers/messages/get-message.controller";
 import { sendMessageController } from "@/lib/interface-adapters/controllers/messages/send-message.controller";
@@ -23,6 +24,7 @@ export const toggleReactionAction = async (
   emoji: string
 ): Promise<ServerResponse<{ action: "added" | "removed" } | null>> => {
   try {
+    await requireNoImpersonation();
     const result = await toggleReactionController(userId, messageId, emoji);
     return {
       status: "success",
@@ -104,6 +106,7 @@ export const deleteMessageAction = async (
   messageId: string
 ): Promise<ServerResponse<null>> => {
   try {
+    await requireNoImpersonation();
     await deleteMessageController(userId, messageId);
 
     return {
@@ -131,6 +134,7 @@ export const editMessageAction = async (
   content: string
 ): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
+    await requireNoImpersonation();
     const data = await editMessageController(userId, messageId, content);
 
     return {
@@ -161,6 +165,7 @@ export const createMessage = async (
   optimisticId?: string
 ): Promise<ServerResponse<MessageWithUserDTO | null>> => {
   try {
+    await requireNoImpersonation();
     const data = await sendMessageController(userId, content, roomId, replyTo, attachments, optimisticId);
 
     return {
@@ -210,6 +215,7 @@ export const uploadFileAction = async (
   destination?: string
 ): Promise<ServerResponse<{ fileurl: string; filename: string; size: number; mimetype: string } | null>> => {
   try {
+    await requireNoImpersonation();
     const file = formData.get("file") as File;
     if (!file) {
       return {

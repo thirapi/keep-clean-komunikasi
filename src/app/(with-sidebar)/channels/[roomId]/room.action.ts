@@ -1,4 +1,5 @@
 "use server";
+import { requireNoImpersonation } from "@/lib/impersonate.guard";
 import { ServerResponse } from "@/lib/entities/models/response.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { createRoomController } from "@/lib/interface-adapters/controllers/rooms/create-room.controller";
@@ -93,6 +94,7 @@ export const createRoom = async (
   targetUserId: string
 ):  Promise<ServerResponse<RoomWithParticipantsDTO | null> & { meta?: { action: "existing" | "created" } }> => {
   try {
+    await requireNoImpersonation();
     const response = await startDirectMessageController(currentUserId, targetUserId);
 
     return {
@@ -120,6 +122,7 @@ export const createChannel = async (
   isPublic: boolean = false
 ): Promise<ServerResponse<RoomWithParticipantsDTO | null>> => {
   try {
+    await requireNoImpersonation();
     const newRoom = await createRoomController({
       name,
       isDirect: false,
@@ -178,6 +181,7 @@ export const joinRoom = async (
   userId: string
 ): Promise<ServerResponse<boolean>> => {
   try {
+    await requireNoImpersonation();
     await joinRoomController(roomId, userId);
 
     revalidatePath("/");
@@ -206,6 +210,7 @@ export const removeParticipant = async (
   requesterId: string
 ): Promise<ServerResponse<boolean>> => {
   try {
+    await requireNoImpersonation();
     await removeParticipantController(roomId, userId, requesterId);
 
     revalidatePath("/");
@@ -234,6 +239,7 @@ export const updateChannel = async (
   data: { name?: string; description?: string; isPublic?: boolean; avatar?: string; banner?: string }
 ): Promise<ServerResponse<boolean>> => {
   try {
+    await requireNoImpersonation();
     await updateRoomController(roomId, requesterId, data);
     revalidatePath("/");
     return { status: "success", data: true, error: null };
@@ -251,6 +257,7 @@ export const deleteChannel = async (
   requesterId: string
 ): Promise<ServerResponse<boolean>> => {
   try {
+    await requireNoImpersonation();
     await deleteRoomController(roomId, requesterId);
     revalidatePath("/");
     return { status: "success", data: true, error: null };
@@ -285,6 +292,7 @@ export const inviteToChannel = async (
   targetUserId: string
 ): Promise<ServerResponse<boolean>> => {
   try {
+    await requireNoImpersonation();
     await inviteToRoomController(roomId, requesterId, targetUserId);
     revalidatePath("/");
     return { status: "success", data: true, error: null };

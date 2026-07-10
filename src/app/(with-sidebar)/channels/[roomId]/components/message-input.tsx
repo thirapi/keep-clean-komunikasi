@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useIsImpersonating } from "@/hooks/use-impersonation";
 import { createMessage, uploadFileAction } from "../messages.action";
 import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export function MessageInput({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<{ file: File; preview: string | null }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isImpersonating, impersonatedUser } = useIsImpersonating();
 
   const { displayNames } = useTypingIndicator(roomData.id, userId);
 
@@ -398,7 +400,12 @@ export function MessageInput({
 
       {/* Live Markdown Preview removed in favor of inline highlighting */}
 
-
+      {isImpersonating ? (
+        <div className="flex items-center justify-center gap-2 bg-muted/40 backdrop-blur-xl border border-border/50 rounded-xl p-4 text-sm text-muted-foreground">
+          <span className="text-destructive font-medium">Mode Impersonasi</span>
+          <span>— hanya bisa melihat pesan {impersonatedUser && `(@${impersonatedUser.username})`}</span>
+        </div>
+      ) : (
       <div
         className={cn(
           "flex items-end gap-1 bg-muted/40 backdrop-blur-xl border border-border/50 p-1.5 pr-2 shadow-2xl transition-all duration-300 ring-1 ring-black/5",
@@ -477,6 +484,7 @@ export function MessageInput({
         )}
         </Button>
       </div>
+      )}
 
       <div className="h-5 text-sm text-muted-foreground italic transition-opacity duration-200 ease-in-out flex items-center">
         {displayNames.length > 0 && (
