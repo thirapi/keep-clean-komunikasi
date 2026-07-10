@@ -217,14 +217,14 @@ export default function SettingsView({ user }: SettingsViewProps) {
     if (selectedSection) {
         return (
             <div className="flex flex-col h-full bg-background">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2 px-4 md:px-6 border-b border-border bg-background/60 backdrop-blur-xl sticky top-0 z-10 h-14 shrink-0">
                     <Button variant="ghost" size="icon" onClick={() => setSelectedSection(null)} className="rounded-full h-8 w-8">
                         <CaretLeft weight="duotone" className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-bold">{sections.find(s => s.id === selectedSection)?.label}</h1>
+                    <h1 className="font-bold text-base">{sections.find(s => s.id === selectedSection)?.label}</h1>
                 </div>
                 <ScrollArea className="flex-1">
-                    <div className="p-4 pb-24 max-w-lg mx-auto">
+                    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto">
                         {selectedSection === "profile" && <ProfileForm user={user} />}
                         {selectedSection === "security" && <SecurityForm user={user} />}
                         {selectedSection === "appearance" && (
@@ -247,10 +247,10 @@ export default function SettingsView({ user }: SettingsViewProps) {
 
     return (
         <div className="flex flex-col h-full bg-background/50">
-            <div className="px-4 pt-6 pb-2 shrink-0">
-                <h1 className="text-2xl font-bold">Settings</h1>
+            <div className="flex items-center px-4 md:px-6 border-b border-border bg-background/60 backdrop-blur-xl sticky top-0 z-10 h-14 shrink-0">
+                <h1 className="font-bold text-base">Settings</h1>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 pb-24">
+            <div className="flex-1 overflow-y-auto px-4 pt-5 pb-24">
                 <div className="max-w-lg mx-auto rounded-2xl overflow-hidden border border-border bg-card divide-y divide-border">
                     {sections.map(({ id, label, icon: Icon }) => (
                         <button
