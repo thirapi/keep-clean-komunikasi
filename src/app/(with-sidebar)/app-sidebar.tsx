@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash, MagnifyingGlass, ChatCircle, CaretDown } from "@phosphor-icons/react/dist/ssr";
-import Link from "next/link";
+import { User, Hash, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -21,7 +20,7 @@ import {
 import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
 import K from "@/components/icons/k";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
 import { pusher } from "@/lib/pusher/pusher.client";
@@ -40,12 +39,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const brand = {
   name: "komunikasi.qzz.io",
@@ -87,6 +80,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isMobileFromHook = useIsMobile();
   const { state } = useSidebar();
   const { unreadRooms, initializeUnread } = useUnread();
@@ -108,15 +102,20 @@ export function AppSidebar({
     router.prefetch("/channels/default");
   }, [router]);
 
-  // Sync mobileTab with pathname
+  // Sync mobileTab with pathname and searchParams
   React.useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl === "channels" || tabFromUrl === "dms") {
+      setMobileTab(tabFromUrl);
+      return;
+    }
     const currentRoomId = pathname.split("/").pop();
     const isDM = directRooms.some(r => r.id === currentRoomId);
     const isChannel = groupRooms.some(r => r.id === currentRoomId);
     
     if (isDM) setMobileTab("dms");
     else if (isChannel) setMobileTab("channels");
-  }, [pathname, directRooms, groupRooms]);
+  }, [pathname, searchParams, directRooms, groupRooms]);
 
   React.useEffect(() => {
     initializeUnread(
@@ -331,39 +330,7 @@ export function AppSidebar({
           </Group>
         )}
       </SidebarContent>
-      {isMobile ? (
-        <SidebarFooter className="border-t bg-background p-1.5 mt-auto shrink-0 shadow-[0_-5px_15px_-10px_rgba(0,0,0,0.1)] sticky bottom-0">
-          <div className="flex w-full items-center justify-around gap-1 px-1">
-            <Button
-              variant="ghost"
-              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "channels" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => setMobileTab("channels")}
-            >
-              <Hash className="h-[22px] w-[22px]" weight={mobileTab === "channels" ? "bold" : "duotone"} />
-              <span className={cn("text-[10px] tracking-wide", mobileTab === "channels" ? "font-bold" : "font-medium")}>Channels</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "dms" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => setMobileTab("dms")}
-            >
-              <ChatCircle className="h-[22px] w-[22px]" weight={mobileTab === "dms" ? "fill" : "duotone"} />
-              <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              asChild
-              className="flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors text-muted-foreground"
-            >
-              <Link href={user ? `/profile/${user.username}` : "/"}>
-                <User className="h-[22px] w-[22px]" weight="duotone" />
-                <span className="text-[10px] font-medium tracking-wide">{user ? "Profil" : "Masuk"}</span>
-              </Link>
-            </Button>
-          </div>
-        </SidebarFooter>
-      ) : (
+      {!isMobile && (
         <SidebarFooter>
           {user ? (
             <NavUser user={user} checkRole={checkRole} />

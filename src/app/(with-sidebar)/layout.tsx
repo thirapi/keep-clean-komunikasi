@@ -13,6 +13,7 @@ import { PresenceProvider } from "@/components/presence-provider";
 import { UnreadProvider } from "@/components/unread-provider";
 import { getInitials } from "@/lib/get-initials";
 import { MobileStackContent } from "@/app/(with-sidebar)/mobile-stack-content";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { getEffectiveUserId } from "@/lib/impersonate.guard";
 
 export default async function layout({
@@ -46,7 +47,7 @@ export default async function layout({
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <SidebarProvider>
+      <SidebarProvider className="pb-[72px] md:pb-0">
         {user ? (
           <PresenceProvider userId={user.id}>
             <UnreadProvider>
@@ -89,6 +90,7 @@ export default async function layout({
           </UnreadProvider>
         )}
       </SidebarProvider>
+      <MobileBottomNav user={user ? { username: user.username } : null} />
     </div>
   );
 }
