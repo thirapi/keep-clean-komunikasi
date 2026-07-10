@@ -32,7 +32,7 @@ const formSchema = z.object({
     password: z.string(),
 });
 
-export const signInController = async (userCredential: SignInUserDTO, context?: { ip?: string; userAgent?: string }) => {
+export const signInController = async (userCredential: SignInUserDTO, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }) => {
     const parsedUserCredential = formSchema.safeParse(userCredential);
 
     if (!parsedUserCredential.success) {

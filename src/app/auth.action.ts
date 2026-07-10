@@ -24,6 +24,21 @@ const getContext = async () => {
   return { ip, userAgent };
 };
 
+const getGeolocation = async (ip: string): Promise<Record<string, any> | null> => {
+  if (!ip || ip === "unknown" || ip === "127.0.0.1" || ip === "::1") return null;
+  try {
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,region,country,query`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status !== "success") return null;
+    return { city: data.city, region: data.region, country: data.country };
+  } catch {
+    return null;
+  }
+};
+
 export const signInUser = async (
   username: string,
   password: string,
@@ -32,7 +47,8 @@ export const signInUser = async (
   try {
     const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
     const context = await getContext();
-    const response = await signInController({ username, password }, context);
+    const geo = await getGeolocation(context.ip);
+    const response = await signInController({ username, password }, { ...context, metadata: geo ? { location: geo } : undefined });
     const cookieStore = await cookies();
 
     if (response) {

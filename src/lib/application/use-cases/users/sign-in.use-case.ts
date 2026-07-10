@@ -10,7 +10,7 @@ export class SignInUseCase {
         private passwordService: IPasswordService,
     ) { }
 
-    async execute(username: string, password: string, context?: { ip?: string; userAgent?: string }): Promise<string> {
+    async execute(username: string, password: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }): Promise<string> {
 
         const findUser = await this.userRepository.findByUsername(username)
 
@@ -28,7 +28,7 @@ export class SignInUseCase {
                 userId: findUser.id,
                 category: "auth",
                 action: "login_failed",
-                metadata: { reason: "invalid_password" },
+                metadata: { ...context?.metadata, reason: "invalid_password" },
                 ip: context?.ip,
                 userAgent: context?.userAgent,
             });
@@ -43,6 +43,7 @@ export class SignInUseCase {
             userId: findUser.id,
             category: "auth",
             action: "login",
+            metadata: context?.metadata,
             ip: context?.ip,
             userAgent: context?.userAgent,
         });

@@ -57,6 +57,21 @@ export const activityLogColumns: ColumnDef<ActivityLogRecord>[] = [
     ),
   },
   {
+    id: "location",
+    accessorFn: (row) => {
+      const loc = (row as any).metadata?.location;
+      if (!loc) return "-";
+      return [loc.city, loc.region, loc.country].filter(Boolean).join(", ");
+    },
+    header: "Location",
+    cell: ({ row }) => {
+      const loc = (row.original as any).metadata?.location;
+      if (!loc) return <span className="text-xs text-muted-foreground">-</span>;
+      const parts = [loc.city, loc.region, loc.country].filter(Boolean);
+      return <span className="text-xs text-muted-foreground">{parts.join(", ")}</span>;
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: "Timestamp",
     cell: ({ row }) => {
