@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { UserIcon, UsersThreeIcon, ChatCircleIcon } from "@phosphor-icons/react/dist/ssr";
+import { UserIcon, UsersThreeIcon, ChatCircleIcon, GearSixIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import React from "react";
 
@@ -27,6 +27,7 @@ interface MobileBottomNavProps {
 const tabs = [
   { id: "channels" as const, href: "/channels/default?tab=channels", icon: UsersThreeIcon, label: "Channels" },
   { id: "dms" as const, href: "/channels/default?tab=dms", icon: ChatCircleIcon, label: "Messages" },
+  { id: "settings" as const, href: "/settings", icon: GearSixIcon, label: "Settings" },
 ];
 
 export function MobileBottomNav({ user }: MobileBottomNavProps) {
@@ -38,8 +39,9 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
 
   const isDefaultRoute = pathname === "/channels/default" || pathname === "/channels";
   const isProfile = pathname.startsWith("/profile/");
+  const isSettings = pathname.startsWith("/settings");
   const tabFromUrl = searchParams.get("tab");
-  const activeTab = isProfile ? "profile" : (tabFromUrl || (isDefaultRoute ? "channels" : ""));
+  const activeTab = isProfile ? "profile" : (isSettings ? "settings" : (tabFromUrl || (isDefaultRoute ? "channels" : "")));
 
   React.useEffect(() => {
     if (prevActiveRef.current && prevActiveRef.current !== activeTab) {
@@ -48,7 +50,7 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
     prevActiveRef.current = activeTab;
   }, [activeTab]);
 
-  const isInRoom = !isDefaultRoute && !isProfile;
+  const isInRoom = !isDefaultRoute && !isProfile && !isSettings;
 
   if (!isMobile || isInRoom) return null;
 
