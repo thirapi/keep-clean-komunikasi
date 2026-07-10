@@ -251,7 +251,7 @@ export function AppSidebar({
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent className="overflow-x-hidden pt-2">
+      <SidebarContent className={cn("overflow-x-hidden pt-2", isMobile && "pb-[72px]")}>
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
             {user ? (

@@ -47,7 +47,7 @@ export default async function layout({
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <SidebarProvider className="pb-[72px] md:pb-0">
+      <SidebarProvider>
         {user ? (
           <PresenceProvider userId={user.id}>
             <UnreadProvider>
