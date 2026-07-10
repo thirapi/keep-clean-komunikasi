@@ -2,6 +2,8 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { ActivityLogRecord } from "@/lib/entities/models/activity-log.model";
+import { DeviceInfo } from "@/lib/device-info";
+import { Desktop, DeviceMobile, DeviceTablet } from "@phosphor-icons/react/dist/ssr";
 
 export const activityLogColumns: ColumnDef<ActivityLogRecord>[] = [
   {
@@ -70,6 +72,36 @@ export const activityLogColumns: ColumnDef<ActivityLogRecord>[] = [
       const parts = [loc.city, loc.region, loc.country].filter(Boolean);
       return <span className="text-xs text-muted-foreground">{parts.join(", ")}</span>;
     },
+  },
+  {
+    id: "device",
+    accessorFn: (row) => {
+      const device = (row as any).metadata?.device as DeviceInfo | undefined;
+      if (!device) return "-";
+      return `${device.deviceType} ${device.os} ${device.browser}`;
+    },
+    header: "Device",
+    cell: ({ row }) => {
+      const device = (row.original as any).metadata?.device as DeviceInfo | undefined;
+      if (!device) return <span className="text-xs text-muted-foreground">-</span>;
+
+      const DeviceIcon = device.deviceType === "mobile"
+        ? DeviceMobile
+        : device.deviceType === "tablet"
+          ? DeviceTablet
+          : Desktop;
+
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <DeviceIcon className="h-4 w-4 text-muted-foreground shrink-0" weight="duotone" />
+          <div className="flex flex-col min-w-0 leading-tight">
+            <span className="text-xs font-medium truncate">{device.os}</span>
+            <span className="text-[10px] text-muted-foreground truncate">{device.browser}</span>
+          </div>
+        </div>
+      );
+    },
+    size: 180,
   },
   {
     accessorKey: "createdAt",

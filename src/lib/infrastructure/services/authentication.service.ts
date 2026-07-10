@@ -44,7 +44,7 @@ export class AuthenticationService {
         }
     }
 
-    async validateSession(token: string, context?: { ip?: string; userAgent?: string }): Promise<SessionDTO> {
+    async validateSession(token: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }): Promise<SessionDTO> {
         const sessionId = encodeHexLowerCase(
             sha256(new TextEncoder().encode(token))
         );
@@ -93,6 +93,7 @@ export class AuthenticationService {
                 userId: userData.id,
                 category: "activity",
                 action: "session_active",
+                metadata: context?.metadata,
                 ipAddress: context?.ip,
                 userAgent: context?.userAgent,
                 createdAt: new Date(),

@@ -3,7 +3,7 @@ import { AuthenticationService } from "@/lib/infrastructure/services/authenticat
 
 export class GetUserSessionUseCase {
     constructor(private authenticationService: AuthenticationService) { }
-    async execute(session_id: string, context?: { ip?: string; userAgent?: string }) {
+    async execute(session_id: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }) {
         const session = await this.authenticationService.validateSession(
             session_id,
             context

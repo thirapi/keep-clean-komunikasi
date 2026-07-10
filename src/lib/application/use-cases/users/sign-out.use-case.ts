@@ -2,7 +2,7 @@ import { AuthenticationService } from "@/lib/infrastructure/services/authenticat
 
 export class SignOutUseCase {
     constructor(private authenticationService: AuthenticationService) { }
-    async execute(session_id: string, context?: { ip?: string; userAgent?: string }) {
+    async execute(session_id: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }) {
         const session = await this.authenticationService.validateSession(
             session_id,
             context
@@ -20,6 +20,7 @@ export class SignOutUseCase {
             userId: userId,
             category: "auth",
             action: "logout",
+            metadata: context?.metadata,
             ip: context?.ip,
             userAgent: context?.userAgent,
         });

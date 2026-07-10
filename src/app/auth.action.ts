@@ -16,12 +16,14 @@ import { cache } from "react";
 import { signOutController } from "@/lib/interface-adapters/controllers/sign-out.controller";
 import { getUserWithRolesController } from "@/lib/interface-adapters/controllers/roles/get-user-role.controller";
 import { NextRequest } from "next/server";
+import { parseDeviceInfo } from "@/lib/device-info";
 
 const getContext = async () => {
   const headerList = await headers();
   const ip = headerList.get("x-forwarded-for") || "unknown";
   const userAgent = headerList.get("user-agent") || "unknown";
-  return { ip, userAgent };
+  const device = userAgent !== "unknown" ? parseDeviceInfo(userAgent) : undefined;
+  return { ip, userAgent, device };
 };
 
 const getGeolocation = async (ip: string): Promise<Record<string, any> | null> => {
@@ -48,7 +50,10 @@ export const signInUser = async (
     const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
     const context = await getContext();
     const geo = await getGeolocation(context.ip);
-    const response = await signInController({ username, password }, { ...context, metadata: geo ? { location: geo } : undefined });
+    const metadata: Record<string, any> = {};
+    if (geo) metadata.location = geo;
+    if (context.device) metadata.device = context.device;
+    const response = await signInController({ username, password }, { ip: context.ip, userAgent: context.userAgent, metadata });
     const cookieStore = await cookies();
 
     if (response) {
@@ -162,7 +167,9 @@ export const signOutUserAction = async () => {
     return null;
   }
   const context = await getContext();
-  await signOutController(session_id.value, context);
+  const metadata: Record<string, any> = {};
+  if (context.device) metadata.device = context.device;
+  await signOutController(session_id.value, { ip: context.ip, userAgent: context.userAgent, metadata });
   cookieStore.delete("session_id");
   redirect("/");
 };
@@ -173,7 +180,9 @@ export const getUserSession = cache(async (): Promise<SessionDTO | null> => {
     return null;
   }
   const context = await getContext();
-  const response = await getUserSessionController(session_id.value, context);
+  const metadata: Record<string, any> = {};
+  if (context.device) metadata.device = context.device;
+  const response = await getUserSessionController(session_id.value, { ip: context.ip, userAgent: context.userAgent, metadata });
   if (response.session) {
     return response;
   } else {
@@ -229,6 +238,10 @@ export async function getUserSessionFromRequest(
   const ip = req.headers.get("x-forwarded-for") || "unknown";
   const userAgent = req.headers.get("user-agent") || "unknown";
 
-  const response = await getUserSessionController(session_id, { ip, userAgent });
+  const device = userAgent !== "unknown" ? parseDeviceInfo(userAgent) : undefined;
+  const metadata: Record<string, any> = {};
+  if (device) metadata.device = device;
+
+  const response = await getUserSessionController(session_id, { ip, userAgent, metadata });
   return response ?? null;
 }

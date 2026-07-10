@@ -24,7 +24,7 @@ const sessionSchema = z.object({
     token: z.string(),
 });
 
-export const signOutController = async (token: string, context?: { ip?: string; userAgent?: string }) => {
+export const signOutController = async (token: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }) => {
     const parsedSession = sessionSchema.safeParse({token})
 
     if (!parsedSession.success) {

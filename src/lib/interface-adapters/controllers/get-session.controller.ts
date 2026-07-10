@@ -24,7 +24,7 @@ const sessionSchema = z.object({
     session_id: z.string(),
 });
 
-export const getUserSessionController = async (session_id: string, context?: { ip?: string; userAgent?: string }) => {
+export const getUserSessionController = async (session_id: string, context?: { ip?: string; userAgent?: string; metadata?: Record<string, any> }) => {
     const parsedSession = sessionSchema.safeParse({session_id})
 
     if (!parsedSession.success) {
