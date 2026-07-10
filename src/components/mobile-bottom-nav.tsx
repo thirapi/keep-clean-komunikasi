@@ -48,7 +48,9 @@ export function MobileBottomNav({ user }: MobileBottomNavProps) {
     prevActiveRef.current = activeTab;
   }, [activeTab]);
 
-  if (!isMobile) return null;
+  const isInRoom = !isDefaultRoute && !isProfile;
+
+  if (!isMobile || isInRoom) return null;
 
   return (
     <>
