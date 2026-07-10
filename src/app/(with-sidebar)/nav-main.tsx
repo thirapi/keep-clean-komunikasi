@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useEmojis } from "@/components/emoji-provider";
 import { stripMarkdown } from "@/lib/strip-markdown";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "@phosphor-icons/react/dist/ssr";
@@ -46,9 +47,20 @@ export function NavMain({
   onCreate?: () => void;
   onExplore?: () => void;
 }) {
+  const { customEmojis } = useEmojis();
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  const renderLastMessage = (text: string) => {
+    const stripped = stripMarkdown(text);
+    if (!stripped) return null;
+    const html = stripped.replace(/:([a-zA-Z0-9_-]+):/g, (match, name) => {
+      const emoji = customEmojis.find(e => e.shortcode === name);
+      return emoji ? `<img src="${emoji.url}" alt="${match}" class="inline-block h-[1.1em] w-[1.1em] align-text-bottom" />` : match;
+    });
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
 
   const formatTime = (date?: Date) => {
     if (!date) return "";
@@ -184,7 +196,7 @@ export function NavMain({
                               : "text-muted-foreground",
                           )}
                         >
-                          {stripMarkdown(item.lastMessage)}
+                          {renderLastMessage(item.lastMessage)}
                         </span>
                       )}
                     </div>

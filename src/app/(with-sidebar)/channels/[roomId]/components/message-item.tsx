@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { useEmojis } from "@/components/emoji-provider";
+import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 
 // Module-level constants — compiled once, not on every render
 import { extractUrls } from "@/lib/extract-urls";
@@ -439,10 +440,23 @@ export function MessageItem({
 
   const { customEmojis } = useEmojis();
   const emojiMeta = useMemo(() => customEmojis.map(e => ({ name: e.shortcode, url: e.url })), [customEmojis]);
+  const emojiMap = useMemo(() => {
+    const map = new Map<string, string>();
+    customEmojis.forEach(e => map.set(`:${e.shortcode}:`, e.url));
+    return map;
+  }, [customEmojis]);
+
+  const renderReactionEmoji = (emoji: string) => {
+    const url = emojiMap.get(emoji);
+    if (url) {
+      return <img src={url} alt={emoji} className="w-[18px] h-[18px] object-contain" />;
+    }
+    return <>{emoji}</>;
+  };
 
   const renderContent = (content: string) => {
     if (!content) return null;
-    const viewContent = resolveMentionsForView(content, emojiMeta);
+    const viewContent = parseFediverseContent(resolveMentionsForView(content, emojiMeta), emojiMeta);
 
     return (
       <ReactMarkdown
@@ -827,7 +841,7 @@ export function MessageItem({
                     >
                       <span 
                         className="text-base leading-none flex items-center justify-center min-w-[18px] min-h-[18px] transform hover:scale-115 transition-transform duration-100"
-                      >{group.emoji}</span>
+                      >{renderReactionEmoji(group.emoji)}</span>
                       <span className={cn("font-bold tabular-nums text-[11px]", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
                         {group.count}
                       </span>
@@ -840,7 +854,7 @@ export function MessageItem({
                     <div className="flex flex-col gap-2 items-center">
                       <span 
                         className="text-3xl leading-none flex items-center justify-center p-1"
-                      >{group.emoji}</span>
+                      >{renderReactionEmoji(group.emoji)}</span>
                       <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900 text-center">
                         <span className="font-bold">{group.users.join(", ")}</span>
                         {" "}bereaksi

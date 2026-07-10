@@ -1,14 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
-
-interface CustomEmoji {
-    shortcode: string;
-    url: string;
-}
+import { getCustomEmojisAction, CustomEmojiDTO } from "@/app/emoji.action";
 
 interface EmojiContextType {
-    customEmojis: CustomEmoji[];
+    customEmojis: CustomEmojiDTO[];
     isLoading: boolean;
     refresh: () => Promise<void>;
 }
@@ -16,13 +12,16 @@ interface EmojiContextType {
 const EmojiContext = createContext<EmojiContextType | undefined>(undefined);
 
 export function EmojiProvider({ children }: { children: React.ReactNode }) {
-    const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [customEmojis, setCustomEmojis] = useState<CustomEmojiDTO[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     const fetchEmojis = async () => {
         setIsLoading(true);
         try {
-            setCustomEmojis([]);
+            const res = await getCustomEmojisAction();
+            if (res.status === "success" && res.data) {
+                setCustomEmojis(res.data);
+            }
         } finally {
             setIsLoading(false);
         }

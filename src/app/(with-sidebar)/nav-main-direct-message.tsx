@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useEmojis } from "@/components/emoji-provider";
 import { stripMarkdown } from "@/lib/strip-markdown";
 
 type Groups = {
@@ -63,8 +64,19 @@ export function NavMainDirectMessage({
   const router = useRouter();
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
+  const { customEmojis } = useEmojis();
   const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
+
+  const renderLastMessage = (text: string) => {
+    const stripped = stripMarkdown(text);
+    if (!stripped) return null;
+    const html = stripped.replace(/:([a-zA-Z0-9_-]+):/g, (match, name) => {
+      const emoji = customEmojis.find(e => e.shortcode === name);
+      return emoji ? `<img src="${emoji.url}" alt="${match}" class="inline-block h-[1.1em] w-[1.1em] align-text-bottom" />` : match;
+    });
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
 
   const formatTime = (date?: Date) => {
     if (!date) return "";
@@ -196,7 +208,7 @@ export function NavMainDirectMessage({
                               "text-xs truncate",
                               item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground"
                             )}>
-                              {stripMarkdown(item.lastMessage)}
+                              {renderLastMessage(item.lastMessage)}
                             </span>
                           )}
                         </div>

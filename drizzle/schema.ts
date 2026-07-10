@@ -147,6 +147,18 @@ export const user = pgTable("User", {
 	unique("User_username_unique").on(table.username),
 ]);
 
+export const customEmoji = pgTable("CustomEmoji", {
+	id: text().primaryKey().notNull(),
+	shortcode: text().notNull(),
+	url: text().notNull(),
+	category: text().default('custom').notNull(),
+	isStatic: boolean().default(true).notNull(),
+	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	unique("CustomEmoji_shortcode_unique").on(table.shortcode),
+]);
+
 export const attachment = pgTable("Attachment", {
 	id: text().primaryKey().notNull(),
 	url: text().notNull(),

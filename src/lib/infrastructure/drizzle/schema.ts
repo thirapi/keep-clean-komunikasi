@@ -196,6 +196,16 @@ export const messageReactionsRelations = relations(messageReactions, ({ one }) =
     user: one(users, { fields: [messageReactions.userId], references: [users.id] }),
 }));
 
+export const customEmojis = pgTable("CustomEmoji", {
+    id: text("id").primaryKey(),
+    shortcode: text("shortcode").notNull().unique(),
+    url: text("url").notNull(),
+    category: text("category").default("custom").notNull(),
+    isStatic: boolean("isStatic").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
 export const activityLogs = pgTable("ActivityLog", {
     id: text("id").primaryKey(),
     userId: text("userId").references(() => users.id),
