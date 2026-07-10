@@ -41,8 +41,6 @@ export function NavUser({
     bio?: string | null;
     banner?: string | null;
     customStatus?: string | null;
-    alsoKnownAs?: string[] | null;
-    movedTo?: string | null;
   };
   checkRole: {
     id: string;

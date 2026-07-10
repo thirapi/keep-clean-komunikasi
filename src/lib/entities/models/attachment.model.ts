@@ -4,10 +4,9 @@ export interface AttachmentRecord {
   key: string;
   fileType: string;
   size?: number | null;
-  description?: string | null; // Alt text
-  blurhash?: string | null; // Placeholder for images
+  description?: string | null;
+  blurhash?: string | null;
   messageId?: string | null;
-  postId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

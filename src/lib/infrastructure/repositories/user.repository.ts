@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, userRoles, roomParticipants, sessions, pushSubscriptions, bookmarks, messageReactions, postReactions, followers, notifications, accountFilters, activityLogs, messages, posts, attachments, rooms, postLinkPreviews, postHashtags } from "@/lib/infrastructure/drizzle/schema";
+import { users, userRoles, roomParticipants, sessions, pushSubscriptions, messageReactions, activityLogs, messages, attachments, rooms } from "@/lib/infrastructure/drizzle/schema";
 import { eq, and, sql, like, inArray, or } from "drizzle-orm";
 import { IUserRepository } from "@/lib/application/repositories/user.repository.interface";
 import { UserRecord } from "@/lib/entities/models/user.model";
@@ -10,33 +10,11 @@ export class UserRepository implements IUserRepository {
 
   async delete(userId: string): Promise<void> {
     await this.client.transaction(async (tx) => {
-      // 1. Get user posts and messages IDs
-      const userPosts = await tx.select({ id: posts.id }).from(posts).where(eq(posts.userId, userId));
-      const userPostIds = userPosts.map(p => p.id);
-
       const userMessages = await tx.select({ id: messages.id }).from(messages).where(eq(messages.userId, userId));
       const userMessageIds = userMessages.map(m => m.id);
 
-      // 2. Handle references to user's posts
-      if (userPostIds.length > 0) {
-        // Set null to posts that reply/repost/quote user's posts
-        await tx.update(posts).set({ replyToId: null }).where(inArray(posts.replyToId, userPostIds));
-        await tx.update(posts).set({ repostOfId: null }).where(inArray(posts.repostOfId, userPostIds));
-        await tx.update(posts).set({ quoteOfId: null }).where(inArray(posts.quoteOfId, userPostIds));
-
-        await tx.delete(postReactions).where(inArray(postReactions.postId, userPostIds));
-        await tx.delete(bookmarks).where(inArray(bookmarks.postId, userPostIds));
-        await tx.delete(postLinkPreviews).where(inArray(postLinkPreviews.postId, userPostIds));
-        await tx.delete(postHashtags).where(inArray(postHashtags.postId, userPostIds));
-        await tx.delete(attachments).where(inArray(attachments.postId, userPostIds));
-        await tx.delete(posts).where(inArray(posts.id, userPostIds));
-      }
-
-      // 3. Handle references to user's messages
       if (userMessageIds.length > 0) {
-        // Set null to messages that reply to user's messages
         await tx.update(messages).set({ replyTo: null }).where(inArray(messages.replyTo, userMessageIds));
-        // Set null to participants lastReadMessageId pointing to user's messages
         await tx.update(roomParticipants).set({ lastReadMessageId: null }).where(inArray(roomParticipants.lastReadMessageId, userMessageIds));
 
         await tx.delete(messageReactions).where(inArray(messageReactions.messageId, userMessageIds));
@@ -44,23 +22,14 @@ export class UserRepository implements IUserRepository {
         await tx.delete(messages).where(inArray(messages.id, userMessageIds));
       }
 
-      // 4. Delete direct user data
       await tx.delete(userRoles).where(eq(userRoles.userId, userId));
       await tx.delete(sessions).where(eq(sessions.userId, userId));
       await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
       await tx.delete(roomParticipants).where(eq(roomParticipants.userId, userId));
-      await tx.delete(bookmarks).where(eq(bookmarks.userId, userId));
       await tx.delete(messageReactions).where(eq(messageReactions.userId, userId));
-      await tx.delete(postReactions).where(eq(postReactions.userId, userId));
-      await tx.delete(followers).where(or(eq(followers.followerId, userId), eq(followers.followingId, userId)));
-      await tx.delete(notifications).where(or(eq(notifications.recipientId, userId), eq(notifications.actorId, userId)));
-      await tx.delete(accountFilters).where(or(eq(accountFilters.userId, userId), eq(accountFilters.targetUserId, userId)));
       await tx.delete(activityLogs).where(eq(activityLogs.userId, userId));
 
-      // 5. Handle rooms ownership
       await tx.update(rooms).set({ ownerId: null }).where(eq(rooms.ownerId, userId));
-
-      // 6. Finally delete the user
       await tx.delete(users).where(eq(users.id, userId));
     });
   }
@@ -73,8 +42,6 @@ export class UserRepository implements IUserRepository {
     bio?: string | null;
     banner?: string | null;
     customStatus?: string | null;
-    alsoKnownAs?: string[] | null;
-    movedTo?: string | null;
     roles: { id: string; name: string }[];
     createdAt: Date;
   } | null> {
@@ -99,8 +66,6 @@ export class UserRepository implements IUserRepository {
       bio: user.bio,
       banner: user.banner,
       customStatus: user.customStatus,
-      alsoKnownAs: user.alsoKnownAs as string[] | null,
-      movedTo: user.movedTo,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -118,8 +83,6 @@ export class UserRepository implements IUserRepository {
     bio?: string | null;
     banner?: string | null;
     customStatus?: string | null;
-    alsoKnownAs?: string[] | null;
-    movedTo?: string | null;
     roles: { id: string; name: string }[];
   } | null> {
     const user = await this.client.query.users.findFirst({
@@ -144,8 +107,6 @@ export class UserRepository implements IUserRepository {
       bio: user.bio,
       banner: user.banner,
       customStatus: user.customStatus,
-      alsoKnownAs: user.alsoKnownAs as string[] | null,
-      movedTo: user.movedTo,
       roles: user.userRoles.map((ur) => ({
         id: ur.role.id,
         name: ur.role.name,
@@ -174,7 +135,6 @@ export class UserRepository implements IUserRepository {
     await client.transaction(async (innerTx: any) => {
       await innerTx.insert(users).values(user);
 
-      // Pastikan roomId sama dengan yang ada di migration (general-channel)
       await innerTx.insert(roomParticipants).values({
         id: createId(),
         roomId: "general-channel",

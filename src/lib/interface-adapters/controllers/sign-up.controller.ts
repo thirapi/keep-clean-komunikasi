@@ -4,7 +4,6 @@ import { SignUpUserDTO } from "@/lib/entities/models/user.model";
 import { RoleRepository } from "@/lib/infrastructure/repositories/role.repository";
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
-import { KeyService } from "@/lib/infrastructure/services/key.service";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -14,14 +13,11 @@ const userRepository = new UserRepository(db);
 const passwordService = new PasswordService();
 const roleRepository = new RoleRepository(db);
 const avatarService = new DicebearAvatarService();
-const keyService = new KeyService();
-
 const signUpUseCase = new SignUpUseCase(
     userRepository,
     passwordService,
     roleRepository,
     avatarService,
-    keyService
 )
 
 export const formSchema = z

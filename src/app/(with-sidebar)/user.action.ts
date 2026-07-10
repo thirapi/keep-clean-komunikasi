@@ -6,11 +6,6 @@ import { updateUserController } from "@/lib/interface-adapters/controllers/users
 import { searchUserController } from "@/lib/interface-adapters/controllers/users/search.controller";
 import { changePasswordController } from "@/lib/interface-adapters/controllers/users/change-password.controller";
 import { getProfileController } from "@/lib/interface-adapters/controllers/users/get-profile.controller";
-import { followUserController } from "@/lib/interface-adapters/controllers/users/follow-user.controller";
-import { unfollowUserController } from "@/lib/interface-adapters/controllers/users/unfollow-user.controller";
-import { getFollowersController, getFollowingController } from "@/lib/interface-adapters/controllers/users/get-follow-list.controller";
-import { FollowerRepository } from "@/lib/infrastructure/repositories/follower.repository";
-import { db } from "@/lib/db";
 
 export const updateUserAction = async (
   userId: string,
@@ -98,97 +93,5 @@ export const getPublicProfileAction = async (username: string, currentUserId?: s
         message: err.message || "User not found",
       },
     };
-  }
-};
-
-export const followUserAction = async (followerId: string, followingId: string): Promise<ServerResponse<null>> => {
-  try {
-    await followUserController(followerId, followingId);
-    return { status: "success", data: null, error: null };
-  } catch (err: any) {
-    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const unfollowUserAction = async (followerId: string, followingId: string): Promise<ServerResponse<null>> => {
-  try {
-    await unfollowUserController(followerId, followingId);
-    return { status: "success", data: null, error: null };
-  } catch (err: any) {
-    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const checkFollowingStatusAction = async (followerId: string, followingId: string): Promise<ServerResponse<boolean>> => {
-  try {
-    const repo = new FollowerRepository(db);
-    const result = await repo.isFollowing(followerId, followingId);
-    return { status: "success", data: result, error: null };
-  } catch (err: any) {
-    return { status: "error", data: false, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const getFollowersAction = async (userId: string) => {
-  try {
-    const data = await getFollowersController(userId);
-    return { status: "success", data, error: null };
-  } catch (err: any) {
-    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const getFollowingAction = async (userId: string) => {
-  try {
-    const data = await getFollowingController(userId);
-    return { status: "success", data, error: null };
-  } catch (err: any) {
-    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-import { followRemoteUserController } from "@/lib/interface-adapters/controllers/users/follow-remote-user.controller";
-import { unfollowRemoteUserController } from "@/lib/interface-adapters/controllers/users/unfollow-remote-user.controller";
-
-export const followRemoteUserAction = async (localUserId: string, handle: string): Promise<ServerResponse<null>> => {
-  try {
-    await followRemoteUserController(localUserId, handle);
-    return { status: "success", data: null, error: null };
-  } catch (err: any) {
-    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const unfollowRemoteUserAction = async (localUserId: string, remoteActorUrl: string): Promise<ServerResponse<null>> => {
-  try {
-    await unfollowRemoteUserController(localUserId, remoteActorUrl);
-    return { status: "success", data: null, error: null };
-  } catch (err: any) {
-    return { status: "error", data: null, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-import { toggleAccountFilterController, getUserFiltersController } from "@/lib/interface-adapters/controllers/users/toggle-account-filter.controller";
-
-export const toggleAccountFilterAction = async (params: {
-  userId: string;
-  targetId: string;
-  isRemote: boolean;
-  type: "mute" | "reduce_intensity";
-}): Promise<ServerResponse<{ action: string; type: string }>> => {
-  try {
-    const result = await toggleAccountFilterController(params);
-    return { status: "success", data: result, error: null };
-  } catch (err: any) {
-    return { status: "error", data: null as any, error: { type: "UNKNOWN_ERROR", message: err.message } };
-  }
-};
-
-export const getUserFiltersAction = async (userId: string) => {
-  try {
-    const data = await getUserFiltersController(userId);
-    return { status: "success", data, error: null };
-  } catch (err: any) {
-    return { status: "error", data: [], error: { type: "UNKNOWN_ERROR", message: err.message } };
   }
 };

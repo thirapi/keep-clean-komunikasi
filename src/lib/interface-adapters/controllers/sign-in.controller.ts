@@ -5,7 +5,6 @@ import { SessionRepository } from "@/lib/infrastructure/repositories/session.rep
 import { UserRepository } from "@/lib/infrastructure/repositories/user.repository";
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
 import { PasswordService } from "@/lib/infrastructure/services/password.service";
-import { KeyService } from "@/lib/infrastructure/services/key.service";
 import { DrizzleActivityLogRepository } from "@/lib/infrastructure/repositories/activity-log.repository";
 import { z } from "zod";
 
@@ -13,7 +12,6 @@ import { db } from "@/lib/db";
 
 const userRepository = new UserRepository(db);
 const sessionRepository = new SessionRepository(db);
-const keyService = new KeyService();
 const activityLogRepository = new DrizzleActivityLogRepository();
 
 const authenticationService = new AuthenticationService(
@@ -27,7 +25,6 @@ const signInUseCase = new SignInUseCase(
     userRepository,
     authenticationService,
     passwordService,
-    keyService
 )
 
 const formSchema = z.object({

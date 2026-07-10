@@ -184,8 +184,6 @@ export const sidaBarUserInfo = async () => {
       bio: userData.bio,
       banner: userData.banner,
       customStatus: userData.customStatus,
-      alsoKnownAs: userData.alsoKnownAs,
-      movedTo: userData.movedTo,
     };
   } else {
     return {

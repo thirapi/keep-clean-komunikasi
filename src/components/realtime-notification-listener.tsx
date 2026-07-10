@@ -100,29 +100,6 @@ export function RealtimeNotificationListener({ user }: Props) {
     channel.bind("message-deleted-notification", () => {
       router.refresh();
     });
-// FEED: New Engagement (Like, Repost, Reply, Follow)
-channel.bind("new-notification", (data: { id: string, type: string, actorId: string, remoteActorId?: string, postId?: string }) => {
-  if (data.type === "reply") {
-    playNotificationSound();
-    toast("balasan baru masuk", {
-      description: "seseorang membalas postinganmu",
-      action: {
-        label: "lihat",
-        onClick: () => router.push(`/posts/${data.postId}`)
-      }
-    });
-  } else if (data.type === "follow") {
-    // Subtle toast for follows, no sound
-    toast("pengikut baru", {
-      description: "seseorang mulai mengikutimu",
-    });
-  }
-
-  // router.refresh() is kept to update the sidebar unread badge
-  router.refresh();
-});
-
-
     // CHAT: Mark as Read Sync
     channel.bind("room-marked-read", (data: { roomId: string }) => {
       markAsRead(data.roomId);

@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { User, Hash, MagnifyingGlass, ChatCircle, CaretDown, Rss, ArrowsDownUp } from "@phosphor-icons/react/dist/ssr";
+import { User, Hash, MagnifyingGlass, ChatCircle, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import { NavMain } from "./nav-main";
-import { NavFeed } from "./nav-feed";
 import { NavUser } from "./nav-user";
 import { NavBrand } from "./nav-brand";
 import {
@@ -95,7 +94,7 @@ export function AppSidebar({
   const [openExploreChannels, setOpenExploreChannels] = React.useState(false);
   const [openSearchUser, setOpenSearchUser] = React.useState(false);
   const [openGlobalSearch, setOpenGlobalSearch] = React.useState(false);
-  const [mobileTab, setMobileTab] = React.useState<"channels" | "dms" | "social">("channels");
+  const [mobileTab, setMobileTab] = React.useState<"channels" | "dms">("channels");
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -106,33 +105,18 @@ export function AppSidebar({
   
   // Prefetch main routes for seamless transitions
   React.useEffect(() => {
-    router.prefetch("/timeline");
     router.prefetch("/channels/default");
   }, [router]);
 
-  // Derive sidebarMode from pathname
-  const sidebarMode = React.useMemo(() => {
-    const feedPaths = ["/timeline", "/following", "/bookmarks", "/notifications", "/profile", "/posts"];
-    if (feedPaths.some(p => pathname.startsWith(p))) return "feed";
-    return "chat";
-  }, [pathname]);
-
-  // Sync mobileTab with sidebarMode/pathname
+  // Sync mobileTab with pathname
   React.useEffect(() => {
-    if (sidebarMode === "feed") {
-      setMobileTab("social");
-    } else {
-      // If in chat mode, try to determine if it's a DM or Channel based on current room
-      const currentRoomId = pathname.split("/").pop();
-      const isDM = directRooms.some(r => r.id === currentRoomId);
-      const isChannel = groupRooms.some(r => r.id === currentRoomId);
-      
-      if (isDM) setMobileTab("dms");
-      else if (isChannel) setMobileTab("channels");
-      // Default to channels if we can't determine (e.g. /channels/default)
-      else if (mobileTab === "social") setMobileTab("channels");
-    }
-  }, [sidebarMode, pathname, directRooms, groupRooms]);
+    const currentRoomId = pathname.split("/").pop();
+    const isDM = directRooms.some(r => r.id === currentRoomId);
+    const isChannel = groupRooms.some(r => r.id === currentRoomId);
+    
+    if (isDM) setMobileTab("dms");
+    else if (isChannel) setMobileTab("channels");
+  }, [pathname, directRooms, groupRooms]);
 
   React.useEffect(() => {
     initializeUnread(
@@ -187,14 +171,10 @@ export function AppSidebar({
 
   // Centralized search handler
   const handleSearchClick = () => {
-    if (sidebarMode === "chat") {
-      setOpenGlobalSearch(true);
-    } else {
-      setOpenSearchUser(true);
-    }
+    setOpenGlobalSearch(true);
   };
 
-  const searchTooltip = sidebarMode === "chat" ? "Cari Pesan" : "Cari Pengguna";
+  const searchTooltip = "Cari Pesan";
 
   // Prevent layout shift by rendering a static/skeleton state or null until mounted
   if (!isMounted) {
@@ -205,36 +185,7 @@ export function AppSidebar({
     );
   }
 
-const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
-  
-  const ModeSwitcher = () => (
-    <Button
-      asChild
-      variant="outline" // Diganti dari ghost agar memiliki base background & border bawaan
-      className="flex items-center justify-between gap-3 px-3 h-10 rounded-xl bg-background border-sidebar-border/60 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-border transition-all group w-full"
-    >
-      <Link href={targetUrl}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          {sidebarMode === "chat" ? (
-            <>
-              {/* Ikon Chat */}
-              <ChatCircle weight="duotone" className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
-              <span className="font-bold text-[14px] truncate tracking-wide">Chat</span>
-            </>
-          ) : (
-            <>
-              {/* Ikon Social Feed */}
-              <Rss weight="duotone" className="size-4.5 text-primary shrink-0 transition-transform group-hover:scale-105" />
-              <span className="font-bold text-[14px] truncate tracking-wide">Social Feed</span>
-            </>
-          )}
-        </div>
-        
-        {/* Ikon Dua Panah (Atas-Bawah) khas Switcher */}
-        <ArrowsDownUp weight="duotone" className="size-3.5 text-sidebar-foreground/50 group-hover:text-primary transition-colors shrink-0 duration-200" />
-      </Link>
-    </Button>
-  );
+  // Since microblogging is disabled, the app is chat-only
 
   return (
     <Sidebar
@@ -281,28 +232,6 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
         ) : (
           <div className="flex flex-col gap-1">
             <NavBrand brand={brand} />
-            {state === "expanded" && (
-              <div className="pb-1 flex items-center justify-between gap-1.5">
-                 <div className="flex-1 min-w-0">
-                   <ModeSwitcher />
-                 </div>
-                 {user && (
-                   <Tooltip>
-                     <TooltipTrigger asChild>
-                       <Button
-                         variant="ghost"
-                         size="icon"
-                         className="h-10 w-10 p-2 text-muted-foreground hover:bg-muted/50 rounded-xl shrink-0"
-                         onClick={handleSearchClick}
-                       >
-                         <MagnifyingGlass weight="duotone" className="h-4.5 w-4.5" />
-                       </Button>
-                     </TooltipTrigger>
-                     <TooltipContent side="right">{searchTooltip}</TooltipContent>
-                   </Tooltip>
-                 )}
-              </div>
-            )}
           </div>
         )}
         {!isMobile && state === "collapsed" && user && (
@@ -313,12 +242,12 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
                   variant="ghost"
                   size="icon"
                   className="w-full h-8 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg"
-                  onClick={handleSearchClick}
+                  onClick={() => setOpenGlobalSearch(true)}
                 >
                   <MagnifyingGlass weight="duotone" className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">{searchTooltip}</TooltipContent>
+              <TooltipContent side="right">Cari Pesan</TooltipContent>
             </Tooltip>
           </div>
         )}
@@ -326,9 +255,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
       <SidebarContent className="overflow-x-hidden pt-2">
         {isMobile ? (
           <div className="flex flex-col w-full min-w-0 pb-4">
-            {mobileTab === "social" ? (
-              <NavFeed userName={user?.name} />
-            ) : user ? (
+            {user ? (
               mobileTab === "channels" ? (
                 <NavMain
                   groups={groups}
@@ -354,20 +281,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
           </div>
         ) : (
           <Group orientation="vertical" className="w-full min-w-0 h-full">
-            {sidebarMode === "feed" ? (
-              <Panel
-                minSize="15%"
-                style={{
-                  overflowX: "hidden",
-                  overflowY: "auto",
-                  width: "100%",
-                  minWidth: "0",
-                }}
-                className="min-w-0"
-              >
-                <NavFeed userName={user?.name} />
-              </Panel>
-            ) : user ? (
+            {user ? (
               <>
                 <Panel
                   minSize="20%"
@@ -423,10 +337,7 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
             <Button
               variant="ghost"
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "channels" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => {
-                if (sidebarMode === "feed") router.push("/channels/default");
-                setMobileTab("channels");
-              }}
+              onClick={() => setMobileTab("channels")}
             >
               <Hash className="h-[22px] w-[22px]" weight={mobileTab === "channels" ? "bold" : "duotone"} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "channels" ? "font-bold" : "font-medium")}>Channels</span>
@@ -434,22 +345,12 @@ const targetUrl = sidebarMode === "chat" ? "/timeline" : "/channels/default";
             <Button
               variant="ghost"
               className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "dms" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => {
-                if (sidebarMode === "feed") router.push("/channels/default");
-                setMobileTab("dms");
-              }}
+              onClick={() => setMobileTab("dms")}
             >
               <ChatCircle className="h-[22px] w-[22px]" weight={mobileTab === "dms" ? "fill" : "duotone"} />
               <span className={cn("text-[10px] tracking-wide", mobileTab === "dms" ? "font-bold" : "font-medium")}>Pesan</span>
             </Button>
-            <Button
-              variant="ghost"
-              className={cn("flex-1 flex-col h-auto py-2.5 gap-1 rounded-xl shadow-none hover:bg-muted/50 transition-colors", mobileTab === "social" ? "text-primary" : "text-muted-foreground")}
-              onClick={() => router.push("/timeline")}
-            >
-              <Rss className="h-[22px] w-[22px]" weight={mobileTab === "social" ? "bold" : "duotone"} />
-              <span className={cn("text-[10px] tracking-wide", mobileTab === "social" ? "font-bold" : "font-medium")}>Social</span>
-            </Button>
+
             <Button
               variant="ghost"
               asChild

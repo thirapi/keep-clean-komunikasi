@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { getPublicProfileAction } from "../../user.action";
-import { sidaBarUserInfo } from "../../../auth.action";
+import { getUserWithRolesFromSession } from "../../../auth.action";
 import ProfileView from "./profile-view";
 import { notFound } from "next/navigation";
 
@@ -25,10 +25,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     const { username: rawUsername } = await params;
     const username = decodeURIComponent(rawUsername);
 
-    // Fetch the current user session
-    const fullCurrentUser = await (await import("../../../auth.action")).getUserWithRolesFromSession();
+    const fullCurrentUser = await getUserWithRolesFromSession();
 
-    // Fetch the target user profile
     const response = await getPublicProfileAction(username, fullCurrentUser?.id);
 
     if (response.status === "error" || !response.data) {
@@ -36,8 +34,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     }
 
     const user = response.data;
-
-    // Map the current user session (to check if it's their own profile)
 
     const finalCurrentUser = fullCurrentUser ? {
         id: fullCurrentUser.id,
@@ -50,8 +46,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         bio: fullCurrentUser.bio,
         banner: fullCurrentUser.banner,
         customStatus: fullCurrentUser.customStatus,
-        alsoKnownAs: fullCurrentUser.alsoKnownAs,
-        movedTo: fullCurrentUser.movedTo,
     } : null;
 
     return (

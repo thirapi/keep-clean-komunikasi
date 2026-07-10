@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bell, Check, PencilSimple, Lock, Shield, User, UserCircle, X, CircleNotch, Camera, Key, Sparkle, CaretLeft, Globe, Plugs, Trash, Fingerprint, UserSwitch, Info, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { Bell, Check, PencilSimple, Lock, Shield, User, UserCircle, X, CircleNotch, Camera, Key, Sparkle, CaretLeft, Trash, Info, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,6 @@ const data = {
   nav: [
     { name: "Profil", icon: User },
     { name: "Keamanan", icon: Shield },
-    { name: "Fediverse", icon: Globe },
     { name: "Tampilan", icon: Paintbrush },
   ],
 };
@@ -97,8 +96,6 @@ export function UserSettingsDialog({
     bio?: string | null;
     banner?: string | null;
     customStatus?: string | null;
-    alsoKnownAs?: string[] | null;
-    movedTo?: string | null;
   };
   trigger?: React.ReactNode;
 }) {
@@ -111,13 +108,6 @@ export function UserSettingsDialog({
   const [bio, setBio] = React.useState(user.bio || "");
   const [banner, setBanner] = React.useState(user.banner || "");
   const [customStatus, setCustomStatus] = React.useState(user.customStatus || "");
-
-  // Fediverse states
-  const [alsoKnownAs, setAlsoKnownAs] = React.useState<string[]>(user.alsoKnownAs || []);
-  const [movedTo, setMovedTo] = React.useState(user.movedTo || "");
-  const [newAlias, setNewAlias] = React.useState("");
-  const [isAddingAlias, setIsAddingAlias] = React.useState(false);
-  const [showMigrationConfirm, setShowMigrationConfirm] = React.useState(false);
 
   const [isUploading, setIsUploading] = React.useState(false);
   const [isBannerUploading, setIsBannerUploading] = React.useState(false);
@@ -142,8 +132,7 @@ export function UserSettingsDialog({
         bio: bio.trim() || null,
         banner: banner || null,
         customStatus: customStatus.trim() || null,
-        alsoKnownAs: alsoKnownAs,
-        movedTo: movedTo.trim() || null,
+
       });
 
       if (response.status === "success") {
@@ -240,8 +229,7 @@ export function UserSettingsDialog({
     bio !== (user.bio || "") ||
     banner !== (user.banner || "") ||
     customStatus !== (user.customStatus || "") ||
-    JSON.stringify(alsoKnownAs) !== JSON.stringify(user.alsoKnownAs || []) ||
-    movedTo !== (user.movedTo || "");
+    customStatus !== (user.customStatus || "");
 
   const handleReset = () => {
     setUsername(user.username);
@@ -250,28 +238,6 @@ export function UserSettingsDialog({
     setBio(user.bio || "");
     setBanner(user.banner || "");
     setCustomStatus(user.customStatus || "");
-    setAlsoKnownAs(user.alsoKnownAs || []);
-    setMovedTo(user.movedTo || "");
-  };
-
-  const handleAddAlias = async () => {
-    const alias = newAlias.trim();
-    if (!alias) return;
-    if (!alias.startsWith("http")) return toast.error("Masukkan alamat profil lengkap (mulai dengan https://)");
-    if (alsoKnownAs.includes(alias)) return toast.error("Akun ini sudah terdaftar sebagai alias");
-
-    setIsAddingAlias(true);
-    // Simulate validation handshake
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setAlsoKnownAs([...alsoKnownAs, alias]);
-    setNewAlias("");
-    setIsAddingAlias(false);
-    toast.success("Akun berhasil ditambahkan sebagai alias");
-  };
-
-  const handleRemoveAlias = (alias: string) => {
-    setAlsoKnownAs(alsoKnownAs.filter((a) => a !== alias));
   };
 
   return (
@@ -551,146 +517,6 @@ export function UserSettingsDialog({
                   </div>
                 )  }
 
-                {selectedItem === "Fediverse" && (
-                  <div className="animate-in fade-in duration-300 space-y-8">
-                    <div className="p-5 rounded-xl border border-border bg-muted/30 flex gap-4">
-                      <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center shrink-0">
-                        <Globe className="h-5 w-5 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold">Identitas Terdistribusi</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                          Kelola bagaimana Anda dikenali di seluruh jaringan Fediverse. Anda dapat menghubungkan identitas dari server lain atau memindahkan akun Anda.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-8">
-                      {/* Alias Section */}
-                      <section className="space-y-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Fingerprint weight="duotone" className="w-5 h-5 text-primary" />
-                          <Label className="text-base font-bold">Hubungkan Akun Lain</Label>
-                        </div>
-                        
-                        <div className="bg-muted/30 p-4 rounded-xl border border-dashed border-border space-y-3">
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Apakah Anda memiliki akun di server lain (misal: Mastodon)? Tambahkan alamat profilnya di sini untuk memverifikasi bahwa akun tersebut adalah milik Anda yang sama.
-                          </p>
-                          <div className="flex gap-2">
-                            <Input
-                              value={newAlias}
-                              onChange={(e) => setNewAlias(e.target.value)}
-                              placeholder="https://mastodon.social/@username"
-                              className="h-10 bg-background"
-                              disabled={isAddingAlias}
-                              onKeyDown={(e) => e.key === "Enter" && handleAddAlias()}
-                            />
-                            <Button 
-                              size="sm" 
-                              onClick={handleAddAlias} 
-                              className="h-10 min-w-[80px]"
-                              disabled={isAddingAlias || !newAlias}
-                            >
-                              {isAddingAlias ? <CircleNotch className="w-3 h-3 animate-spin" /> : "Hubungkan"}
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {alsoKnownAs.map((alias) => (
-                            <div key={alias} className="flex items-center justify-between p-3 rounded-lg bg-card border border-border group animate-in slide-in-from-top-1">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                                <span className="text-xs font-medium truncate text-muted-foreground">{alias}</span>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
-                                onClick={() => handleRemoveAlias(alias)}
-                              >
-                                <Trash className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          ))}
-                          {alsoKnownAs.length === 0 && (
-                            <div className="py-8 text-center border border-dashed border-border rounded-xl">
-                              <p className="text-[11px] text-muted-foreground italic">Belum ada akun lain yang terhubung.</p>
-                            </div>
-                          )}
-                        </div>
-                      </section>
-
-                      {/* Migration Section */}
-                      <section className="space-y-4 pt-6 border-t border-border">
-                        <div className="flex items-center gap-2 mb-1">
-                          <UserSwitch weight="duotone" className="w-5 h-5 text-primary" />
-                          <Label className="text-base font-bold">Pindah ke Akun Lain</Label>
-                        </div>
-                        
-                        <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3">
-                          <div className="flex gap-3">
-                            <Info weight="duotone" className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              Gunakan fitur ini jika Anda ingin <strong>berhenti menggunakan akun ini</strong> dan memindahkan pengikut Anda ke akun di server lain secara permanen.
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div className="grid gap-1.5">
-                              <p className="text-sm font-bold text-muted-foreground">Alamat Akun Baru</p>
-                              <Input
-                                id="movedTo"
-                                value={movedTo}
-                                onChange={(e) => setMovedTo(e.target.value)}
-                                placeholder="https://server-baru.com/@username"
-                                className="h-10 bg-background"
-                              />
-                            </div>
-                            
-                            {movedTo && (
-                              <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/50 border border-border animate-in zoom-in-95">
-                                <WarningCircle weight="fill" className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-muted-foreground leading-normal">
-                                  Menyimpan perubahan ini akan mengaktifkan pengalihan otomatis. Follower Anda akan melihat pengumuman bahwa Anda telah pindah.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-                    
-                    {/* Migration Confirmation Dialog */}
-                    <AlertDialog open={showMigrationConfirm} onOpenChange={setShowMigrationConfirm}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Konfirmasi Perpindahan Akun</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sm text-muted-foreground">
-                            Anda akan mengatur pengalihan akun ke <span className="font-mono text-primary">{movedTo}</span>. 
-                            Aksi ini akan memberitahu seluruh follower Anda di Fediverse.
-                            <br /><br />
-                            Apakah Anda yakin ingin melanjutkan?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => {
-                              setShowMigrationConfirm(false);
-                              handleUpdateProfile();
-                            }}
-                            className="bg-primary text-primary-foreground"
-                          >
-                            Ya, Aktifkan Pengalihan
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
-
                 {selectedItem === "Keamanan" && (
                   <div className="animate-in fade-in duration-300 space-y-8">
                     <div className="p-5 rounded-xl border border-border bg-muted/30 flex gap-4">
@@ -809,13 +635,7 @@ export function UserSettingsDialog({
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      if (movedTo !== (user.movedTo || "")) {
-                        setShowMigrationConfirm(true);
-                      } else {
-                        handleUpdateProfile();
-                      }
-                    }}
+                    onClick={handleUpdateProfile}
                     disabled={isUpdating}
                     className="bg-primary text-primary-foreground border-0 h-8 sm:h-9 px-3 sm:px-6 text-xs sm:text-sm font-bold shadow-lg transition-all active:scale-95"
                   >

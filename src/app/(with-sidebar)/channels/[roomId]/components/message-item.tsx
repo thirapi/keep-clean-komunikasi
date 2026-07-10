@@ -7,11 +7,9 @@ import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { XEmbed } from "@/components/ui/x-embed";
-import { LinkPreviewCard } from "./link-preview-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
-import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import { useEmojis } from "@/components/emoji-provider";
 
 // Module-level constants — compiled once, not on every render
@@ -350,8 +348,6 @@ export function MessageItem({
         const xMatch = url.match(X_REGEX);
         if (xMatch) {
           embeds.push(<XEmbed key={url} tweetUrl={url} />);
-        } else {
-          embeds.push(<LinkPreviewCard key={url} url={url} />);
         }
       }
 
@@ -427,10 +423,6 @@ export function MessageItem({
       }
       return match;
     });
-
-    // --- CUSTOM EMOJIS (Fediverse style) ---
-    // Process emojis BEFORE restoring code blocks to prevent replacement inside code.
-    processed = parseFediverseContent(processed, emojis);
 
     // 5. Restore Code Blocks
     processed = processed.replace(/__BLOCK_CODE_(\d+)__/g, (match, p1) => {
@@ -723,8 +715,7 @@ export function MessageItem({
             >
               <span 
                 className="cursor-pointer text-sm font-bold text-foreground hover:underline decoration-primary/50 underline-offset-2"
-                dangerouslySetInnerHTML={{ __html: parseFediverseContent(message.user?.name || message.user?.username || "Unknown User", emojiMeta) }}
-              />
+              >{message.user?.name || message.user?.username || "Unknown User"}</span>
             </ProfileHoverCard>
 
             <span className="text-[10px] font-medium text-muted-foreground/60">
@@ -742,8 +733,7 @@ export function MessageItem({
             <div className="text-[11px] text-muted-foreground line-clamp-1">
               <span 
                 className="font-bold text-primary/70"
-                dangerouslySetInnerHTML={{ __html: parseFediverseContent(message.replyToMessage.user?.name || message.replyToMessage.user?.username || "user", emojiMeta) }}
-              />
+              >{message.replyToMessage.user?.name || message.replyToMessage.user?.username || "user"}</span>
               <span className="ml-1 opacity-80 italic">
                 {truncate(
                   message.replyToMessage.content?.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
@@ -837,8 +827,7 @@ export function MessageItem({
                     >
                       <span 
                         className="text-base leading-none flex items-center justify-center min-w-[18px] min-h-[18px] transform hover:scale-115 transition-transform duration-100"
-                        dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, emojiMeta) }}
-                      />
+                      >{group.emoji}</span>
                       <span className={cn("font-bold tabular-nums text-[11px]", group.hasReacted ? "text-primary" : "text-muted-foreground/70")}>
                         {group.count}
                       </span>
@@ -851,8 +840,7 @@ export function MessageItem({
                     <div className="flex flex-col gap-2 items-center">
                       <span 
                         className="text-3xl leading-none flex items-center justify-center p-1"
-                        dangerouslySetInnerHTML={{ __html: parseFediverseContent(group.emoji, emojiMeta) }}
-                      />
+                      >{group.emoji}</span>
                       <p className="text-[11px] font-medium leading-snug text-zinc-100 dark:text-zinc-900 text-center">
                         <span className="font-bold">{group.users.join(", ")}</span>
                         {" "}bereaksi

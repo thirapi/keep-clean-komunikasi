@@ -1,7 +1,6 @@
 import { AuthenticationService } from "@/lib/infrastructure/services/authentication.service";
 import { IUserRepository } from "../../repositories/user.repository.interface";
 import { IPasswordService } from "../../services/password.service.interface";
-import { IKeyService } from "../../services/key.service.interface";
 import { AuthenticationError } from "@/lib/entities/errors/common";
 
 export class SignInUseCase {
@@ -9,7 +8,6 @@ export class SignInUseCase {
         private userRepository: IUserRepository,
         private authenticationService: AuthenticationService,
         private passwordService: IPasswordService,
-        private keyService: IKeyService
     ) { }
 
     async execute(username: string, password: string, context?: { ip?: string; userAgent?: string }): Promise<string> {
@@ -26,7 +24,6 @@ export class SignInUseCase {
         )
 
         if (!validatePassword) {
-            // Log failed login attempt
             await this.authenticationService.logEvent({
                 userId: findUser.id,
                 category: "auth",
@@ -36,16 +33,6 @@ export class SignInUseCase {
                 userAgent: context?.userAgent,
             });
             throw new AuthenticationError("Password didn't match!")
-        }
-
-        // Fediverse Compatibility: Ensure user has RSA keys
-        if (!findUser.publicKey || !findUser.privateKey) {
-            const { publicKey, privateKey } = await this.keyService.generateKeyPair();
-            await this.userRepository.update(findUser.id, {
-                publicKey,
-                privateKey,
-                updatedAt: new Date()
-            });
         }
 
         const token = await this.authenticationService.generateSessionToken();

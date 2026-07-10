@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
-import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+
 
 
 interface MemberListProps {
@@ -156,8 +156,7 @@ export function MemberList({
                           "text-sm font-medium truncate",
                           isParticipantOnline ? "text-foreground" : "text-muted-foreground"
                         )}
-                        dangerouslySetInnerHTML={{ __html: parseFediverseContent(participant.user.name || participant.user.username, []) }}
-                      />
+                      >{participant.user.name || participant.user.username}</span>
                       {isParticipantOwner && (
                         <Crown className="size-3 text-amber-500 fill-amber-500 shrink-0" />
                       )}

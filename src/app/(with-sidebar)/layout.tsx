@@ -40,8 +40,6 @@ export default async function layout({
     bio: userInfo.bio,
     banner: userInfo.banner,
     customStatus: userInfo.customStatus,
-    alsoKnownAs: userInfo.alsoKnownAs,
-    movedTo: userInfo.movedTo,
   } : null;
 
   return (
