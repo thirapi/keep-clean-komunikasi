@@ -29,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { updateChannel, deleteChannel, removeParticipant } from "../room.action";
-import { uploadFileAction } from "../messages.action";
+import { uploadFile } from "@/lib/client/upload";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -155,9 +155,7 @@ export function RoomDetailDialog({
 
     setIsBannerUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await uploadFileAction(formData, "room-banners");
+      const response = await uploadFile(file, "room-banners");
 
       if (response.status === "success" && response.data) {
         setBanner(response.data.fileurl);
@@ -181,9 +179,7 @@ export function RoomDetailDialog({
       let avatarUrl = roomData.avatar;
 
       if (avatarFile) {
-        const formData = new FormData();
-        formData.append("file", avatarFile);
-        const uploadRes = await uploadFileAction(formData, "room-avatars");
+        const uploadRes = await uploadFile(avatarFile, "room-avatars");
         if (uploadRes.status === "success" && uploadRes.data) {
           avatarUrl = uploadRes.data.fileurl;
         } else {
