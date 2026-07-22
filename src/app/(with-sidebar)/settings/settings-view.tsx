@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { CaretLeft, Camera, CircleNotch, Sparkle, Key, WarningCircle, User, Shield, CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { updateUserAction, changePasswordAction } from "../user.action";
-import { uploadFile } from "@/lib/client/upload";
+import { uploadFileAction } from "../channels/[roomId]/messages.action";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -84,7 +84,9 @@ function ProfileForm({ user }: { user: NonNullable<SettingsViewProps["user"]> })
         if (file.size > 2 * 1024 * 1024) return toast.error("File size max 2MB");
         setIsUploading(true);
         try {
-            const response = await uploadFile(file, "avatars");
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await uploadFileAction(formData, "avatars");
             if (response.status === "success" && response.data) {
                 setAvatar(response.data.fileurl);
                 toast.success("Avatar uploaded!");

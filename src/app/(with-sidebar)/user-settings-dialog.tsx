@@ -30,7 +30,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { updateUserAction, changePasswordAction } from "./user.action";
-import { uploadFile } from "@/lib/client/upload";
+import { uploadFileAction } from "./channels/[roomId]/messages.action";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -180,7 +180,9 @@ export function UserSettingsDialog({
 
     setIsUploading(true);
     try {
-      const response = await uploadFile(file, "avatars");
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await uploadFileAction(formData, "avatars");
 
       if (response.status === "success" && response.data) {
         setAvatar(response.data.fileurl);
@@ -204,7 +206,9 @@ export function UserSettingsDialog({
 
     setIsBannerUploading(true);
     try {
-      const response = await uploadFile(file, "banners");
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await uploadFileAction(formData, "banners");
 
       if (response.status === "success" && response.data) {
         setBanner(response.data.fileurl);

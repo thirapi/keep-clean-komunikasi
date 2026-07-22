@@ -3,8 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useIsImpersonating } from "@/hooks/use-impersonation";
-import { createMessage } from "../messages.action";
-import { uploadFile } from "@/lib/client/upload";
+import { createMessage, uploadFileAction } from "../messages.action";
 import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -154,7 +153,9 @@ export function MessageInput({
       try {
         if (selectedFiles.length > 0) {
           const uploadPromises = selectedFiles.map(async (file) => {
-            const uploadResponse = await uploadFile(file, `channels/${roomData.id}`);
+            const formData = new FormData();
+            formData.append("file", file);
+            const uploadResponse = await uploadFileAction(formData, `channels/${roomData.id}`);
             if (uploadResponse.status === "success" && uploadResponse.data) {
               return {
                 url: uploadResponse.data.fileurl,
