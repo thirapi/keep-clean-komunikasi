@@ -119,11 +119,10 @@ export const signUpUser = async (
       confirm_password,
     };
     await signUpController(signUpData);
-    if (callbackUrl) {
-      redirect(`/?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-    } else {
-      redirect("/");
-    }
+    const redirectUrl = callbackUrl 
+      ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` 
+      : "/signin";
+    redirect(redirectUrl);
   } catch (err: any) {
     if (err.message === "NEXT_REDIRECT") throw err;
     if (err instanceof AuthenticationError) {

@@ -14,7 +14,7 @@ describe("GetUserSessionUseCase", () => {
 
     const result = await useCase.execute("session123")
 
-    expect(mockAuthService.validateSession).toHaveBeenCalledWith("session123")
+    expect(mockAuthService.validateSession).toHaveBeenCalledWith("session123", undefined)
     expect(result).toEqual(mockSession)
   })
 })
