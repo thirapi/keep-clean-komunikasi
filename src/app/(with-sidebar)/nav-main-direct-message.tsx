@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { Plus, User } from "@phosphor-icons/react/dist/ssr";
 import { usePresence } from "@/components/presence-provider";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -98,9 +98,12 @@ export function NavMainDirectMessage({
 
   return (
     <>
-      <SidebarGroup>
-        <SidebarGroupLabel className="px-2 text-xs font-semibold text-sidebar-foreground/50 flex items-center justify-between">
-          {type}
+      <SidebarGroup className="py-1">
+        <SidebarGroupLabel className="px-3 py-2 text-[11px] font-bold tracking-wider text-sidebar-foreground/60 uppercase flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <User weight="bold" className="size-3.5 text-primary" />
+            {type}
+          </span>
           <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
@@ -108,7 +111,7 @@ export function NavMainDirectMessage({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors rounded-md"
                     onClick={() => setOpenDMDialog(true)}
                   >
                     <Plus weight="duotone" className="size-3.5" />
@@ -121,7 +124,7 @@ export function NavMainDirectMessage({
             </TooltipProvider>
           </div>
         </SidebarGroupLabel>
-        <SidebarMenu>
+        <SidebarMenu className="gap-1">
           {groups.length === 0 ? (
             <SidebarGroup>
               {!isCollapsed && groups.length === 0 && (
@@ -133,7 +136,7 @@ export function NavMainDirectMessage({
                     size="sm"
                     variant="outline"
                     onClick={() => setOpenDMDialog(true)}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center rounded-md"
                     title="Mulai Percakapan"
                   >
                     <Plus weight="duotone" />
@@ -153,11 +156,11 @@ export function NavMainDirectMessage({
                     asChild
                     isActive={isActive}
                     className={cn(
-                      "flex items-center transition-all duration-200 ease-in-out relative group/btn",
-                      isCollapsed ? "h-9 justify-center px-2" : "h-14 gap-3",
+                      "flex items-center transition-all duration-150 ease-in-out relative group/btn rounded-lg px-2.5",
+                      isCollapsed ? "h-10 justify-center" : "h-12 gap-3",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
-                        : "hover:bg-sidebar-accent/80 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground",
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-2xs"
+                        : "hover:bg-sidebar-accent/60 text-sidebar-foreground/80 hover:text-sidebar-accent-foreground",
                     )}
                     tooltip={item.name}
                   >
@@ -166,13 +169,13 @@ export function NavMainDirectMessage({
                       className="flex items-center w-full"
                     >
                       {isActive && !isCollapsed && (
-                        <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full -ml-3" />
+                        <div className="absolute left-0 w-1 h-6 bg-primary rounded-r-full -ml-2.5" />
                       )}
                       <div className="relative shrink-0">
                         <UserAvatar
                           src={item.avatar}
                           alt={item.name}
-                          className="h-10 w-10 rounded-md border shadow-sm shrink-0"
+                          className="h-8 w-8 rounded-lg border border-border/40 shadow-2xs shrink-0"
                         />
                         {onlineUserIds.includes(item.userId) && (
                           <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-sidebar group-hover/btn:bg-sidebar-accent transition-colors">
@@ -182,7 +185,7 @@ export function NavMainDirectMessage({
                         {item.hasUnread && (
                           <div className={cn(
                             "absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar pointer-events-none flex items-center justify-center",
-                            item.hasMention ? "bg-red-500 scale-125 z-10" : "bg-primary"
+                            item.hasMention ? "bg-red-500 scale-110 z-10" : "bg-primary"
                           )}>
                             {item.hasMention && <span className="text-[7px] text-white font-bold leading-none">@</span>}
                           </div>
@@ -190,23 +193,21 @@ export function NavMainDirectMessage({
                       </div>
 
                       {!isCollapsed && (
-                        <div className="flex flex-col flex-1 min-w-0 ml-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className={cn("truncate font-medium", item.hasUnread && "font-bold text-foreground")}>
-                                {item.name}
-                              </span>
-                            </div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className={cn("truncate text-xs font-semibold tracking-tight leading-tight", item.hasUnread ? "text-foreground font-bold" : "text-sidebar-foreground/90")}>
+                              {item.name}
+                            </span>
                             {item.lastMessageTime && (
-                              <span className="text-[10px] text-muted-foreground shrink-0 font-normal">
+                              <span className="text-[10px] text-muted-foreground/70 shrink-0 font-normal">
                                 {formatTime(item.lastMessageTime)}
                               </span>
                             )}
                           </div>
                           {item.lastMessage && (
                             <span className={cn(
-                              "text-xs truncate",
-                              item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground"
+                              "text-[11px] truncate leading-tight mt-0.5",
+                              item.hasUnread ? "text-foreground/90 font-medium" : "text-muted-foreground/70"
                             )}>
                               {renderLastMessage(item.lastMessage)}
                             </span>

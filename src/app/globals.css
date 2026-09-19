@@ -47,7 +47,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #FAFAFA;
+  --background: #FFFFFF;
   --foreground: #18181B;
   --card: #FFFFFF;
   --card-foreground: #18181B;
@@ -56,11 +56,11 @@
   --brand: #6B8E7B;
   --primary: #6B8E7B;
   --primary-foreground: #FFFFFF;
-  --secondary: #F4F4F5;
+  --secondary: #F4F4F6;
   --secondary-foreground: #6B8E7B;
-  --muted: #F4F4F5;
+  --muted: #F4F4F6;
   --muted-foreground: #71717A;
-  --accent: #F4F4F5;
+  --accent: #F4F4F6;
   --accent-foreground: #6B8E7B;
   --destructive: #C27A65;
   --border: #E4E4E7;
@@ -71,43 +71,43 @@
   --chart-3: #C27A65;
   --chart-4: #8E8D8A;
   --chart-5: #D8C3A5;
-  --sidebar: #FAFAFA;
+  --sidebar: #F4F4F6;
   --sidebar-foreground: #18181B;
   --sidebar-primary: #6B8E7B;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F4F4F5;
-  --sidebar-accent-foreground: #6B8E7B;
+  --sidebar-accent: #E8E8EC;
+  --sidebar-accent-foreground: #18181B;
   --sidebar-border: #E4E4E7;
   --sidebar-ring: #6B8E7B;
 }
 
 .dark {
-  --background: #1C1C1E;
+  --background: #141416;
   --foreground: #E6E6E4;
-  --card: #222224;
+  --card: #1C1C1E;
   --card-foreground: #E6E6E4;
-  --popover: #222224;
+  --popover: #1C1C1E;
   --popover-foreground: #E6E6E4;
   --brand: #6B8E7B;
   --primary: #6B8E7B;
   --primary-foreground: #E6E6E4;
-  --secondary: #2C2C2E;
+  --secondary: #242426;
   --secondary-foreground: #E6E6E4;
-  --muted: #2C2C2E;
+  --muted: #242426;
   --muted-foreground: #A1A1AA;
-  --accent: #2C2C2E;
+  --accent: #242426;
   --accent-foreground: #6B8E7B;
   --destructive: #C27A65;
   --border: #2C2C2E;
   --input: #2C2C2E;
   --ring: #6B8E7B;
-  --sidebar: #1C1C1E;
+  --sidebar: #19191B;
   --sidebar-foreground: #E6E6E4;
   --sidebar-primary: #6B8E7B;
   --sidebar-primary-foreground: #E6E6E4;
-  --sidebar-accent: #2C2C2E;
-  --sidebar-accent-foreground: #6B8E7B;
-  --sidebar-border: #2C2C2E;
+  --sidebar-accent: #26262A;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #26262A;
   --sidebar-ring: #6B8E7B;
 }
 
@@ -152,9 +152,18 @@
   }
 
   /* Custom Scrollbar - Slack/Discord Style */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
+  }
+
+  .dark * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -162,20 +171,22 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.2);
-    border-radius: 10px;
+    background: rgba(160, 160, 160, 0.25);
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 128, 128, 0.4);
+    background: rgba(160, 160, 160, 0.45);
   }
 
+  :is(.dark *) ::-webkit-scrollbar-thumb,
   .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
   }
 
+  :is(.dark *) ::-webkit-scrollbar-thumb:hover,
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.3);
   }
 
   ::selection {
@@ -192,6 +203,14 @@
 @layer base {
   * {
     border-color: var(--border);
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
   }
 
   body {

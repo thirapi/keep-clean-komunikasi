@@ -191,7 +191,7 @@ export function AppSidebar({
       collapsible="none"
       variant={isMobile ? "sidebar" : "inset"}
       className={cn(
-        "border-none bg-transparent transition-none",
+        "border-r border-sidebar-border/60 bg-sidebar transition-none",
         isDefaultRoom ? "max-md:!w-full max-md:!max-w-full max-md:flex" : "max-md:hidden"
       )}
       {...props}

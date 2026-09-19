@@ -186,15 +186,20 @@ export function ChatHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center">
-                {/* Desktop: Prominent Search Bar style button */}
+                {/* Desktop: Slack/Teams Style Search Input Button */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={onToggleSearch}
-                  className="hidden md:flex items-center gap-3 h-9 px-3 text-muted-foreground hover:text-foreground transition-all border-dashed bg-muted/30 hover:bg-muted/50 rounded-lg group"
+                  className="hidden md:flex items-center justify-between gap-4 h-9 w-64 px-3 text-muted-foreground hover:text-foreground transition-all border bg-secondary/50 hover:bg-secondary/80 rounded-lg group shadow-2xs"
                 >
-                  <MagnifyingGlass weight="duotone" className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-medium">Cari pesan...</span>
+                  <div className="flex items-center gap-2">
+                    <MagnifyingGlass weight="duotone" className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:scale-105 transition-all" />
+                    <span className="text-xs font-normal">Cari pesan...</span>
+                  </div>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
                 </Button>
 
                 {/* Mobile: Simple Icon Button */}
@@ -209,7 +214,7 @@ export function ChatHeader({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Cari Pesan</p>
+              <p>Cari Pesan (⌘K)</p>
             </TooltipContent>
           </Tooltip>
 
