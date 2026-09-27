@@ -1,7 +1,7 @@
 import { SessionDTO, SessionLogRecord, SessionRecord } from "@/lib/entities/models/session.model";
 
 export interface ISessionRepository {
-    getAllSessions(): Promise<SessionLogRecord[]>;
+    getAllSessions(limit?: number): Promise<SessionLogRecord[]>;
     findBySessionId(sessionId: string): Promise<SessionRecord | null>;
     insertSession(sessionData: SessionRecord): Promise<boolean>;
     deleteSession(sessionId: string): Promise<void>;

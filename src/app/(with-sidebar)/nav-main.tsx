@@ -12,7 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { useEmojis } from "@/components/emoji-provider";
+import { useCustomEmojis } from "@/components/emoji-provider";
 import { stripMarkdown } from "@/lib/strip-markdown";
 import { Button } from "@/components/ui/button";
 import { Plus, Compass, Hash } from "@phosphor-icons/react/dist/ssr";
@@ -47,7 +47,7 @@ export function NavMain({
   onCreate?: () => void;
   onExplore?: () => void;
 }) {
-  const { customEmojis } = useEmojis();
+  const customEmojis = useCustomEmojis();
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";

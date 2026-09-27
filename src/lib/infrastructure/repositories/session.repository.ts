@@ -7,9 +7,12 @@ import { SessionLogRecord, SessionRecord } from "@/lib/entities/models/session.m
 export class SessionRepository implements ISessionRepository {
   constructor(private client: typeof db) { }
 
-  async getAllSessions(): Promise<SessionLogRecord[]> {
+  async getAllSessions(limit = 500): Promise<SessionLogRecord[]> {
     const allSessions = await this.client.query.sessions.findMany({
       orderBy: [desc(sessions.createdAt)],
+      // Mirrors activity-log.findAll: the admin table paginates client-side, so
+      // the read is bounded to a recent window rather than the whole table.
+      limit,
       with: {
         // The session log renders only the owner's username — do not ship the
         // bcrypt `password` column with every session row.

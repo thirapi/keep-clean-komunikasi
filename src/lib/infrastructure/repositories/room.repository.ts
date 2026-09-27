@@ -264,6 +264,18 @@ export class RoomRepository implements IRoomRepository {
     return others;
   }
 
+  async getParticipantIds(roomId: string): Promise<string[]> {
+    // Only the membership set is needed by the invite search. getRoomById
+    // would drag in rooms -> participants -> users -> userRoles -> roles
+    // (and the participants' password hashes) for the same information.
+    const rows = await this.client
+      .select({ userId: roomParticipants.userId })
+      .from(roomParticipants)
+      .where(eq(roomParticipants.roomId, roomId));
+
+    return rows.map((row) => row.userId);
+  }
+
   async createRoom(
     name: string,
     isDirect: boolean,

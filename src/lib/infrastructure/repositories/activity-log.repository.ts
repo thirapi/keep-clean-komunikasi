@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { activityLogs } from "../drizzle/schema";
 import { IActivityLogRepository } from "@/lib/application/repositories/activity-log.repository.interface";
 import { ActivityLogRecord } from "@/lib/entities/models/activity-log.model";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 export class DrizzleActivityLogRepository implements IActivityLogRepository {
     async insertLog(log: ActivityLogRecord): Promise<void> {
@@ -18,24 +18,13 @@ export class DrizzleActivityLogRepository implements IActivityLogRepository {
         });
     }
 
-    async hasLogWithinLast24Hours(userId: string, action: string): Promise<boolean> {
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const result = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(activityLogs)
-            .where(
-                and(
-                    eq(activityLogs.userId, userId),
-                    eq(activityLogs.action, action),
-                    gte(activityLogs.createdAt, twentyFourHoursAgo)
-                )
-            );
-        return result[0].count > 0;
-    }
-
-    async findAll(): Promise<ActivityLogRecord[]> {
+    async findAll(limit = 500): Promise<ActivityLogRecord[]> {
         const result = await db.query.activityLogs.findMany({
             orderBy: [desc(activityLogs.createdAt)],
+            // The admin table paginates client-side at 15 rows/page, so an
+            // unbounded read shipped the entire log to the browser on every
+            // visit. Bounded to a recent window instead.
+            limit,
             with: {
                 // The admin log only renders the author's id/username — do not
                 // ship the bcrypt `password` column with every log row.

@@ -1,5 +1,5 @@
 import { pusher } from "@/lib/pusher/pusher.client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface TypingUser {
   userId: string;
@@ -52,11 +52,15 @@ export function useTypingIndicator(roomId: string, currentUserId: string) {
     };
   }, [roomId, currentUserId]);
 
-  const displayNames = Array.from(typingUsers)
-    .map((userId) => userMap.current.get(userId) || userId);
+  // Stable identity so consumers of this hook are not re-rendered on every
+  // unrelated MessageInput render.
+  const displayNames = useMemo(
+    () => Array.from(typingUsers).map((userId) => userMap.current.get(userId) || userId),
+    [typingUsers],
+  );
 
-    return {
-        typingUsers,
-        displayNames,
-    }
+  return {
+    typingUsers,
+    displayNames,
+  };
 }

@@ -18,6 +18,7 @@ export interface IRoomRepository {
     roomId: string,
     excludeUserId: string
   ): Promise<{ userId: string }[]>;
+  getParticipantIds(roomId: string): Promise<string[]>;
   createRoom(
     name: string,
     isDirect: boolean,

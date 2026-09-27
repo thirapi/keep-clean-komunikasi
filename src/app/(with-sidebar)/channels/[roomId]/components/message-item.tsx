@@ -8,7 +8,7 @@ import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { XEmbed } from "@/components/ui/x-embed";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { useEmojis } from "@/components/emoji-provider";
+import { useCustomEmojis } from "@/components/emoji-provider";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
 import dynamic from "next/dynamic";
 
@@ -584,7 +584,7 @@ const getFileName = (url: string) => {
     return processed;
   }, [participantsById]);
 
-  const { customEmojis } = useEmojis();
+  const customEmojis = useCustomEmojis();
   const emojiMeta = useMemo(() => customEmojis.map(e => ({ name: e.shortcode, url: e.url })), [customEmojis]);
   const emojiMap = useMemo(() => {
     const map = new Map<string, string>();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { toast } from "sonner";
 import { requestNotificationPermission } from "@/utils/notifications";
@@ -19,6 +19,13 @@ export function RealtimeNotificationListener({ user }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { markAsUnread, markAsRead } = useUnread();
+
+  // Read through a ref so the Pusher subscription is bound once for the whole
+  // session. `pathname` in the dependency array used to tear down and rebuild
+  // the channel (unbind_all + unsubscribe + subscribe + 3 binds) on every route
+  // change, and the handler was reading a stale pathname in between.
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   const playNotificationSound = () => {
     try {
@@ -50,7 +57,7 @@ export function RealtimeNotificationListener({ user }: Props) {
       const roomId = message.roomId;
       const roomUrl = `/channels/${roomId}`;
 
-      const isViewingRoom = pathname === roomUrl;
+      const isViewingRoom = pathnameRef.current === roomUrl;
 
       if (message.userId === user.id) {
         return;
@@ -97,8 +104,13 @@ export function RealtimeNotificationListener({ user }: Props) {
     });
 
     // CHAT: Message Deleted
-    channel.bind("message-deleted-notification", () => {
-      router.refresh();
+    channel.bind("message-deleted-notification", (data: { roomId?: string }) => {
+      // A refresh re-renders the whole server tree. A deletion in a room the
+      // user is not viewing cannot change what is on screen, so only refresh
+      // for the room currently open; otherwise rely on the unread badge.
+      if (data?.roomId && pathnameRef.current === `/channels/${data.roomId}`) {
+        router.refresh();
+      }
     });
     // CHAT: Mark as Read Sync
     channel.bind("room-marked-read", (data: { roomId: string }) => {
@@ -109,7 +121,7 @@ export function RealtimeNotificationListener({ user }: Props) {
       channel.unbind_all();
       pusher.unsubscribe(`user-${user.id}`);
     };
-  }, [user.id, pathname, markAsUnread, markAsRead, router]);
+  }, [user.id, markAsUnread, markAsRead, router]);
 
   return null;
 }

@@ -8,7 +8,6 @@ import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import NextTopLoader from "nextjs-toploader";
 import { QueryProvider } from "@/components/query-provider";
-import { EmojiProvider } from "@/components/emoji-provider";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -107,10 +106,8 @@ export default function RootLayout({
           enableColorScheme={false}
         >
           <QueryProvider>
-            <EmojiProvider>
-              {children}
-              <Toaster />
-            </EmojiProvider>
+            {children}
+            <Toaster />
           </QueryProvider>
         </ThemeProvider>
         <ServiceWorkerRegister />
