@@ -54,3 +54,6 @@ next-env.d.ts
 /android/app/src/main/assets/public
 /android/.gradle
 /android/local.properties
+
+# local build artifacts (APK)
+build-artifacts/
