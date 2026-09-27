@@ -26,8 +26,30 @@ export interface SidebarRoomDTO {
   lastMessageTime?: Date;
 }
 
-export interface RoomWithParticipantsDTO extends RoomRecord {
-  createdAt: Date;
+/**
+ * Flat projection backing the sidebar. Carries only the fields the sidebar
+ * renders, so the repository does not have to materialise full participant
+ * profiles and role lists for every room the user belongs to.
+ */
+export interface SidebarRoomRow {
+  roomId: string;
+  roomName: string;
+  roomAvatar: string;
+  isDirect: boolean;
+  lastReadAt: Date | null;
+  lastMessageId: string | null;
+  lastMessageContent: string | null;
+  lastMessageUserId: string | null;
+  lastMessageCreatedAt: Date | null;
+  lastMessageAttachmentUrl: string | null;
+  lastMessageAttachmentType: string | null;
+  otherUserId: string | null;
+  otherUsername: string | null;
+  otherAvatar: string | null;
+  hasMention: boolean;
+}
+
+export interface RoomWithParticipantsDTO extends RoomRecord {  createdAt: Date;
   updatedAt: Date;
   participants: {
     lastReadMessageId: string | null;

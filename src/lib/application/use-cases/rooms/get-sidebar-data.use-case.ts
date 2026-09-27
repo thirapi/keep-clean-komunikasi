@@ -1,6 +1,10 @@
 import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { IRoomRepository } from "../../repositories/room.repository.interface";
 
+const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
+
+const MENTION_TOKEN = /<@([a-zA-Z0-9_-]+)>/g;
+
 export class GetSidebarDataUseCase {
   constructor(private roomRepository: IRoomRepository) { }
 
@@ -8,86 +12,81 @@ export class GetSidebarDataUseCase {
     channels: SidebarRoomDTO[];
     directMessages: SidebarRoomDTO[];
   }> {
-    const rooms = await this.roomRepository.getAllRoomsByUserId(userId);
-    const roomsToFormat = rooms ?? [];
+    const rows = (await this.roomRepository.getSidebarRooms(userId)) ?? [];
 
-    const formattedRooms: SidebarRoomDTO[] = roomsToFormat.map((room) => {
-      const currentUserParticipant = room.participants.find(
-        (participant) => participant.user.id === userId
-      );
-
-      const latestMessage = room.messages[0];
-
-      // A room has unread if:
-      // 1. There is at least one message.
-      // 2. The latest message is NOT from the current user.
-      // 3. The latest message timestamp is newer than lastReadAt.
-      const lastReadTime = currentUserParticipant?.lastReadAt
-        ? new Date(currentUserParticipant.lastReadAt).getTime()
+    const formattedRooms: SidebarRoomDTO[] = rows.map((row) => {
+      const lastReadTime = row.lastReadAt ? new Date(row.lastReadAt).getTime() : 0;
+      const lastMessageTime = row.lastMessageCreatedAt
+        ? new Date(row.lastMessageCreatedAt).getTime()
         : 0;
 
+      // A room has unread if there is at least one message, the latest message
+      // is not from the current user, and it is newer than lastReadAt.
       const hasUnread = Boolean(
-        latestMessage &&
-        latestMessage.userId !== userId &&
-        new Date(latestMessage.createdAt).getTime() > lastReadTime
+        row.lastMessageId &&
+          row.lastMessageUserId !== userId &&
+          lastMessageTime > lastReadTime,
       );
 
-      // A room has mention if any unread message contains <@userId> or <@everyone>
-      const hasMention = room.messages.some(msg => {
-        if (new Date(msg.createdAt).getTime() <= lastReadTime) return false;
-        if (msg.userId === userId) return false;
-        return msg.content?.includes(`<@${userId}>`) || msg.content?.includes("<@everyone>");
-      });
+      // Mention presence over the unread range is resolved in SQL, so only the
+      // display text still needs work here.
+      const hasMention = Boolean(row.hasMention);
 
-      // Determine display text for last message
-      let lastMessageDisplay = latestMessage?.content;
+      let lastMessageDisplay: string | undefined = row.lastMessageContent ?? undefined;
       if (lastMessageDisplay) {
-        lastMessageDisplay = lastMessageDisplay.replace(/<@([a-zA-Z0-9_-]+)>/g, (match, uid) => {
-          if (uid === "everyone") return "@everyone";
-          const participant = room.participants.find(p => p.user.id === uid);
-          return participant ? `@${participant.user.username}` : match;
-        });
+        // Mentions are stored as <@userId>; DMs render the other participant's
+        // username, anything unresolved is left as the raw token.
+        lastMessageDisplay = lastMessageDisplay.replace(
+          MENTION_TOKEN,
+          (match, uid: string) => {
+            if (uid === "everyone") return "@everyone";
+            if (row.isDirect) {
+              return row.otherUserId === uid && row.otherUsername
+                ? `@${row.otherUsername}`
+                : match;
+            }
+            return match;
+          },
+        );
       }
 
-      if (latestMessage && !latestMessage.content && latestMessage.attachments && latestMessage.attachments.length > 0) {
-        const firstAttachment = latestMessage.attachments[0];
-        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-        const isImage = imageExtensions.some(ext => firstAttachment.url?.toLowerCase().includes(ext)) || firstAttachment.fileType.startsWith('image/');
+      if (
+        row.lastMessageId &&
+        !row.lastMessageContent &&
+        row.lastMessageAttachmentUrl
+      ) {
+        const url = row.lastMessageAttachmentUrl.toLowerCase();
+        const isImage =
+          IMAGE_EXTENSIONS.some((ext) => url.includes(ext)) ||
+          row.lastMessageAttachmentType?.startsWith("image/");
         lastMessageDisplay = isImage ? "📷 Foto" : "📁 File";
       }
 
-      if (room.isDirect) {
-
-        const otherParticipant = room.participants.find(
-          (participant) => participant.user.id !== userId
-        ) || room.participants.find(
-          (participant) => participant.user.id === userId
-        );
-
+      if (row.isDirect) {
         return {
-          id: room.id,
-          userId: otherParticipant?.user.id || userId,
-          name: otherParticipant?.user.username || "unknown",
-          avatar: otherParticipant?.user.avatar || "/avatars/avatar1.png",
-          url: `/channels/${room.id}`,
+          id: row.roomId,
+          userId: row.otherUserId || userId,
+          name: row.otherUsername || "unknown",
+          avatar: row.otherAvatar || "/avatars/avatar1.png",
+          url: `/channels/${row.roomId}`,
           hasUnread,
           hasMention,
           type: "direct" as const,
           lastMessage: lastMessageDisplay,
-          lastMessageTime: latestMessage?.createdAt,
+          lastMessageTime: row.lastMessageCreatedAt ?? undefined,
         };
       }
 
       return {
-        id: room.id,
-        name: room.name,
-        url: `/channels/${room.id}`,
-        avatar: room.avatar,
+        id: row.roomId,
+        name: row.roomName,
+        url: `/channels/${row.roomId}`,
+        avatar: row.roomAvatar,
         hasUnread,
         hasMention,
         type: "channel" as const,
         lastMessage: lastMessageDisplay,
-        lastMessageTime: latestMessage?.createdAt,
+        lastMessageTime: row.lastMessageCreatedAt ?? undefined,
       };
     });
 

@@ -1,7 +1,8 @@
-import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import { RoomWithParticipantsDTO, SidebarRoomRow } from "@/lib/entities/models/room.model";
 
 export interface IRoomRepository {
   getRoomById(roomId: string): Promise<RoomWithParticipantsDTO | null>;
+  getSidebarRooms(userId: string): Promise<SidebarRoomRow[]>;
   getAllRoomsByUserId(
     userId: string,
     options?: { isDirect?: boolean }
