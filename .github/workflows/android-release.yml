@@ -93,17 +93,31 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # The runner image already ships the Android SDK and puts it on PATH.
-      # Pointing ANDROID_HOME at an empty directory hides it, and sdkmanager
-      # then disappears with a bare "command not found".
-      - name: Set up the Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          # Without this the build fails on an unaccepted SDK licence.
-          accept-android-sdk-licenses: true
+      # The runner image already ships a working Android SDK at
+      # /usr/local/lib/android/sdk and puts it on PATH. Do not export
+      # ANDROID_HOME to an empty directory: that hides the SDK and sdkmanager
+      # then vanishes. android-actions/setup-android was also tried and its
+      # licence step exits 1 on this image, so licences are accepted here.
+      - name: Accept Android SDK licences
+        run: |
+          set +e
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          set -e
+          echo "licences accepted"
+          echo "SDK root: ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-unknown}}"
+          sdkmanager --list_installed 2>/dev/null | head -20 || true
 
       - name: Install SDK packages required by compileSdk 36
-        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          set +e
+          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools" 2>&1 | tail -5
+          set -e
+          # Verify rather than trust the install: Gradle's error for a missing
+          # platform is far less obvious than this one.
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          test -d "$SDK/platforms/android-36"  || { echo "::error::android-36 platform missing at $SDK/platforms"; exit 1; }
+          test -d "$SDK/build-tools/36.0.0"  || { echo "::error::build-tools 36.0.0 missing at $SDK/build-tools"; exit 1; }
+          echo "SDK packages verified"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -117,8 +131,9 @@ jobs:
           set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
           # Fail loudly rather than shipping an APK that could never be updated.
-          apksigner verify --print-certs "$APK"
+          "$SDK/build-tools/36.0.0/apksigner" verify --print-certs "$APK"
           VERSION=$(node -p "require('./package.json').version")
           OUT="Komunikasi-$VERSION.apk"
           cp "$APK" "$OUT"
