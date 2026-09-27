@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { pusher } from "@/lib/pusher/pusher.client";
+import { getPusher } from "@/lib/pusher/pusher.client";
 import {
   updatePresenceAction,
   getOnlineUsersAction,
@@ -49,7 +49,7 @@ export function PresenceProvider({
     const interval = setInterval(sendHeartbeat, 50000); // Every 50 seconds
 
     // Listen to global presence
-    const channel = pusher.subscribe("global-presence");
+    const channel = getPusher().subscribe("global-presence");
 
     channel.bind("user-online", ({ userId: onlineId }: { userId: string }) => {
       setOnlineUserIds((prev) =>
@@ -72,7 +72,7 @@ export function PresenceProvider({
 
     return () => {
       clearInterval(interval);
-      pusher.unsubscribe("global-presence");
+      getPusher().unsubscribe("global-presence");
       window.removeEventListener("beforeunload", handleBeforeUnload);
       updatePresenceAction(userId, "offline");
     };

@@ -183,6 +183,13 @@
       "when": 1781201448302,
       "tag": "0025_sticky_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790536733081,
+      "tag": "0026_closed_colossus",
+      "breakpoints": true
     }
   ]
 }

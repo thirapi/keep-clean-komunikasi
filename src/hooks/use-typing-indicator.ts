@@ -1,4 +1,4 @@
-import { pusher } from "@/lib/pusher/pusher.client";
+import { getPusher } from "@/lib/pusher/pusher.client";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface TypingUser {
@@ -12,7 +12,7 @@ export function useTypingIndicator(roomId: string, currentUserId: string) {
   const userMap = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
-    const channel = pusher.subscribe(`chat-${roomId}`);
+    const channel = getPusher().subscribe(`chat-${roomId}`);
 
     const handleUserTyping = (data: TypingUser) => {
       if (!data.userId || !data.username || data.userId === currentUserId)

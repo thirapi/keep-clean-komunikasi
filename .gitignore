@@ -43,3 +43,25 @@ next-env.d.ts
 # open next cloudflare
 .open-next/
 
+
+# capacitor native builds
+/ios/Pods
+/ios/App/Pods
+/ios/App/App/public
+/ios/App/build
+/ios/App/App.xcworkspace/xcuserdata
+/android/app/build
+/android/app/src/main/assets/public
+/android/.gradle
+/android/local.properties
+
+# local build artifacts (APK)
+build-artifacts/
+
+# Firebase credentials — NEVER commit these.
+# The service account holds a private key that can send push to every device.
+# google-services.json is regenerated from the Firebase console; the
+# service-account JSON is only ever supplied through .env / CI secrets.
+android/app/google-services.json
+android/app/*firebase-adminsdk*.json
+android/app/service-account*.json

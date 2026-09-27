@@ -38,14 +38,17 @@ describe("SendMessageUseCase", () => {
   } as unknown as INotifierService
 
   const mockPushRepo = {
-    saveSubscription: vi.fn(),
+    saveWebSubscription: vi.fn(),
+    saveFcmToken: vi.fn(),
     getSubscriptionsByUserId: vi.fn().mockResolvedValue([]),
     getSubscriptionsByUserIds: vi.fn().mockResolvedValue([]),
+    deleteSubscriptionById: vi.fn(),
     deleteSubscription: vi.fn(),
   } as unknown as any
 
   const mockWebPushService = {
     sendNotification: vi.fn(),
+    sendNativeNotification: vi.fn().mockResolvedValue({ ok: true, expired: false }),
   } as unknown as any
 
   beforeEach(() => {
@@ -66,6 +69,8 @@ describe("SendMessageUseCase", () => {
     vi.mocked(mockRoomRepo.getOtherParticipants).mockResolvedValue([])
     vi.mocked(mockPusher.trigger).mockResolvedValue(undefined as any)
     vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([])
+    vi.mocked(mockPushRepo.deleteSubscriptionById).mockResolvedValue(undefined)
+    vi.mocked(mockWebPushService.sendNativeNotification).mockResolvedValue({ ok: true, expired: false })
   })
 
   const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier, mockPushRepo, mockWebPushService)
@@ -179,5 +184,95 @@ describe("SendMessageUseCase", () => {
     const expectedMessage = { ...mockMessage, optimisticId }
     expect(mockPusher.trigger).toHaveBeenCalledWith("chat-room1", "new-message", expectedMessage)
     expect(result.optimisticId).toBe(optimisticId)
+  })
+
+  // FCM (native) and VAPID (web) are different transports stored side by side.
+  // Both must be delivered, and each row must be routed by its own type.
+  describe("push transport routing", () => {
+    const mockMessage = { ...baseMessage, user: { username: "user1" } }
+
+    beforeEach(() => {
+      vi.mocked(mockRepo.createMessage).mockResolvedValue(mockMessage as any)
+    })
+
+    it("routes a web row to VAPID and an fcm row to FCM", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "w1", type: "web", endpoint: "https://push.example/1", p256dh: "k1", auth: "a1" },
+        { id: "f1", type: "fcm", endpoint: "fcm-token-xyz", p256dh: null, auth: null },
+      ] as any)
+
+      await createUseCase().execute("user1", "hi", "room1")
+
+      expect(mockWebPushService.sendNotification).toHaveBeenCalledTimes(1)
+      expect(mockWebPushService.sendNotification).toHaveBeenCalledWith(
+        { endpoint: "https://push.example/1", keys: { p256dh: "k1", auth: "a1" } },
+        expect.stringContaining("user1"),
+      )
+      expect(mockWebPushService.sendNativeNotification).toHaveBeenCalledTimes(1)
+      expect(mockWebPushService.sendNativeNotification).toHaveBeenCalledWith(
+        "fcm-token-xyz",
+        expect.objectContaining({ title: "user1", url: "/channels/room1" }),
+      )
+    })
+
+    it("never sends an fcm row over VAPID", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "f1", type: "fcm", endpoint: "fcm-token-xyz", p256dh: null, auth: null },
+      ] as any)
+
+      await createUseCase().execute("user1", "hi", "room1")
+
+      expect(mockWebPushService.sendNotification).not.toHaveBeenCalled()
+    })
+
+    it("skips a web row with missing keys rather than sending garbage", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "w1", type: "web", endpoint: "https://push.example/1", p256dh: null, auth: null },
+      ] as any)
+
+      await createUseCase().execute("user1", "hi", "room1")
+
+      expect(mockWebPushService.sendNotification).not.toHaveBeenCalled()
+    })
+
+    it("treats a legacy row with no type as web", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "w1", endpoint: "https://push.example/1", p256dh: "k1", auth: "a1" },
+      ] as any)
+
+      await createUseCase().execute("user1", "hi", "room1")
+
+      expect(mockWebPushService.sendNotification).toHaveBeenCalledTimes(1)
+    })
+
+    it("deletes a token FCM reports as expired", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "f1", type: "fcm", endpoint: "dead-token", p256dh: null, auth: null },
+      ] as any)
+      vi.mocked(mockWebPushService.sendNativeNotification).mockResolvedValue({
+        ok: false,
+        expired: true,
+      })
+
+      await createUseCase().execute("user1", "hi", "room1")
+      await new Promise((r) => setImmediate(r))
+
+      expect(mockPushRepo.deleteSubscriptionById).toHaveBeenCalledWith("f1")
+    })
+
+    it("keeps a token that only failed transiently", async () => {
+      vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([
+        { id: "f1", type: "fcm", endpoint: "good-token", p256dh: null, auth: null },
+      ] as any)
+      vi.mocked(mockWebPushService.sendNativeNotification).mockResolvedValue({
+        ok: false,
+        expired: false,
+      })
+
+      await createUseCase().execute("user1", "hi", "room1")
+      await new Promise((r) => setImmediate(r))
+
+      expect(mockPushRepo.deleteSubscriptionById).not.toHaveBeenCalled()
+    })
   })
 })
