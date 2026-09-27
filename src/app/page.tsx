@@ -1,10 +1,11 @@
 import { ModeToggle } from "@/components/landingpage/mode-toggle";
 import { AnimateInView } from "@/components/landingpage/animate-in-view";
-import K from "@/components/icons/k";
+import { BrandLogo } from "@/components/brand-logo";
 import { getUserSession } from "@/app/auth.action";
 import { redirect } from "next/navigation";
 import { InteractiveText } from "@/components/landingpage/interactive-text";
 import { AuthContainer } from "@/components/landingpage/auth-container";
+import { DownloadApp } from "@/components/landingpage/download-app";
 import { Suspense } from "react";
 import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
@@ -67,7 +68,7 @@ export default async function House() {
       <div className="flex-1 flex flex-col relative z-10 min-h-screen lg:min-h-0 lg:bg-background/20 lg:backdrop-blur-md lg:border-l lg:border-border/10">
         <header className="h-20 flex items-center justify-between px-6 lg:px-12 z-20">
           <div className="flex lg:hidden items-center gap-2 group">
-            <K className="h-6 w-6 text-primary" />
+            <BrandLogo size={24} />
             <span className="font-bold tracking-tight">Komunikasi</span>
           </div>
           <div className="ml-auto flex items-center gap-4">
@@ -76,11 +77,17 @@ export default async function House() {
         </header>
 
         <main className="flex-1 flex flex-col items-center justify-center px-6 lg:px-20 pb-20 z-10">
-          <AnimateInView direction="up" className="w-full max-w-md space-y-8">            
+          <AnimateInView direction="up" className="w-full max-w-md space-y-8">
             <Suspense fallback={<div className="flex items-center justify-center py-12"><CircleNotch weight="duotone" className="h-8 w-8 animate-spin text-primary" /></div>}>
               <div className="glass-morphism rounded-2xl overflow-hidden shadow-2xl">
                 <AuthContainer />
               </div>
+            </Suspense>
+
+            {/* The sign-in form stays the page's focus; the download is an
+                addition below it, not a replacement. */}
+            <Suspense fallback={null}>
+              <DownloadApp />
             </Suspense>
           </AnimateInView>
         </main>

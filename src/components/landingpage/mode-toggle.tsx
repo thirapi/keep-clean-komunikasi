@@ -3,25 +3,39 @@ import { Moon, Sun } from "@phosphor-icons/react/dist/ssr"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export function ModeToggle() {
-  const { setTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
+
+  // resolvedTheme is the theme actually applied, so "system" toggles to the
+  // opposite of what the user is looking at rather than to "dark" every time.
+  const isDark = resolvedTheme === "dark"
+  const label = isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Sun weight="duotone" className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon weight="duotone" className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={label}
+      title={label}
+    >
+      {/*
+        Both icons are always rendered and swapped with `dark:`, so the button
+        is correct on the very first paint. Reading resolvedTheme to decide
+        which one to render would produce a different tree on the server than
+        on the client and log a hydration mismatch.
+      */}
+      <Sun
+        weight="duotone"
+        aria-hidden
+        className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-transform duration-300 dark:-rotate-90 dark:scale-0"
+      />
+      <Moon
+        weight="duotone"
+        aria-hidden
+        className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-transform duration-300 dark:rotate-0 dark:scale-100"
+      />
+    </Button>
   )
 }

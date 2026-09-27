@@ -17,7 +17,8 @@ import {
 
 type Brand = {
   name: string;
-  logo: React.ElementType;
+  /** BrandLogo, or any component taking a numeric `size` prop. */
+  logo: React.ComponentType<{ size?: number; className?: string }>;
   description: string;
 };
 
@@ -35,8 +36,8 @@ export function NavBrand({ brand }: { brand: Brand }) {
       >
         {isCollapsed ? (
           <div className="relative group flex items-center justify-center size-12">
-            <div className="absolute flex items-center justify-center transition-opacity group-hover:opacity-0 group-hover:pointer-events-none text-sidebar-primary">
-              <brand.logo className="size-10" />
+            <div className="absolute flex items-center justify-center transition-opacity group-hover:opacity-0 group-hover:pointer-events-none">
+              <brand.logo size={40} />
             </div>
 
             {!isMobile && (
@@ -60,8 +61,8 @@ export function NavBrand({ brand }: { brand: Brand }) {
               <div className="flex items-center gap-1 w-full p-2 rounded-lg group transition-colors">
 
                 <div className="flex items-center gap-1 w-full group-hover:scale-[1.03] origin-left">
-                  <div className="text-sidebar-primary flex items-center justify-center shrink-0">
-                    <brand.logo className="size-8" strokeWidth={1.8} />
+                  <div className="flex items-center justify-center shrink-0">
+                    <brand.logo size={32} />
                   </div>
 
                   <div className="flex items-center flex-1 text-left">

@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/sidebar";
 import { getUserSession } from "@/app/auth.action";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
-import K from "@/components/icons/k";
+import { BrandLogo } from "@/components/brand-logo";
 
 const brand = {
   name: "Komunikasi",
-  logo: K,
+  logo: BrandLogo,
   description: "webchat sederhana",
 };
 

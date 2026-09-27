@@ -213,11 +213,32 @@
     color-scheme: dark;
   }
 
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+
+    /*
+     * Ease the colour change when the theme flips. Without this every
+     * background, border and text colour snaps at once, which reads as a flash.
+     *
+     * Scoped to colour properties on purpose: a blanket `all` would also
+     * transition layout and transform, fighting the entrance animations this
+     * file already defines. `fill` and `stroke` are included because the icon
+     * set is SVG-based. Reduced-motion users get the snap instead.
+     */
+    @media (prefers-reduced-motion: no-preference) {
+      *,
+      ::before,
+      ::after {
+        transition-property: background-color, border-color, color, fill,
+          stroke, outline-color, box-shadow;
+        transition-duration: 220ms;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    }
   }
-}
+
 
 @keyframes gradient-x {
   0% {

@@ -78,3 +78,7 @@ android/app/service-account*.json
 android/keystore.properties
 *.jks
 *.keystore
+
+# Python bytecode from scripts/build-icons.py
+__pycache__/
+*.pyc

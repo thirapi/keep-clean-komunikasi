@@ -1,5 +1,5 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import K from "@/components/icons/k";
+import { BrandLogo } from "@/components/brand-logo";
 import { ChatRoomClientWrapper } from "@/app/(with-sidebar)/channels/[roomId]/components/chat-room-client-wrapper";
 import { getUserSession } from "@/app/auth.action";
 import { AnimatedUsername } from "@/components/landingpage/animated-username";
@@ -46,7 +46,7 @@ export default async function ChatPage({
 
         <div className="relative z-10 text-center space-y-8">
           <div className="relative">
-            <K className="w-24 h-24 mx-auto text-primary relative z-10" />
+            <BrandLogo size={96} className="mx-auto relative z-10" />
           </div>
 
           <div className="space-y-2">

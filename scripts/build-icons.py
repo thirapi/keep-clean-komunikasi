@@ -35,6 +35,20 @@ FG_DARK = (12, 12, 14)       # inverted, for light surfaces
 # Fraction of the canvas the mark may occupy.
 ANY_INSET = 0.80        # height of the mark on an "any" tile
 MASKABLE_INSET = 0.58   # height of the mark on a maskable icon (safe circle)
+# An adaptive icon is 108x108dp of which only the central 66dp circle is
+# guaranteed visible, so the same safe-circle rule as `maskable` applies:
+#   h * sqrt(1 + (w/h)^2) / 2 <= 33dp
+# which for a portrait mark of aspect 0.857 gives h <= 50dp, i.e. 46% of canvas.
+ADAPTIVE_INSET = 0.46
+
+# Android launcher densities: key -> scale factor over dp.
+DENSITIES = {
+    "mdpi": 1.0,
+    "hdpi": 1.5,
+    "xhdpi": 2.0,
+    "xxhdpi": 3.0,
+    "xxxhdpi": 4.0,
+}
 
 LUMA_BG = 0.2126 * BG_DARK[0] + 0.7152 * BG_DARK[1] + 0.0722 * BG_DARK[2]
 LUMA_FG = 0.2126 * FG_LIGHT[0] + 0.7152 * FG_LIGHT[1] + 0.0722 * FG_LIGHT[2]
@@ -137,6 +151,86 @@ def save(img: Image.Image, rel: str, flatten: bool = False, bg=None):
     print(f"  {rel:<44} {img.size[0]}x{img.size[1]}")
 
 
+ANDROID_RES = os.path.join(ROOT, "android", "app", "src", "main", "res")
+
+
+def _composite_mark(canvas_img: Image.Image, mark: Image.Image, height: int) -> None:
+    w = max(1, round(mark.width * height / mark.height))
+    glyph = mark.resize((w, height), Image.LANCZOS)
+    canvas_img.alpha_composite(glyph, ((canvas_img.width - w) // 2,
+                                      (canvas_img.height - height) // 2))
+
+
+def _rounded_mask(size: int, radius_ratio: float) -> Image.Image:
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, size - 1, size - 1], radius=int(size * radius_ratio), fill=255)
+    return mask
+
+
+def _circle_mask(size: int) -> Image.Image:
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).ellipse([0, 0, size - 1, size - 1], fill=255)
+    return mask
+
+
+def _write(img: Image.Image, path: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path, "PNG", optimize=True)
+    print(f"  {os.path.relpath(path, ROOT):<56} {img.width}x{img.height}")
+
+
+def android(loaded: Image.Image, upscaled: Image.Image) -> None:
+    """Write the Android launcher icons.
+
+    The Capacitor template ships the Android robot, so without this the app on
+    a device shows the default icon no matter what the web favicon says.
+
+    Three sets are needed because Android has two icon generations:
+      ic_launcher          legacy, API 24-25. No masking is applied by the
+                          launcher, so the shape is drawn into the PNG.
+      ic_launcher_round    same, round variant for round-icon launchers.
+      ic_launcher_foreground  adaptive, API 26+. Composited by the launcher
+                          over ic_launcher_background, so it must be
+                          transparent and kept inside the 66dp safe circle.
+    """
+    print("\nandroid launcher icons (legacy, API 24-25):")
+    for dens, scale in DENSITIES.items():
+        size = int(round(48 * scale))
+        out = os.path.join(ANDROID_RES, f"mipmap-{dens}")
+        square = Image.new("RGBA", (size, size), BG_DARK + (255,))
+        _composite_mark(square, upscaled, int(size * ANY_INSET * 0.86))
+
+        # Nothing masks these, so the shape has to be drawn into the PNG.
+        legacy = square.copy()
+        legacy.putalpha(_rounded_mask(size, 0.22))
+        _write(legacy, os.path.join(out, "ic_launcher.png"))
+
+        round_icon = square.copy()
+        round_icon.putalpha(_circle_mask(size))
+        _write(round_icon, os.path.join(out, "ic_launcher_round.png"))
+
+    print("\nandroid launcher icons (adaptive foreground, 108dp):")
+    for dens, scale in DENSITIES.items():
+        canvas = int(round(108 * scale))
+        fg = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
+        _composite_mark(fg, upscaled, int(canvas * ADAPTIVE_INSET))
+        _write(fg, os.path.join(ANDROID_RES, f"mipmap-{dens}",
+                                "ic_launcher_foreground.png"))
+
+    # The adaptive background must be the brand's near-black: the mark is
+    # near-white, so on the template's white it would be invisible.
+    bg_path = os.path.join(ANDROID_RES, "values", "ic_launcher_background.xml")
+    os.makedirs(os.path.dirname(bg_path), exist_ok=True)
+    hexcode = "#%02X%02X%02X" % BG_DARK
+    with open(bg_path, "w", encoding="utf-8") as fh:
+        fh.write('<?xml version="1.0" encoding="utf-8"?>\n'
+                 "<resources>\n"
+                 f'    <color name="ic_launcher_background">{hexcode}</color>\n'
+                 "</resources>\n")
+    print(f"  {os.path.relpath(bg_path, ROOT):<56} {hexcode}")
+
+
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(PUB, "logo-source.png")
     mark = load_mark(src)
@@ -167,15 +261,21 @@ def main():
 
     # Transparent, mark only. Both variants share one height so they are
     # interchangeable at the same CSS size.
+    #
+    # The names describe the *mark*, not the surface it sits on. That reads
+    # backwards at first glance, and getting it wrong renders the logo
+    # invisible in both themes, so the pairing is spelled out here.
     TRANSPARENT_H = 1024
     tw = max(1, round(mark.width * TRANSPARENT_H / mark.height))
     transparent = mark.resize((tw, TRANSPARENT_H), Image.LANCZOS)
-    save(transparent, "icons/logo-on-transparent-light.png")
 
-    # Transparent, inverted glyph for light surfaces.
+    # Near-white mark, for dark surfaces.
+    save(transparent, "icons/logo-mark-white.png")
+
+    # Near-black mark, for light surfaces.
     inv = Image.new("RGBA", transparent.size)
     inv.paste(FG_DARK + (255,), (0, 0, tw, TRANSPARENT_H), transparent.getchannel("A"))
-    save(inv, "icons/logo-on-transparent-dark.png")
+    save(inv, "icons/logo-mark-black.png")
     # Maskable on a light background, for light-mode launchers. The mark is
     # near-white, so it must be inverted or it would be invisible.
     for size in [192, 512, 1024]:
@@ -206,6 +306,8 @@ def main():
     if os.path.abspath(src) != os.path.abspath(mark_src):
         Image.open(src).convert("RGBA").save(mark_src)
         print(f"\nsource copied to public/logo-source.png")
+
+    android(loaded=mark, upscaled=big)
 
     print("\ndone")
 

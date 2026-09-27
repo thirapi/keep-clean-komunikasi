@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarRoomDTO } from "@/lib/entities/models/room.model";
 import { NavMainDirectMessage } from "./nav-main-direct-message";
-import K from "@/components/icons/k";
+import { BrandLogo } from "@/components/brand-logo";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ import { cn } from "@/lib/utils";
 
 const brand = {
   name: "komunikasi.qzz.io",
-  logo: K,
+  logo: BrandLogo,
   description: "webchat sederhana",
 };
 
