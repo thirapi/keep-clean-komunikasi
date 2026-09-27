@@ -51,22 +51,65 @@ npm run cap:open:ios        # buka Xcode
 npm run cap:run:android     # jalankan di emulator/perangkat
 ```
 
-## Push notification — belum selesai, dan ini prasyaratnya
+## Push notification: FCM (native) + VAPID (web)
 
-Saat ini push memakai **Web Push (VAPID)**, yang punya batas platform iOS:
-hanya jalan setelah app di-install ke home screen, dan iOS tidak memberi
-kendali atas kapan user offered install.
+Web Push tidak bisa menjangkau app native. Native Android memakai **Firebase
+Cloud Messaging** (HTTP v1 — API `fcm/send` yang lama sudah dimatikan Google).
 
-Untuk native push yang benar:
+**Keduanya hidup berdampingan** di tabel `PushSubscription`, dibedakan kolom
+`type`:
 
-1. `@capacitor/push-notifications` (belum dipasang)
-2. Apple Developer account + APNs auth key (`.p8`) → masuk ke Xcode
-3. `@capacitor/app` + `@capacitor/device` untuk device token
-4. Server: ganti `web-push` (`src/lib/infrastructure/services/web-push.service.ts`)
-   dengan APNs/FCM, sementara service Web Push tetap dipakai untuk web
+| `type` | transport | menjangkau |
+|---|---|---|
+| `web` | VAPID (`web-push`) | browser, desktop |
+| `fcm` | Firebase Cloud Messaging | app native Android |
 
-Butuh keputusan produk lebih dulu: apakah user **wajib** install app untuk
-menerima push, atau web & native boleh berbeda perilaku.
+> **FCM dikirim oleh Google Play Services.** Perangkat tanpa GMS — Huawei
+> yang marak di Indonesia, atau ROM yang di-degoogle — **tidak akan pernah**
+> menerima FCM. Itu bukan bug, memang tidak ada layanan pengirimnya. Web Push
+> tetap menjadi jalur untuk perangkat itu, jadi tidak ada yang kehilangan
+> notifikasi.
+
+### Setup (perlu login Firebase, 10 menit)
+
+1. [Firebase Console](https://console.firebase.google.com) → **Add project**
+2. **Add Android app** → package name persis: **`qzz.io.komunikasi`**
+   (download `google-services.json` → taruh di `android/app/`)
+3. **Project settings → Service accounts → Generate new private key**
+4. Isi `.env` dengan isi JSON tersebut:
+
+```
+FIREBASE_PROJECT_ID=<id>
+FIREBASE_CLIENT_EMAIL=<...@...iam.gserviceaccount.com>
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+```
+
+Lalu `npm run db:push` (menambah kolom `type`, dan `p256dh`/`auth` jadi
+nullable), deploy, dan rebuild APK.
+
+Tanpa ketiganya, `FcmPushService.isConfigured()` bernilai false, pengiriman
+FCM dilewati tanpa error, dan aplikasi tetap jalan dengan Web Push.
+
+### Perilaku
+
+- Permission Android 13+ (`POST_NOTIFICATIONS`) diminta saat app dibuka
+- Token yang ditolak FCM (`UNREGISTERED`/`INVALID_ARGUMENT`) **dihapus** dari
+  database, jadi tabel tidak tumbuh dan tidak mengulang ke target mati
+- Kegagalan sementara (network, 500) **tidak** menghapus token
+
+### Biaya
+
+Tidak ada biaya. FCM dan Google Play Services gratis untuk use case ini.
+
+
+## Yang belum terverifikasi
+
+Semua di atas terverifikasi di sisi web (build, 59 test, `tsc`, lint, smoke test
+route) dan APK-nya **berhasil dibangun** (8.1 MB, 6 plugin ter-*register*,
+permission FCM sudah otomatis masuk). Yang **belum** terverifikasi: pengiriman FCM sungguhan
+(karena butuh project Firebase), perangkat tanpa GMS, dan perilaku back button
+di perangkat fisik.
+
 
 ## Risiko review App Store
 

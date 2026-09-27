@@ -26,11 +26,15 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const pushSubscriptions = pgTable("PushSubscription", {
     id: text("id").primaryKey(),
     userId: text("userId").references(() => users.id),
+    // "web"   -> VAPID endpoint, with p256dh/auth keys
+    // "fcm"   -> a bare Firebase Cloud Messaging device token, no keys
+    // Both share `endpoint`; `type` decides which transport sends it.
+    type: text("type").default("web").notNull(),
     endpoint: text("endpoint").notNull(),
-    p256dh: text("p256dh").notNull(),
-    auth: text("auth").notNull(),
+    p256dh: text("p256dh"),
+    auth: text("auth"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()),
 });
 
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({

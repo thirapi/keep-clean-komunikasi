@@ -4,25 +4,41 @@ import { IPushSubscriptionRepository } from "@/lib/application/repositories/push
 import { eq, and, inArray } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
+export type PushTransport = "web" | "fcm";
+
 export class PushSubscriptionRepository implements IPushSubscriptionRepository {
-  async saveSubscription(
+  async saveWebSubscription(
     userId: string,
     subscription: {
       endpoint: string;
-      keys: {
-        p256dh: string;
-        auth: string;
-      };
+      keys: { p256dh: string; auth: string };
     }
   ): Promise<void> {
-    // Check if subscription already exists for this user and endpoint
+    await this.upsert(userId, "web", subscription.endpoint, {
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    });
+  }
+
+  /** An FCM token is a bare string: no endpoint URL, no keys. */
+  async saveFcmToken(userId: string, token: string): Promise<void> {
+    await this.upsert(userId, "fcm", token, { p256dh: null, auth: null });
+  }
+
+  private async upsert(
+    userId: string,
+    type: PushTransport,
+    endpoint: string,
+    keys: { p256dh: string | null; auth: string | null }
+  ): Promise<void> {
     const existing = await db
       .select()
       .from(pushSubscriptions)
       .where(
         and(
           eq(pushSubscriptions.userId, userId),
-          eq(pushSubscriptions.endpoint, subscription.endpoint)
+          eq(pushSubscriptions.type, type),
+          eq(pushSubscriptions.endpoint, endpoint)
         )
       )
       .limit(1);
@@ -30,19 +46,16 @@ export class PushSubscriptionRepository implements IPushSubscriptionRepository {
     if (existing.length > 0) {
       await db
         .update(pushSubscriptions)
-        .set({
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-          updatedAt: new Date(),
-        })
+        .set({ ...keys, updatedAt: new Date() })
         .where(eq(pushSubscriptions.id, existing[0].id));
     } else {
       await db.insert(pushSubscriptions).values({
         id: createId(),
         userId,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
+        type,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
       });
     }
   }
@@ -60,6 +73,10 @@ export class PushSubscriptionRepository implements IPushSubscriptionRepository {
       .select()
       .from(pushSubscriptions)
       .where(inArray(pushSubscriptions.userId, userIds));
+  }
+
+  async deleteSubscriptionById(id: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, id));
   }
 
   async deleteSubscription(endpoint: string): Promise<void> {

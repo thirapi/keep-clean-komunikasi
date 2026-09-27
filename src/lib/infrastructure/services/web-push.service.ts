@@ -1,7 +1,10 @@
 import webpush from "web-push";
 import { IWebPushService } from "@/lib/application/services/web-push.service.interface";
+import { FcmPushService } from "./fcm-push.service";
 
 export class WebPushService implements IWebPushService {
+  private fcm = new FcmPushService();
+
   constructor() {
     webpush.setVapidDetails(
       "mailto:admin@komunikasi.qzz.io",
@@ -32,5 +35,16 @@ export class WebPushService implements IWebPushService {
         console.error("Error sending push notification:", error);
       }
     }
+  }
+
+  async sendNativeNotification(
+    token: string,
+    payload: { title: string; body: string; url?: string }
+  ): Promise<{ ok: boolean; expired: boolean }> {
+    if (!this.fcm.isConfigured()) {
+      // Not an error: FCM simply is not set up yet (no service account in env).
+      return { ok: false, expired: false };
+    }
+    return this.fcm.sendToToken(token, payload);
   }
 }

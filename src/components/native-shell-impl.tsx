@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isNative, platform } from "@/lib/native/platform";
+import { NativePushRegistration } from "@/components/native-push-registration";
 
 /**
  * Wires the native shell behaviours a browser tab cannot provide.
@@ -96,5 +97,5 @@ export function NativeShell() {
     };
   }, [router]);
 
-  return null;
+  return <NativePushRegistration />;
 }

@@ -22,6 +22,15 @@ export default [
     },
   },
   {
-    ignores: [".next/*", "node_modules/*"],
+    // The Capacitor native projects are Gradle/Xcode output, not web source.
+    // Linting them surfaced warnings from generated bridge files.
+    ignores: [
+      ".next/*",
+      "node_modules/*",
+      "android/*",
+      "ios/*",
+      "build-artifacts/*",
+      "public/sw.js",
+    ],
   },
 ];

@@ -65,9 +65,14 @@ export class SendMessageUseCase {
 
     const notificationContent = resolveContentForNotification(content);
 
-    // Trigger Web Push Notifications for offline/background users asynchronously.
+    // Push notifications for offline/background users, asynchronously.
     // One batched query for all receivers instead of a serial round-trip per
     // room member on the critical send path.
+    //
+    // Each subscription carries its own transport: "web" rows go over VAPID,
+    // "fcm" rows over Firebase Cloud Messaging. Both are kept because FCM is
+    // delivered by Google Play Services and simply cannot reach devices
+    // without it, which is common on Huawei and degoogled ROMs.
     const pushPromises: Promise<void>[] = [];
 
     const allSubscriptions = await this.pushSubscriptionRepository.getSubscriptionsByUserIds(
@@ -75,6 +80,29 @@ export class SendMessageUseCase {
     );
 
     for (const sub of allSubscriptions) {
+      if (sub.type === "fcm") {
+        pushPromises.push(
+          this.webPushService
+            .sendNativeNotification(sub.endpoint, {
+              title: userName,
+              body: notificationContent,
+              url: `/channels/${roomId}`,
+            })
+            .then(async ({ expired }) => {
+              // A rejected token never recovers; drop it so the row does not
+              // grow without bound and every send does not retry a dead target.
+              if (expired) {
+                await this.pushSubscriptionRepository
+                  .deleteSubscriptionById(sub.id)
+                  .catch(() => {});
+              }
+            })
+        );
+        continue;
+      }
+
+      if (!sub.p256dh || !sub.auth) continue;
+
       pushPromises.push(
         this.webPushService.sendNotification(
           {
