@@ -49,29 +49,44 @@ const PATTERNS: MdPattern[] = [
 export function MarkdownDecoratorPlugin() {
     const [editor] = useLexicalComposerContext();
     const isProcessingRef = useRef(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        const runLexer = () => {
+            timerRef.current = null;
+            editor.update(
+                () => {
+                    if (isProcessingRef.current) return;
+                    isProcessingRef.current = true;
+                    try {
+                        applyGlobalMarkdownLexer();
+                    } finally {
+                        isProcessingRef.current = false;
+                    }
+                },
+                { discrete: true }
+            );
+        };
+
         const removeListener = editor.registerUpdateListener(({ editorState, prevEditorState }) => {
             if (editorState === prevEditorState) return;
             if (isProcessingRef.current) return;
 
-            setTimeout(() => {
-                editor.update(
-                    () => {
-                        if (isProcessingRef.current) return;
-                        isProcessingRef.current = true;
-                        try {
-                            applyGlobalMarkdownLexer();
-                        } finally {
-                            isProcessingRef.current = false;
-                        }
-                    },
-                    { discrete: true }
-                );
-            }, 0);
+            // applyGlobalMarkdownLexer walks the whole document, concatenates every
+            // text node and runs 9 patterns over the result. Doing that on each
+            // keystroke re-lexes the entire message per character typed, so the
+            // pass is coalesced to a trailing debounce instead.
+            if (timerRef.current !== null) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(runLexer, 150);
         });
 
-        return () => removeListener();
+        return () => {
+            if (timerRef.current !== null) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+            removeListener();
+        };
     }, [editor]);
 
     return null;

@@ -1,3 +1,4 @@
+import "server-only";
 import { IPasswordService } from "@/lib/application/services/password.service.interface";
 import { compareSync, genSaltSync, hashSync } from "bcrypt-ts";
 

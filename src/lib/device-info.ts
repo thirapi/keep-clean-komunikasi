@@ -1,3 +1,4 @@
+import "server-only";
 import { UAParser } from "ua-parser-js";
 
 export interface DeviceInfo {
