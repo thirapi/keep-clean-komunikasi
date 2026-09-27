@@ -190,4 +190,4 @@ build      clean
 
 ---
 
-[1.0.0]: https://github.com/thirapi/keep-clean-komunikasi/releases/tag/v1.0.0
+[1.0.0]: https://github.com/thirapi/komunikasi-chat/releases/tag/v1.0.0

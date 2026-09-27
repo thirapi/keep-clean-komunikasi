@@ -27,8 +27,8 @@
 Needs **Node 20+**, a PostgreSQL database, and a Pusher app.
 
 ```console
-$ git clone https://github.com/thirapi/keep-clean-komunikasi.git
-$ cd keep-clean-komunikasi
+$ git clone https://github.com/thirapi/komunikasi-chat.git
+$ cd komunikasi-chat
 $ npm install
 $ cp .env.example .env          # 20 variables, each documented
 $ npm run db:push               # apply schema
