@@ -20,10 +20,24 @@
     "verify:sidebar": "tsx scripts/verify-sidebar-query.ts",
     "measure:markdown": "tsx scripts/measure-markdown-pipeline.ts",
     "measure:password": "tsx scripts/measure-password-hashing.ts",
-    "bench:content": "vitest bench --run"
+    "bench:content": "vitest bench --run",
+    "cap:sync": "cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "cap run ios",
+    "cap:run:android": "cap run android",
+    "cap:doctor": "cap doctor"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1040.0",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@hookform/resolvers": "^5.0.1",
     "@lexical/react": "^0.44.0",
     "@neondatabase/serverless": "^0.10.4",
@@ -84,6 +98,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.0",

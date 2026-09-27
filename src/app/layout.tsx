@@ -6,6 +6,7 @@ import { GeistMono } from "geist/font/mono";
 import { Doto, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { NativeShell } from "@/components/native-shell";
 import NextTopLoader from "nextjs-toploader";
 import { QueryProvider } from "@/components/query-provider";
 import "./globals.css";
@@ -110,6 +111,7 @@ export default function RootLayout({
             <Toaster />
           </QueryProvider>
         </ThemeProvider>
+        <NativeShell />
         <ServiceWorkerRegister />
         <Analytics />
       </body>

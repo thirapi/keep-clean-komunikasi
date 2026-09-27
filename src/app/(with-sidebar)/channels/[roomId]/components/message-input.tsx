@@ -8,6 +8,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { debounce } from "@/lib/debounce";
+import { hapticMedium } from "@/lib/native/haptics";
 import { setTypingStatusAction } from "../messages.action";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
@@ -218,6 +219,7 @@ export function MessageInput({
           },
         } as any;
 
+        hapticMedium();
         onNewMessage(optimisticMessage);
         const currentContent = parsedContentForSend;
         const currentReplyTo = replyingTo?.id;

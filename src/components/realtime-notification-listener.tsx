@@ -7,6 +7,7 @@ import { requestNotificationPermission } from "@/utils/notifications";
 import { usePathname, useRouter } from "next/navigation";
 import { useUnread } from "./unread-provider";
 import { UserAvatar } from "./ui/user-avatar";
+import { hapticLight } from "@/lib/native/haptics";
 
 interface Props {
   user: {
@@ -64,6 +65,7 @@ export function RealtimeNotificationListener({ user }: Props) {
       }
 
       playNotificationSound();
+      hapticLight();
 
       if (!isViewingRoom) {
         markAsUnread(roomId);
