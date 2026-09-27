@@ -7,11 +7,14 @@ name: Android release
 #
 # One-time setup (Settings > Secrets and variables > Actions), all required:
 #
-#   ANDROID_KEYSTORE_BASE64   base64 of the .jks, WITHOUT line breaks:
-#                               base64 -w0 komunikasi-release.jks
-#   ANDROID_KEYSTORE_PASSWORD password of the keystore
-#   ANDROID_KEY_ALIAS        key alias, e.g. komunikasi
-#   ANDROID_KEY_PASSWORD     key password
+#   ANDROID_KEYSTORE_BASE64     base64 of the .jks, WITHOUT line breaks:
+#                                 base64 -w0 komunikasi-release.jks
+#   ANDROID_KEYSTORE_PASSWORD   password of the keystore
+#   ANDROID_KEY_ALIAS          key alias, e.g. komunikasi
+#   ANDROID_KEY_PASSWORD       key password
+#   GOOGLE_SERVICES_JSON_BASE64 base64 of android/app/google-services.json:
+#                                 base64 -w0 android/app/google-services.json \
+#                                   | gh secret set GOOGLE_SERVICES_JSON_BASE64
 #
 # The keystore is the app's permanent identity. If these secrets are lost, the
 # app can never be updated again — Android rejects updates signed with a
@@ -146,6 +149,31 @@ jobs:
           # fails with ENOENT unless it exists first.
           mkdir -p android/app/src/main/assets
           npx cap sync android
+
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          # The google-services Gradle plugin aborts the build outright when this
+          # file is missing, and it is gitignored, so a fresh clone cannot build
+          # without restoring it. It holds only project identifiers and the
+          # client API key — the FCM service account key is separate and never
+          # enters the repo.
+          if [ -z "$GOOGLE_SERVICES_B64" ]; then
+            echo "::error::Missing repository secret: GOOGLE_SERVICES_JSON_BASE64"
+            echo "base64 -w0 android/app/google-services.json | gh secret set GOOGLE_SERVICES_JSON_BASE64"
+            exit 1
+          fi
+          mkdir -p android/app
+          echo "$GOOGLE_SERVICES_B64" | base64 -d > android/app/google-services.json
+          # Reject an empty or malformed file now rather than letting Gradle
+          # report a confusing parse error later.
+          node -e "
+            const d = require('./android/app/google-services.json');
+            if (!d.project_info?.project_id) { throw new Error('project_info.project_id missing'); }
+            console.log('google-services.json ok:', d.project_info.project_id);
+          "
 
       - name: Build signed release APK
         working-directory: android
