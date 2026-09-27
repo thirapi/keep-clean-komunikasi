@@ -1,280 +1,316 @@
-# Komunikasi
-
-Real-time messaging platform built on **Clean Architecture**, shipped as a web
-app and a native Android app from a single codebase.
-
-[![Version](https://img.shields.io/badge/version-1.0.0-A855F7)](CHANGELOG.md)
-[![Next.js](https://img.shields.io/badge/Next.js-16-000)](https://nextjs.org)
-[![React](https://img.shields.io/badge/React-19-087ea4)](https://react.dev)
-[![Tests](https://img.shields.io/badge/tests-59%20passing-22c55e)](https://vitest.dev)
+<div align="center">
+  <img src="public/icons/maskable_icon.png" alt="Komunikasi" width="128" height="128">
+  <h1>Komunikasi</h1>
+  <p><strong>Real-time messaging, one codebase, web and native Android.</strong></p>
+  <p>
+    <a href="CHANGELOG.md">Changelog</a> ·
+    <a href="docs/">Docs</a> ·
+    <a href="https://dbdiagram.io/d/komunikasi-67f935074f7afba184451999">ERD</a>
+  </p>
+</div>
 
 ---
 
 ## Contents
 
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Quick start](#quick-start)
-- [Architecture](#architecture)
-- [Native Android app](#native-android-app)
-- [Push notifications](#push-notifications)
-- [Testing](#testing)
-- [Performance tooling](#performance-tooling)
-- [Project layout](#project-layout)
-- [Database](#database)
-- [Documentation](#documentation)
-- [Scripts](#scripts)
+| | |
+|---|---|
+| [Quick start](#quick-start) | [Architecture](#architecture) |
+| [What's inside](#whats-inside) | [Native Android](#native-android) |
+| [Push](#push-notifications) | [Testing](#testing) |
+| [Tooling](#tooling) | [Reference](#reference) |
 
 ---
 
-## Features
-
-**Messaging** — channels and direct messages, replies, threads, rich text via a
-Lexical editor, attachments, emoji reactions, optimistic UI with server
-reconciliation, and offline read via IndexedDB.
-
-**Realtime** — Pusher for new messages, reactions, deletions, typing indicators
-and read receipts; WebSocket-backed presence with a Redis index.
-
-**Push** — Web Push (VAPID) for browsers and Firebase Cloud Messaging for the
-native app, stored side by side and routed per subscription.
-
-**Accounts** — session auth with rotating tokens, roles and permissions,
-impersonation for support, profile editing, custom emoji with shortcodes.
-
-**Platform** — server-rendered App Router, installable PWA, native Android
-shell, dark and light themes, Indonesian-first localisation.
-
-## Tech stack
-
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack), React 19 |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS v4, shadcn/ui, Phosphor Icons |
-| Data | PostgreSQL (Neon) via Drizzle ORM, Upstash Redis |
-| Realtime | Pusher, Web Push (VAPID), FCM |
-| Storage | Cloudflare R2 (S3-compatible) |
-| Auth | Session cookies, bcrypt via `@node-rs/bcrypt` |
-| Editor | Lexical |
-| Tables | TanStack Table |
-| State | React Context, Dexie (IndexedDB), Zustand-free by design |
-| Mobile | Capacitor 8 (native Android shell) |
-| Tests | Vitest, Testing Library, ESLint |
-
-> `bcrypt-ts` is a **devDependency only** — it is kept solely to assert that
-> hashes produced by the previous implementation still verify. Runtime hashing
-> uses the native binding, which is ~13× less event-loop blocking.
-
 ## Quick start
 
-**Requirements:** Node.js 20+, a PostgreSQL database (Neon or local), and a
-Pusher app.
+Needs **Node 20+**, a PostgreSQL database, and a Pusher app.
 
-```bash
-git clone https://github.com/thirapi/keep-clean-komunikasi.git
-cd keep-clean-komunikasi
-npm install
-cp .env.example .env        # then fill it in
-npm run db:push             # apply schema
-npm run db:seed             # optional: dev users
-npm run dev
+```console
+$ git clone https://github.com/thirapi/keep-clean-komunikasi.git
+$ cd keep-clean-komunikasi
+$ npm install
+$ cp .env.example .env          # 20 variables, each documented
+$ npm run db:push               # apply schema
+$ npm run db:seed               # optional: dev users
+$ npm run dev
 ```
 
-Open <http://localhost:3000>.
+<http://localhost:3000>
 
-`npm run dev:clean` does `db:reset` + `db:push` + `db:seed` + `dev` in one step.
+Only `DATABASE_URL`, `PUSHER_*` and `R2_*` are needed to boot. Everything else
+degrades gracefully — no push keys means no notifications, not a broken app.
 
-### Environment
+---
 
-Copy `.env.example` and fill in the values. Required:
+## What's inside
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `PUSHER_*`, `NEXT_PUBLIC_PUSHER_*` | Realtime transport |
-| `R2_*` | File uploads |
-| `UPSTASH_REDIS_REST_*` | Presence |
+**Messaging**
+: Channels and DMs, replies, threads, attachments, reactions, read receipts,
+  typing indicators. Lexical rich text with `@mention` tokens, optimistic UI
+  reconciled against the server, and an IndexedDB cache so a room paints from
+  cache before the network answers.
 
-Push and media are optional: without `R2_*` uploads fail, without the push keys
-the app runs but sends no notifications. See [Push notifications](#push-notifications).
+**Realtime**
+: Pusher carries messages, reactions, deletions and typing. Presence is
+  WebSocket-backed through a Redis index, so it survives multiple tabs and
+  devices.
+
+**Push**
+: Web Push for browsers, Firebase Cloud Messaging for the app. Both stored, both
+  delivered, neither shadowing the other.
+
+**Accounts**
+: Rotating session cookies, roles and permissions, impersonation for support,
+  profile editing, custom emoji with shortcodes.
+
+**Platform**
+: Server-rendered App Router, installable PWA, native Android shell, dark and
+  light themes.
+
+---
 
 ## Architecture
 
-Clean Architecture, enforced by directory layout. Dependencies point inward:
+Clean Architecture, with dependencies pointing inward. Each layer may only know
+about the one above it.
 
 ```
-src/app/                      Next.js entry — routes, server actions, layouts
-        │  (never import inward-facing logic directly)
-        ▼
-src/lib/interface-adapters/   Controllers — validate input, call a use case
-        ▼
-src/lib/application/          Use cases — business logic, depend on interfaces
+   src/app/                routes · layouts · server actions
         │
-        ├── repositories/      Interfaces (ports)
-        └── services/          Interfaces (ports)
+        │   Action → Controller → Use Case → Repository / Service
         ▼
-src/lib/infrastructure/       Implementations — Drizzle, Pusher, R2, Redis
-src/lib/entities/             Pure types and DTOs, no logic
+   interface-adapters/     controllers          validate, delegate
+        ▼
+   application/            use cases            business logic
+        │                  repositories / services   (interfaces only)
+        ▼
+   infrastructure/         implementations      Drizzle · Pusher · R2 · Redis
+        ▲
+   entities/               types and DTOs       no logic
 ```
 
-**Rules**
+**The five rules**
 
-1. Every frontend call goes `Action → Controller → Use Case → Repository/Service`.
-2. Use cases never call other use cases, and never import a concrete adapter.
-3. No business logic in controllers, actions, or repositories.
-4. All layers are class-based except controllers (functions) and actions.
-5. Dependencies are injected through constructors; services with more than one
-   implementation get an interface first.
+```console
+[1]  Frontend never bypasses a layer.       Action → Controller → Use Case
+[2]  A use case never calls a use case.
+[3]  No business logic in a controller,
+     an action, or a repository.
+[4]  Class-based everywhere, except
+     controllers (functions) and actions.
+[5]  Dependencies arrive through constructors.
+     A service with a second implementation
+     gets an interface first.
+```
 
-Implementations are wired in the controllers, e.g.
-`src/lib/interface-adapters/controllers/users/search.controller.ts`.
+Wiring happens once, in the controller — never in a route:
 
-## Native Android app
+```ts
+// interface-adapters/controllers/users/search.controller.ts
+const userRepository = new UserRepository(db);
+const searchUserUseCase = new SearchUserUseCase(userRepository);
+
+export async function searchUserController(query: string, limit?: number) {
+  return await searchUserUseCase.execute(query, limit);
+}
+```
+
+The rationale for each non-obvious decision is written down in `docs/`, and those
+documents are standards the code is expected to follow — not post-mortems.
+
+---
+
+## Native Android
 
 The Android app is a Capacitor shell around the deployed web app.
 
-The WebView loads the **live deployment** rather than a local bundle. A static
-export is not possible: the app exposes 53 Server Actions across 12 `"use
-server"` modules, and Server Actions only run against a live Next.js server. The
-backend is therefore unchanged and every action keeps working.
+> **Why it loads a URL instead of a bundle.** A static export is not possible
+> here. The app exposes 53 Server Actions across 12 `"use server"` modules, and
+> Server Actions only execute against a live Next.js server — a static export
+> would strip the entire data layer. Loading the deployment keeps the backend
+> untouched and every action working.
 
-Native behaviour added: hardware back navigates instead of exiting, the status
-bar follows the theme, the body resizes for the keyboard, a native launch
-screen, and haptics on message sent/received.
+What the shell adds that a browser tab cannot:
 
-```bash
-npm run cap:sync
-npm run cap:open:android     # or: npm run cap:run:android
+- Hardware **back** navigates the stack instead of leaving the app
+- Status bar follows the theme, and stays opaque
+- Body resizes for the keyboard, so the input is never covered
+- Native launch screen
+- Haptics on message sent and received
+
+```console
+$ npm run cap:sync
+$ npm run cap:run:android
 ```
 
-Building an APK needs the Android SDK and a JDK; it does not need macOS or
-Xcode. See [`docs/native-app.md`](docs/native-app.md).
+Building an APK needs the Android SDK and a JDK — **not** macOS or Xcode. Full
+setup in [`docs/native-app.md`](docs/native-app.md).
+
+---
 
 ## Push notifications
 
-Two transports coexist, distinguished by `PushSubscription.type`:
+Two transports, one table, routed per row:
 
 | `type` | Transport | Reaches |
-|---|---|---|
+|:--|:--|:--|
 | `web` | VAPID (Web Push) | browsers, desktop |
-| `fcm` | Firebase Cloud Messaging | native Android app |
+| `fcm` | Firebase Cloud Messaging | native Android |
 
-> **FCM is delivered by Google Play Services.** Devices without GMS — Huawei in
-> particular — can never receive it. That is not a bug we can fix from the
-> server side. Web Push remains the transport for those devices, so nobody
-> loses notifications.
+> **FCM is delivered by Google Play Services.** Devices without GMS — Huawei
+> above all — can never receive it, and that is not something the server can
+> fix. Web Push remains their transport, so nobody loses notifications.
 
-A token that FCM reports as `UNREGISTERED` or `INVALID_ARGUMENT` is deleted so
-the table does not grow and sends stop retrying a dead target. Transient
-failures keep the token.
+Dead tokens (`UNREGISTERED`, `INVALID_ARGUMENT`) are deleted so the table stops
+growing and sends stop retrying them. Transient failures keep the token.
 
-Setup, including the Firebase service account, is in
-[`docs/native-app.md`](docs/native-app.md#push-notification-fcm-native--vapid-web).
+---
 
 ## Testing
 
-```bash
-npm test                 # 59 tests
-npm run lint
-npx tsc --noEmit
+```console
+$ npm test
+ ✓ 8 files · 59 tests
+
+$ npm run lint
+$ npx tsc --noEmit
 ```
 
-Covers use cases with mocked repositories, the password service (including
-backwards compatibility of pre-existing hashes), the presence index and its
-stale-entry pruning, and push transport routing. The sidebar projection is
-additionally verified against a real Postgres by
-`npm run verify:sidebar`.
+Covers use cases against mocked repositories, password hashing including
+backwards compatibility of hashes written by the previous implementation,
+the presence index and its stale-entry pruning, and push transport routing.
 
-## Performance tooling
+The sidebar projection is checked against a **real Postgres**, not a mock:
 
-Measurement lives in the repo so the numbers in the changelog are reproducible.
-
-```bash
-npm run measure:bundle     # initial-load payload per route, from a build
-npm run measure:sidebar    # statement count and latency against Postgres
-npm run verify:sidebar     # correctness assertions for the sidebar query
-npm run measure:markdown   # per-plugin cost of the remark/rehype chain
-npm run measure:password   # event-loop blocking per hashing backend
-npm run bench:content      # CPU benchmarks
+```console
+$ npm run verify:sidebar
+ALL CHECKS PASSED
 ```
 
-`measure:bundle` reads the client-reference manifest, whose `async` flag
-distinguishes chunks that load eagerly from those behind a dynamic import — so
-it reports what a browser actually pays for, not total static output.
+---
 
-## Project layout
+## Tooling
 
+Every performance figure this project claims is reproducible. Nothing is taken
+on trust.
+
+```console
+$ npm run measure:bundle
 ```
+
+```console
+route                            chunks   raw KB   gzip KB
+------------------------------------------------------------------------
+(with-sidebar)/channels/[roomId]      18    1351.0      414.4
+admin/(with-sidebar)/users            17     722.5      212.6
+/ (landing)                           12     555.7      169.5
+...
+TOTAL across routes                         8546.1     2568.9
+```
+
+It reads the client-reference manifest, whose `async` flag separates chunks that
+load eagerly from those behind a dynamic import — so it reports what a browser
+actually pays for, not total static output.
+
+| Command | Answers |
+|:--|:--|
+| `measure:bundle` | What does a browser download before the page is usable? |
+| `measure:sidebar` | How many statements, how many milliseconds? |
+| `verify:sidebar` | Is the result actually correct? |
+| `measure:markdown` | What does each remark/rehype plugin cost? |
+| `measure:password` | How long does hashing block the event loop? |
+| `bench:content` | CPU cost of the message render path. |
+
+---
+
+## Reference
+
+<details>
+<summary><b>Environment variables</b></summary>
+
+Required to boot:
+
+| Variable | Purpose |
+|:--|:--|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `PUSHER_APP_ID` `PUSHER_SECRET` | Realtime |
+| `NEXT_PUBLIC_PUSHER_KEY` `NEXT_PUBLIC_PUSHER_CLUSTER` | Realtime, client |
+| `R2_ACCOUNT_ID` `R2_ACCESS_KEY_ID` `R2_SECRET_ACCESS_KEY` `R2_BUCKET_NAME` `R2_PUBLIC_DOMAIN_URL` | File uploads |
+| `UPSTASH_REDIS_REST_URL` `UPSTASH_REDIS_REST_TOKEN` | Presence |
+
+Optional:
+
+| Variable | Purpose |
+|:--|:--|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` `VAPID_PRIVATE_KEY` | Web Push, browsers |
+| `FIREBASE_PROJECT_ID` `FIREBASE_CLIENT_EMAIL` `FIREBASE_SERVICE_ACCOUNT_JSON` | FCM, native push |
+| `DISCORD_WEBHOOK_URL` | New-message notifications |
+| `NEXT_PUBLIC_APP_URL` | Public origin, avoids proxying R2 twice |
+
+</details>
+
+<details>
+<summary><b>Layout</b></summary>
+
+```console
 src/
-├── app/                    Routes, layouts, server actions
-├── components/             UI components
+├── app/                    routes, layouts, server actions
+├── components/             UI
 │   ├── ui/                 shadcn/ui primitives
-│   ├── lexical/            Editor plugins
+│   ├── lexical/            editor plugins
 │   └── native-shell*       Capacitor integration
-├── hooks/                  Reusable hooks
+├── hooks/                  reusable hooks
 ├── lib/
-│   ├── entities/           Types and DTOs
-│   ├── application/        Use cases, ports
-│   ├── interface-adapters/ Controllers
-│   ├── infrastructure/     Repository and service implementations
-│   ├── native/             Native platform helpers
-│   └── stores/
+│   ├── entities/           types and DTOs
+│   ├── application/        use cases, ports
+│   ├── interface-adapters/ controllers
+│   ├── infrastructure/     repository and service implementations
+│   └── native/             native platform helpers
 └── utils/
-docs/                       Feature and design documents
-drizzle/                    Schema migrations
-scripts/                    Build, measurement and maintenance scripts
+
+docs/       feature and design documents
+drizzle/    schema migrations
+scripts/    build, measurement, maintenance
 ```
 
-## Database
+</details>
 
-Schema is defined in `src/lib/infrastructure/drizzle/schema.ts`; migrations
-live in `drizzle/`.
+<details>
+<summary><b>Scripts</b></summary>
 
-```bash
-npm run db:push       # apply the current schema
-npm run db:generate   # produce a migration after editing the schema
-npm run db:seed       # seed roles, permissions and dev users
-npm run db:studio     # open Drizzle Studio
-npm run db:reset      # drop and recreate
-```
+| | |
+|:--|:--|
+| `dev` `build` `start` | Next.js |
+| `lint` `test` | ESLint, Vitest |
+| `db:push` `db:generate` `db:seed` `db:reset` `db:studio` | schema and data |
+| `cap:sync` `cap:open:android` `cap:run:android` `cap:open:ios` | native |
+| `measure:*` `verify:*` `bench:*` | performance and correctness |
 
-[📊 ERD di dbdiagram.io](https://dbdiagram.io/d/komunikasi-67f935074f7afba184451999)
+</details>
 
-## Documentation
-
-Feature and design decisions live in `docs/`. These are standards, not
-retrospectives — several are cited by the code.
+<details>
+<summary><b>Design documents</b></summary>
 
 | Document | Covers |
-|---|---|
+|:--|:--|
 | [mark-as-read](docs/mark-as-read.md) | Throttled read state, multi-device sync |
 | [column-reverse-architecture](docs/column-reverse-architecture.md) | CSS-only chat anchoring, no JS scroll math |
 | [indexeddb-sync](docs/indexeddb-sync.md) | Local-first message cache |
-| [lexical-editor](docs/lexical-editor.md) | Editor architecture and mention nodes |
-| [native-app](docs/native-app.md) | Capacitor shell and push setup |
+| [lexical-editor](docs/lexical-editor.md) | Editor architecture, mention nodes |
+| [native-app](docs/native-app.md) | Capacitor shell, push setup |
 | [optimistic-ui-flow](docs/optimistic-ui-flow.md) | Optimistic updates and reconciliation |
-| [custom-emojis](docs/custom-emojis.md) | Shortcodes and R2-hosted emoji |
-| [account-filtering](docs/account-filtering.md) | Mute and intensity reduction |
-| [fediverse-implementation](docs/fediverse-implementation.md) | ActivityPub protocol |
+| [custom-emojis](docs/custom-emojis.md) | Shortcodes, R2-hosted emoji |
+| [account-filtering](docs/account-filtering.md) | Mute, intensity reduction |
+| [fediverse-implementation](docs/fediverse-implementation.md) | ActivityPub |
 | [federation-whitelist-strategy](docs/federation-whitelist-strategy.md) | Inbox filtering vs outbound fetch |
 | [post-actions](docs/post-actions.md) | Like, repost, quote, bookmark |
 | [ui-design-standards](docs/ui-design-standards.md) | Visual conventions |
 
-## Scripts
-
-| Script | Does |
-|---|---|
-| `dev` / `build` / `start` | Next.js |
-| `lint` / `test` | ESLint / Vitest |
-| `db:*` | Schema and data |
-| `cap:*` | Capacitor native workflow |
-| `measure:*` / `verify:*` / `bench:*` | Performance and correctness |
-
-## License
-
-Private. All rights reserved.
+</details>
 
 ---
 
-Made with care by [Thirafi](https://github.com/thirapi).
+<div align="center">
+  <sub>Private project · All rights reserved · <a href="https://github.com/thirapi">Thirafi</a></sub>
+</div>
