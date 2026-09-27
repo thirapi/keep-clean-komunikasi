@@ -11,8 +11,21 @@
  * Usage: npm run measure:bundle
  */
 import { gzipSync } from "node:zlib";
-import { existsSync, readFileSync, readdirSync, statSync, walkSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+
+/** Portable recursive directory walk (fs.readdirSync recursive mode is Node 20+). */
+function* walk(dir: string): Generator<{ path: string; isFile: boolean }> {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      yield { path: full, isFile: false };
+      yield* walk(full);
+    } else if (entry.isFile()) {
+      yield { path: full, isFile: true };
+    }
+  }
+}
 
 const nextDir = resolve(process.argv[2] ?? ".next");
 const staticDir = join(nextDir, "static");
@@ -27,10 +40,10 @@ const CHUNK_RE = /"(\/[^"]*?\.js)"/g;
 const sizes = new Map<string, number>();
 const gzipCache = new Map<string, number>();
 
-for (const entry of walkSync(staticDir)) {
-  if (!entry.isFile()) continue;
+for (const entry of walk(staticDir)) {
+  if (!entry.isFile) continue;
   const rel = `/_next/${relative(nextDir, entry.path).split(/[\\/]/).join("/")}`;
-  sizes.set(rel, entry.size);
+  sizes.set(rel, statSync(entry.path).size);
 }
 
 function gzipSize(rel: string): number {
@@ -67,14 +80,20 @@ function collect(manifestPath: string, route: string): RouteStat {
 }
 
 const rows: RouteStat[] = [];
-for (const dir of walkSync(join(nextDir, "server", "app"))) {
-  if (!dir.isDirectory()) continue;
+const appDir = join(nextDir, "server", "app");
+// Seed with the app dir itself: walk() only yields a directory's contents, so
+// the root route's manifest would otherwise never be seen.
+const appDirs = [{ path: appDir, isFile: false }, ...walk(appDir)];
+for (const dir of appDirs) {
+  if (dir.isFile) continue;
   const manifest = join(dir.path, "page_client-reference-manifest.js");
   if (!existsSync(manifest)) continue;
-  const rel = relative(join(nextDir, "server", "app"), dir.path)
+  let rel = relative(appDir, dir.path)
     .split(/[\\/]/)
     .join("/")
     .replace(/\/page$/, "");
+  // The app root renders as "/" and relative() yields "" there.
+  if (rel === "") rel = "/ (landing)";
   rows.push(collect(manifest, rel));
 }
 
