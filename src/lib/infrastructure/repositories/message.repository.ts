@@ -176,6 +176,17 @@ export class MessageRepository implements IMessageRepository {
     return (message as unknown as MessageWithUserDTO) || null;
   }
 
+  async getRoomIdByMessageId(messageId: string): Promise<string | null> {
+    // Single-column lookup. Reaction toggles only need the room to pick the
+    // Pusher channel, and the full graph above costs 5 relational queries.
+    const rows = await this.client
+      .select({ roomId: messages.roomId })
+      .from(messages)
+      .where(and(eq(messages.id, messageId), eq(messages.isDeleted, false)))
+      .limit(1);
+    return rows[0]?.roomId ?? null;
+  }
+
   async updateMessage(messageId: string, content: string): Promise<MessageWithUserDTO> {
     const updatedMessages = await this.client
       .update(messages)

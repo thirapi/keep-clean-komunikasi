@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { EmojiPicker } from "frimousse";
 import { Smiley, MagnifyingGlass, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import {
@@ -19,6 +19,9 @@ interface EmojiPickerProps {
 }
 
 type TabType = "custom" | "default";
+
+const INITIAL_EMOJI_PAGE = 160;
+const EMOJI_PAGE_STEP = 240;
 
 export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerSize }: EmojiPickerProps) {
     const [open, setOpen] = useState(false);
@@ -48,6 +51,31 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
     };
 
     const isSearching = searchQuery.length > 0;
+
+    // The custom set is unbounded, so the grid is rendered in pages rather than
+    // mounting every emoji (and its <img>) the moment the popover opens.
+    const [visibleLimit, setVisibleLimit] = useState(INITIAL_EMOJI_PAGE);
+
+    useEffect(() => {
+        setVisibleLimit(INITIAL_EMOJI_PAGE);
+    }, [searchQuery, activeTab]);
+
+    const visibleGroups = useMemo(() => {
+        if (visibleLimit >= Number.MAX_SAFE_INTEGER) return groupedCustomEmojis;
+
+        const limited: Record<string, typeof customEmojis> = {};
+        let remaining = visibleLimit;
+        for (const [category, emojis] of Object.entries(groupedCustomEmojis)) {
+            if (remaining <= 0) break;
+            limited[category] = emojis.slice(0, remaining);
+            remaining -= limited[category].length;
+        }
+        return limited;
+    }, [groupedCustomEmojis, visibleLimit]);
+
+    const totalVisible = Object.values(visibleGroups).reduce((n, list) => n + list.length, 0);
+    const totalMatching = Object.values(groupedCustomEmojis).reduce((n, list) => n + list.length, 0);
+    const hasMore = totalVisible < totalMatching;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -120,7 +148,7 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                                     <span className="text-[11px] font-medium">Memuat custom emoji...</span>
                                  </div>
                             ) : (
-                                Object.entries(groupedCustomEmojis).map(([category, emojis]) => (
+                                Object.entries(visibleGroups).map(([category, emojis]) => (
                                     <div key={category} className="mb-2">
                                         <div className="px-2 pt-2 pb-1 text-[11px] font-bold text-muted-foreground/50 sticky top-0 bg-popover z-20">
                                             {category}
@@ -145,9 +173,19 @@ export function EmojiPickerComponent({ onEmojiSelect, triggerClassName, triggerS
                                     </div>
                                 ))
                             )}
+                            {hasMore && (
+                                <div className="flex justify-center py-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibleLimit((n) => n + EMOJI_PAGE_STEP)}
+                                        className="rounded-md px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                    >
+                                        Muat lebih banyak ({totalMatching - totalVisible} lagi)
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
-
                     {(activeTab === "default" || isSearching) && (
                         <div className="flex-1 min-h-0">
                             <EmojiPicker.Root

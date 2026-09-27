@@ -1,7 +1,7 @@
 // src/components/presence-provider.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { pusher } from "@/lib/pusher/pusher.client";
 import {
   updatePresenceAction,
@@ -78,8 +78,10 @@ export function PresenceProvider({
     };
   }, [userId]);
 
+  const value = useMemo(() => ({ onlineUserIds }), [onlineUserIds]);
+
   return (
-    <PresenceContext.Provider value={{ onlineUserIds }}>
+    <PresenceContext.Provider value={value}>
       {children}
     </PresenceContext.Provider>
   );

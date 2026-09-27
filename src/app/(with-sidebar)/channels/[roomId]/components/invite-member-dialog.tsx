@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { debounce } from "@/lib/debounce";
 import { UserPlus, MagnifyingGlass, CircleNotch, Check, X, Link as LinkIcon } from "@phosphor-icons/react/dist/ssr";
 import {
   Dialog,
@@ -40,24 +41,41 @@ export function InviteMemberDialog({
   const [invitingIds, setInvitingIds] = useState<Set<string>>(new Set());
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const searchRequestRef = useRef(0);
 
-  const handleSearch = useCallback(async (value: string) => {
-    setQuery(value);
-    if (value.trim().length < 2) {
+  const runSearch = useCallback(async (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
       setResults([]);
       return;
     }
 
+    // Guard against out-of-order responses: only the newest query may write.
+    const requestId = ++searchRequestRef.current;
     setIsSearching(true);
     try {
-      const response = await searchInvitableUsers(roomId, value.trim());
+      const response = await searchInvitableUsers(roomId, trimmed);
+      if (requestId !== searchRequestRef.current) return;
       if (response.status === "success") {
         setResults(response.data ?? []);
       }
     } finally {
-      setIsSearching(false);
+      if (requestId === searchRequestRef.current) setIsSearching(false);
     }
   }, [roomId]);
+
+  // One server round-trip per pause in typing instead of one per keystroke.
+  const debouncedRunSearch = useMemo(
+    () => debounce(runSearch, 300),
+    [runSearch],
+  );
+
+  useEffect(() => () => debouncedRunSearch.cancel(), [debouncedRunSearch]);
+
+  const handleSearch = useCallback((value: string) => {
+    setQuery(value);
+    debouncedRunSearch(value);
+  }, [debouncedRunSearch]);
 
   const handleInvite = async (user: UserResult) => {
     setInvitingIds((prev) => new Set(prev).add(user.id));

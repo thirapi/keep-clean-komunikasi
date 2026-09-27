@@ -10,7 +10,7 @@ import {
 } from "./schema";
 import { eq, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { hashSync, genSaltSync } from "bcrypt-ts";
+import { hashSync } from "@node-rs/bcrypt";
 
 async function main() {
     console.log("🌱 Starting seed...");
@@ -98,8 +98,7 @@ async function main() {
     }
 
     // 4. Dev Users
-    const salt = genSaltSync(10);
-    const hashedPassword = hashSync("password123", salt);
+    const hashedPassword = hashSync("password123", 10);
 
     const devUsers = [
         {

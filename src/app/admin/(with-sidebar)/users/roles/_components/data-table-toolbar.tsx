@@ -6,10 +6,10 @@ import { UserPlus } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { DataTableFacetedFilter } from "@/app/admin/(with-sidebar)/_shared/data-table-faceted-filter";
 
 // import { roles, statuses } from "../data/data";
-import { DataTableViewOptions } from "./data-table-view-options";
+import { DataTableViewOptions } from "@/app/admin/(with-sidebar)/_shared/data-table-view-options";
 import Link from "next/link";
 
 interface DataTableToolbarProps<TData> {

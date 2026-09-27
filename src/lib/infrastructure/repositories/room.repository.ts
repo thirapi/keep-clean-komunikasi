@@ -1,10 +1,27 @@
 import { db } from "@/lib/db";
 import { rooms, roomParticipants, messages, users, userRoles, roles as rolesTable } from "@/lib/infrastructure/drizzle/schema";
-import { eq, and, asc, desc, not, sql, exists, inArray } from "drizzle-orm";
-import { IRoomRepository } from "@/lib/application/repositories/room.repository.interface";
-import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
+import { eq, and, asc, desc, not, sql, exists, inArray } from "drizzle-orm";import { IRoomRepository } from "@/lib/application/repositories/room.repository.interface";
+import { RoomWithParticipantsDTO, SidebarRoomRow } from "@/lib/entities/models/room.model";
 import { createId } from "@paralleldrive/cuid2";
 import { avatarService } from "@/lib/infrastructure/services/avatar.service";
+
+/**
+ * Column subset for a room participant's user row. The relational queries below
+ * fan out over every participant of every room, so leaving `password` in the
+ * default selection ships a bcrypt hash off Postgres for each of them and then
+ * throws it away during DTO mapping. Every `participants -> user` selection in
+ * this file uses this subset.
+ */
+const PARTICIPANT_USER_COLUMNS = {
+  id: true,
+  username: true,
+  name: true,
+  avatar: true,
+  bio: true,
+  banner: true,
+  customStatus: true,
+  createdAt: true,
+} as const;
 
 export class RoomRepository implements IRoomRepository {
   constructor(private client: typeof db) { }
@@ -16,6 +33,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {
@@ -65,6 +83,91 @@ export class RoomRepository implements IRoomRepository {
     } as RoomWithParticipantsDTO;
   }
 
+  /**
+   * Everything the sidebar renders, for every room the user belongs to, in a
+   * single round-trip.
+   *
+   * The generic `getAllRoomsByUserId` fans out over rooms -> participants ->
+   * users -> userRoles -> roles plus a latest-message + attachments query, i.e.
+   * 7 round-trips, and materialises every member's full profile (bio, banner,
+   * customStatus, createdAt) and role list. The sidebar uses 9 fields and
+   * discards the rest.
+   *
+   * `hasMention` is evaluated with EXISTS over the *unread* range rather than
+   * over the single latest message, which is what the previous
+   * `messages: { limit: 1 }` relation actually reduced the old check to.
+   */
+  async getSidebarRooms(userId: string): Promise<SidebarRoomRow[]> {
+    const result = await this.client.execute(sql`
+      SELECT
+        r."id"                          AS "roomId",
+        r."name"                        AS "roomName",
+        r."avatar"                      AS "roomAvatar",
+        r."isDirect"                    AS "isDirect",
+        me."lastReadAt"                 AS "lastReadAt",
+        lm."id"                         AS "lastMessageId",
+        lm."content"                    AS "lastMessageContent",
+        lm."userId"                     AS "lastMessageUserId",
+        lm."createdAt"                  AS "lastMessageCreatedAt",
+        att."url"                       AS "lastMessageAttachmentUrl",
+        att."fileType"                  AS "lastMessageAttachmentType",
+        other."userId"                  AS "otherUserId",
+        other_user."username"           AS "otherUsername",
+        other_user."avatar"             AS "otherAvatar",
+        EXISTS (
+          SELECT 1
+          FROM "Message" um
+          WHERE um."roomId" = r."id"
+            AND um."isDeleted" = false
+            AND um."userId" <> ${userId}
+            AND um."createdAt" > COALESCE(me."lastReadAt", to_timestamp(0))
+            AND (um."content" LIKE '%<@' || ${userId} || '>%'
+                 OR um."content" LIKE '%<@everyone>%')
+            -- Only inside a genuinely unread room: the sidebar marks a room read
+            -- as soon as its own latest message comes back, so a mention badge
+            -- must not survive that. The lm alias is the same latest message
+            -- hasUnread is derived from, which keeps the two flags consistent.
+            AND lm."id" IS NOT NULL
+            AND lm."userId" <> ${userId}
+            AND lm."createdAt" > COALESCE(me."lastReadAt", to_timestamp(0))
+        ) AS "hasMention"
+      FROM "Room" r
+      JOIN "RoomParticipant" me
+        ON me."roomId" = r."id" AND me."userId" = ${userId}
+      LEFT JOIN LATERAL (
+        SELECT m."id", m."content", m."userId", m."createdAt"
+        FROM "Message" m
+        WHERE m."roomId" = r."id" AND m."isDeleted" = false
+        ORDER BY m."createdAt" DESC
+        LIMIT 1
+      ) lm ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT a."url", a."fileType"
+        FROM "Attachment" a
+        WHERE a."messageId" = lm."id"
+        ORDER BY a."createdAt" ASC
+        LIMIT 1
+      ) att ON lm."id" IS NOT NULL
+      LEFT JOIN LATERAL (
+        SELECT p."userId"
+        FROM "RoomParticipant" p
+        WHERE p."roomId" = r."id" AND p."userId" <> ${userId}
+        LIMIT 1
+      ) other ON r."isDirect" = true
+      LEFT JOIN "User" other_user ON other_user."id" = other."userId"
+      ORDER BY r."name" ASC
+    `);
+
+    // The neon serverless driver (used in production) resolves execute() to a
+    // plain row array, while node-postgres resolves to a QueryResult wrapper.
+    // Normalise both so the repository is not tied to one transport.
+    const rows = Array.isArray(result)
+      ? result
+      : ((result as { rows?: unknown[] } | null)?.rows ?? []);
+
+    return rows as SidebarRoomRow[];
+  }
+
   async getAllRoomsByUserId(
     userId: string,
     options?: { isDirect?: boolean }
@@ -73,6 +176,7 @@ export class RoomRepository implements IRoomRepository {
       .select({ roomId: roomParticipants.roomId })
       .from(roomParticipants)
       .where(eq(roomParticipants.userId, userId));
+
 
     const roomIds = participantRooms.map(p => p.roomId);
 
@@ -92,6 +196,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {
@@ -244,6 +349,18 @@ export class RoomRepository implements IRoomRepository {
     return others;
   }
 
+  async getParticipantIds(roomId: string): Promise<string[]> {
+    // Only the membership set is needed by the invite search. getRoomById
+    // would drag in rooms -> participants -> users -> userRoles -> roles
+    // (and the participants' password hashes) for the same information.
+    const rows = await this.client
+      .select({ userId: roomParticipants.userId })
+      .from(roomParticipants)
+      .where(eq(roomParticipants.roomId, roomId));
+
+    return rows.map((row) => row.userId);
+  }
+
   async createRoom(
     name: string,
     isDirect: boolean,
@@ -280,6 +397,7 @@ export class RoomRepository implements IRoomRepository {
           participants: {
             with: {
               user: {
+                columns: PARTICIPANT_USER_COLUMNS,
                 with: {
                   userRoles: {
                     with: {
@@ -343,6 +461,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {

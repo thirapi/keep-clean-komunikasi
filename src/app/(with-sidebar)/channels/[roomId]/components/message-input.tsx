@@ -7,15 +7,25 @@ import { createMessage, uploadFileAction } from "../messages.action";
 import { createId } from "@paralleldrive/cuid2";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { debounce } from "lodash";
+import { debounce } from "@/lib/debounce";
 import { setTypingStatusAction } from "../messages.action";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { RoomRecord, RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { ArrowBendUpLeft, X, Paperclip, File, Eye, EyeSlash } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
-import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
+import dynamic from "next/dynamic";
+
+// The picker carries the whole `frimousse` emoji dataset and is only reachable
+// after the user opens it, so it is kept out of the eager chat chunk.
+const EmojiPickerComponent = dynamic(
+  () =>
+    import("@/components/emoji-picker/emoji-picker").then(
+      (m) => m.EmojiPickerComponent,
+    ),
+  { ssr: false },
+);
 
 interface Props {
   userId: string;
@@ -261,6 +271,22 @@ export function MessageInput({
     }
   };
 
+  // Stable identities: MentionTextarea's OnChange and command plugins are keyed
+  // on these props, so inline arrows at the call site re-register them on every
+  // keystroke.
+  const handleEditorChange = useCallback((newContent: string) => {
+    setContent(newContent);
+    handleTyping();
+  }, [handleTyping]);
+
+  const handleEditorSubmit = useCallback(() => {
+    handleSend();
+  }, [handleSend]);
+
+  const handleEditorBlur = useCallback(() => {
+    sendStopTypingEvent();
+  }, [sendStopTypingEvent]);
+
   useEffect(() => {
     return () => {
       sendTypingEvent.cancel();
@@ -440,15 +466,10 @@ export function MessageInput({
 
         <MentionTextarea
           value={content}
-          onChange={(newContent) => {
-            setContent(newContent);
-            handleTyping();
-          }}
-          onSubmit={() => handleSend()}
+          onChange={handleEditorChange}
+          onSubmit={handleEditorSubmit}
           onKeyDown={handleKeyDown}
-          onBlur={() => {
-            sendStopTypingEvent();
-          }}
+          onBlur={handleEditorBlur}
           placeholder={(() => {
             if (roomData.isDirect) {
               const partner = roomData.participants?.find((p) => p.user.id !== userId)?.user.username;

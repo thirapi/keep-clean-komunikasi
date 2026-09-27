@@ -85,7 +85,10 @@ describe("messages.action", () => {
 
   describe("toggleReactionAction", () => {
     it("toggles reaction on message", async () => {
-      vi.mocked(toggleReactionController).mockResolvedValueOnce({ action: "added" });
+      vi.mocked(toggleReactionController).mockResolvedValueOnce({
+        action: "added",
+        reaction: null,
+      });
 
       const res = await toggleReactionAction("user1", "m1", "👍");
       expect(res).toEqual({ status: "success", data: { action: "added" }, error: null });

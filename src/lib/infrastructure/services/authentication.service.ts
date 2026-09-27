@@ -8,6 +8,9 @@ import { ISessionRepository } from "@/lib/application/repositories/session.repos
 import { SessionRecord, SessionDTO } from "@/lib/entities/models/session.model";
 import { AuthenticationError } from "@/lib/entities/errors/common";
 import { IActivityLogRepository } from "@/lib/application/repositories/activity-log.repository.interface";
+import { getRedis } from "@/lib/redis";
+
+const SESSION_ACTIVITY_LOG_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 
 export class AuthenticationService {
     private SESSION_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30;
@@ -81,13 +84,26 @@ export class AuthenticationService {
             throw new AuthenticationError("User not Found!");
         }
 
-        // Log session activity (max once per 24 hours)
-        const hasRecentLog = await this.activityLogRepository.hasLogWithinLast24Hours(
-            userData.id,
-            "session_active"
-        );
+        // Log session activity (max once per 24 hours).
+        // The previous guard was a `SELECT count(*)` over ActivityLog, which ran
+        // on every session validation — i.e. every page render, every server
+        // action and every Pusher auth request. A Redis SETNX with a 24h TTL
+        // expresses the same throttle with a single cheap round-trip and no
+        // table scan; if Redis is unreachable we fall back to logging so audit
+        // history is never silently lost.
+        let shouldLogSessionActivity = true;
+        try {
+            const claimed = await getRedis().set(
+                `activity:session_active:${userData.id}`,
+                "1",
+                { ex: SESSION_ACTIVITY_LOG_TTL_SECONDS, nx: true }
+            );
+            shouldLogSessionActivity = claimed === "OK";
+        } catch (e) {
+            console.warn("Session activity throttle unavailable, logging event", e);
+        }
 
-        if (!hasRecentLog) {
+        if (shouldLogSessionActivity) {
             await this.activityLogRepository.insertLog({
                 id: crypto.randomUUID(),
                 userId: userData.id,

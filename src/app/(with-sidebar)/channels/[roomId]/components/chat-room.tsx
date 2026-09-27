@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { debounce } from "lodash";
+import { debounce } from "@/lib/debounce";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt, editMessageAction, toggleReactionAction } from "../messages.action";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,13 @@ import { useMarkAsRead } from "./hooks/use-mark-as-read";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePresence } from "@/components/presence-provider";
 import { useUnread } from "@/components/unread-provider";
+
+/**
+ * Ceiling on how many messages stay mounted at once. Pagination still works
+ * past this point because `loadMoreMessages` pages from the oldest *mounted*
+ * message, so trimming older rows does not strand the user at the top.
+ */
+const MAX_MOUNTED_MESSAGES = 500;
 
 interface ChatRoomProps {
   userId: string;
@@ -48,8 +55,7 @@ export function ChatRoom({
   user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
-  const [localRoomData, setLocalRoomData] = useState(roomData);
-  const { onlineUserIds } = usePresence();
+  const [localRoomData, setLocalRoomData] = useState(roomData);  const { onlineUserIds } = usePresence();
   const { markAsRead: markSidebarAsRead } = useUnread();
   const [showMembers, setShowMembers] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -112,10 +118,21 @@ export function ChatRoom({
 
   useEffect(() => {
     messagesRef.current = messages;
-    import("@/lib/infrastructure/cache/client-cache").then((m) => {
-      const persistedMsgs = messages.filter(msg => !msg.isOptimistic);
-      m.clientChatCache.setMessages(localRoomData.id, persistedMsgs);
-    });
+  }, [messages]);
+
+  // Reconciliation backstop for IndexedDB. Incremental appends are already
+  // persisted by mergeMessages in handleNewMessage, so this is debounced to
+  // collapse bursts (and "load more" prepending) into a single write instead
+  // of a full-table rewrite on every single message.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import("@/lib/infrastructure/cache/client-cache").then((m) => {
+        const persistedMsgs = messages.filter(msg => !msg.isOptimistic);
+        m.clientChatCache.setMessages(localRoomData.id, persistedMsgs);
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [messages, localRoomData.id]);
 
   useEffect(() => {
@@ -289,7 +306,9 @@ export function ChatRoom({
           nextMessages = [...prev];
           nextMessages[existingIndex] = { ...msg, isOptimistic: false };
         } else {
-          nextMessages = [...prev, msg];
+          // Keep the append path bounded too, so a long-lived tab cannot grow
+          // the mounted list without limit either.
+          nextMessages = [...prev, msg].slice(-MAX_MOUNTED_MESSAGES);
         }
 
         if (!msg.isOptimistic) {
@@ -363,7 +382,7 @@ export function ChatRoom({
     }
   }, [roomData.id, handleNewMessage]);
 
-  const loadMoreMessages = async () => {
+  const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
     const viewport = viewportRef.current;
@@ -381,11 +400,21 @@ export function ChatRoom({
       setMessages((prev) => {
         const prevIds = new Set(prev.map(m => m.id));
         const nonDuplicates = response.data!.filter(m => !prevIds.has(m.id));
-        return [...nonDuplicates, ...prev];
+        // Bound the mounted window. Every extra page prepends another 50 rows
+        // with no ceiling, so scrolling up repeatedly used to grow the list
+        // without limit and mount one MessageItem per row.
+        //
+        // A hard windowing library was deliberately not used here: the chat
+        // viewport relies on `flex-col-reverse` so the browser anchors the
+        // newest message at scrollTop 0 with no JS measurement
+        // (docs/column-reverse-architecture.md). A virtualiser would need
+        // absolute positioning plus JS scroll math, reintroducing the
+        // scroll-flash that architecture exists to avoid.
+        return [...nonDuplicates, ...prev].slice(-MAX_MOUNTED_MESSAGES);
       });
     }
     setIsLoadingMore(false);
-  };
+  }, [isLoadingMore, hasMore, messages, roomData.id]);
 
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
@@ -500,6 +529,26 @@ export function ChatRoom({
     setReplyingTo(null);
   }, []);
 
+  const handleReply = useCallback((message: MessageWithUserDTO) => {
+    setReplyingTo(message);
+  }, []);
+
+  const handleStartEdit = useCallback((message: MessageWithUserDTO) => {
+    setEditingMessageId(message.id);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null);
+  }, []);
+
+  const handleToggleMembers = useCallback(() => {
+    setShowMembers((prev) => !prev);
+  }, []);
+
+  const handleUpdateRoom = useCallback((data: Partial<RoomWithParticipantsDTO>) => {
+    setLocalRoomData((prev) => ({ ...prev, ...data }));
+  }, []);
+
   const handleSaveEdit = useCallback(async (messageId: string, content: string) => {
     const response = await editMessageAction(userId, messageId, content);
     if (response.status === "success" && response.data) {
@@ -575,13 +624,11 @@ export function ChatRoom({
       <ChatHeader
         roomData={localRoomData}
         currentUserId={userId}
-        onToggleMembers={() => setShowMembers((prev) => !prev)}
+        onToggleMembers={handleToggleMembers}
         onToggleSearch={() => setIsSearchOpen(true)}
         membersVisible={showMembers}
         onlineUserIds={onlineUserIds}
-        onUpdateRoom={(data) =>
-          setLocalRoomData((prev) => ({ ...prev, ...data }))
-        }
+        onUpdateRoom={handleUpdateRoom}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -592,10 +639,10 @@ export function ChatRoom({
               bottomRef={bottomRef}
               unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
-              onReply={(message) => setReplyingTo(message)}
-              onStartEdit={(message) => setEditingMessageId(message.id)}
+              onReply={handleReply}
+              onStartEdit={handleStartEdit}
               onSaveEdit={handleSaveEdit}
-              onCancelEdit={() => setEditingMessageId(null)}
+              onCancelEdit={handleCancelEdit}
               onToggleReaction={handleToggleReaction}
               editingMessageId={editingMessageId}
               lastReadMessageId={lastReadIdState}

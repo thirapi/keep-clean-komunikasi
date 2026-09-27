@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 
 interface UnreadRoomState {
   hasUnread: boolean;
@@ -44,8 +44,13 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const value = useMemo(
+    () => ({ unreadRooms, markAsRead, markAsUnread, initializeUnread }),
+    [unreadRooms, markAsRead, markAsUnread, initializeUnread],
+  );
+
   return (
-    <UnreadContext.Provider value={{ unreadRooms, markAsRead, markAsUnread, initializeUnread }}>
+    <UnreadContext.Provider value={value}>
       {children}
     </UnreadContext.Provider>
   );

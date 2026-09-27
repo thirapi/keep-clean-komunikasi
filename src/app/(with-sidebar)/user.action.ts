@@ -61,8 +61,11 @@ export const changePasswordAction = async (
 
 export const searchUsersAction = async (query: string): Promise<ServerResponse<{ id: string; username: string; avatar: string }[]>> => {
   try {
-    const fullCurrentUser = await (await import("../auth.action")).getUserWithRolesFromSession();
-    const users = await searchUserController(query, 10, fullCurrentUser?.id);
+    // No session/role lookup here: this action runs on every debounced
+    // keystroke in the user search dialogs, and SearchUserUseCase does not
+    // consume the caller's identity. It was costing a full session + roles
+    // lookup (~6 queries) per character typed.
+    const users = await searchUserController(query, 10);
     return {
       status: "success",
       data: users as any,

@@ -134,21 +134,25 @@ export function MessageList({
   const nodes: React.ReactNode[] = [];
 
   messages.forEach((msg, index) => {
-    const currentDate = new Date(msg.createdAt).toDateString();
+    const msgDate = new Date(msg.createdAt);
+    const currentDate = msgDate.toDateString();
     const shouldShowDate = currentDate !== lastDate;
     const isInitialUnread = initialUnreadId === msg.id && !isUnreadCleared;
 
     const showDateSeparator = shouldShowDate && !isInitialUnread;
     const showUnreadAndDate = shouldShowDate && isInitialUnread;
+    const showUnreadOnly = !showDateSeparator && !showUnreadAndDate && isInitialUnread;
 
     const prevMsg = index > 0 ? messages[index - 1] : null;
     const isSameSender = prevMsg?.userId === msg.userId;
-    const msgTime = new Date(msg.createdAt).getTime();
+    const msgTime = msgDate.getTime();
     const prevTime = prevMsg ? new Date(prevMsg.createdAt).getTime() : 0;
     const isRecent = msgTime - prevTime < 5 * 60 * 1000; // 5 minutes
     const isContinuation = isSameSender && isRecent && !shouldShowDate && !isInitialUnread;
 
     lastDate = currentDate;
+
+    const hasSeparator = (showDateSeparator && index > 0) || showUnreadAndDate || showUnreadOnly;
 
     nodes.push(
       <div
@@ -158,42 +162,44 @@ export function MessageList({
         data-message-id={msg.id}
         className="message-container"
       >
-        <AnimatePresence mode="popLayout">
-          {showDateSeparator && index > 0 && (
-            <motion.div
-              key={`date-${msg.id}`}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            >
-              <DateSeparator date={new Date(msg.createdAt)} />
-            </motion.div>
-          )}
+        {hasSeparator && (
+          <AnimatePresence mode="popLayout">
+            {showDateSeparator && index > 0 && (
+              <motion.div
+                key={`date-${msg.id}`}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <DateSeparator date={msgDate} />
+              </motion.div>
+            )}
 
-          {showUnreadAndDate && (
-            <motion.div
-              key={`unread-date-${msg.id}`}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
-              className="overflow-hidden"
-            >
-              <DateAndUnreadSeparator date={new Date(msg.createdAt)} />
-            </motion.div>
-          )}
+            {showUnreadAndDate && (
+              <motion.div
+                key={`unread-date-${msg.id}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
+                className="overflow-hidden"
+              >
+                <DateAndUnreadSeparator date={msgDate} />
+              </motion.div>
+            )}
 
-          {!showDateSeparator && !showUnreadAndDate && isInitialUnread && (
-            <motion.div
-              key={`unread-${msg.id}`}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
-              className="overflow-hidden"
-            >
-              <UnreadSeparator />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {showUnreadOnly && (
+              <motion.div
+                key={`unread-${msg.id}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0, transition: { duration: 0.4 } }}
+                className="overflow-hidden"
+              >
+                <UnreadSeparator />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         <MessageItem
           message={msg}

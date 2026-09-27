@@ -4,7 +4,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 
-import { DataTableColumnHeader } from "./_components/data-table-column-header";
+import { DataTableColumnHeader } from "@/app/admin/(with-sidebar)/_shared/data-table-column-header";
 
 import { RoleRecord } from "@/lib/entities/models/role.model";
 import { DataTableRowActions } from "./_components/data-table-row-actions";

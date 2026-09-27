@@ -4,7 +4,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 
-import { DataTableColumnHeader } from "./_components/data-table-column-header";
+import { DataTableColumnHeader } from "@/app/admin/(with-sidebar)/_shared/data-table-column-header";
 
 import { EditRoleDialog } from "./_components/edit-role-dialog";
 import { DeleteUserDialog } from "./_components/delete-user-dialog";

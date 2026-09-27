@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useEmojis } from "@/components/emoji-provider";
+import { useCustomEmojis } from "@/components/emoji-provider";
 import { stripMarkdown } from "@/lib/strip-markdown";
 
 type Groups = {
@@ -64,7 +64,7 @@ export function NavMainDirectMessage({
   const router = useRouter();
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
-  const { customEmojis } = useEmojis();
+  const customEmojis = useCustomEmojis();
   const { onlineUserIds } = usePresence();
   const isCollapsed = state === "collapsed";
 

@@ -11,6 +11,7 @@ import { RealtimeNotificationListener } from "@/components/realtime-notification
 import { getSidebarData } from "@/app/(with-sidebar)/channels/[roomId]/room.action";
 import { PresenceProvider } from "@/components/presence-provider";
 import { UnreadProvider } from "@/components/unread-provider";
+import { EmojiProvider } from "@/components/emoji-provider";
 import { getInitials } from "@/lib/get-initials";
 import { MobileStackContent } from "@/app/(with-sidebar)/mobile-stack-content";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -23,14 +24,21 @@ export default async function layout({
 }) {
   const sessionData = await getUserSession();
   const userId = sessionData?.user?.id;
-  const effectiveUserId = await getEffectiveUserId(userId || "");
 
-  const sidebarData = effectiveUserId ? await getSidebarData(effectiveUserId) : { data: { channels: [], directMessages: [] } };
+  // getEffectiveUserId, the profile lookup and the role lookup all depend only
+  // on the session, so they run concurrently. Only the sidebar data needs the
+  // resolved effective user id, so it stays one level deeper.
+  const [effectiveUserId, userInfo, userRoles] = await Promise.all([
+    getEffectiveUserId(userId || ""),
+    sidaBarUserInfo(),
+    getUserWithRolesFromSession(),
+  ]);
+
+  const sidebarData = effectiveUserId
+    ? await getSidebarData(effectiveUserId)
+    : { data: { channels: [], directMessages: [] } };
   const directRooms = sidebarData.data?.directMessages ?? [];
   const groupRooms = sidebarData.data?.channels ?? [];
-
-  const userInfo = await sidaBarUserInfo();
-  const userRoles = await getUserWithRolesFromSession();
 
   const user = userId ? {
     id: userId,
@@ -48,6 +56,7 @@ export default async function layout({
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       <SidebarProvider>
+        <EmojiProvider>
         {user ? (
           <PresenceProvider userId={user.id}>
             <UnreadProvider>
@@ -89,6 +98,7 @@ export default async function layout({
             </SidebarInset>
           </UnreadProvider>
         )}
+        </EmojiProvider>
       </SidebarProvider>
       <MobileBottomNav user={user ? { username: user.username } : null} />
     </div>

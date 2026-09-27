@@ -29,6 +29,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Pin the workspace root explicitly. Without this, Turbopack walks up looking
+  // for a lockfile and picks up unrelated projects that happen to sit above this
+  // directory, which both warns on every build and makes resolution depend on
+  // the machine's layout.
+  turbopack: {
+    root: process.cwd(),
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",

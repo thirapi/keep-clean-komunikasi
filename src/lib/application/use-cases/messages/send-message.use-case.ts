@@ -36,13 +36,12 @@ export class SendMessageUseCase {
 
     await this.pusherService.trigger(`chat-${roomId}`, "new-message", messageWithOptimisticId);
 
-    const roomData = await this.roomRepository.getRoomById(roomId);
+    const [roomData, participants] = await Promise.all([
+      this.roomRepository.getRoomById(roomId),
+      this.roomRepository.getOtherParticipants(roomId, userId),
+    ]);
     const userName = message.user.username;
 
-    const participants = await this.roomRepository.getOtherParticipants(
-      roomId,
-      userId
-    );
     const receiverIds = participants.map((p) => p.userId);
 
     await this.pusherService.triggerToUsers(
@@ -66,26 +65,29 @@ export class SendMessageUseCase {
 
     const notificationContent = resolveContentForNotification(content);
 
-    // Trigger Web Push Notifications for offline/background users asynchronously
+    // Trigger Web Push Notifications for offline/background users asynchronously.
+    // One batched query for all receivers instead of a serial round-trip per
+    // room member on the critical send path.
     const pushPromises: Promise<void>[] = [];
 
-    for (const receiverId of receiverIds) {
-      const subscriptions = await this.pushSubscriptionRepository.getSubscriptionsByUserId(receiverId);
-      for (const sub of subscriptions) {
-        pushPromises.push(
-          this.webPushService.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: sub.p256dh, auth: sub.auth },
-            },
-            JSON.stringify({
-              title: userName,
-              body: notificationContent,
-              url: `/channels/${roomId}`,
-            })
-          )
-        );
-      }
+    const allSubscriptions = await this.pushSubscriptionRepository.getSubscriptionsByUserIds(
+      receiverIds
+    );
+
+    for (const sub of allSubscriptions) {
+      pushPromises.push(
+        this.webPushService.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          JSON.stringify({
+            title: userName,
+            body: notificationContent,
+            url: `/channels/${roomId}`,
+          })
+        )
+      );
     }
 
     Promise.allSettled(pushPromises).catch(console.error);

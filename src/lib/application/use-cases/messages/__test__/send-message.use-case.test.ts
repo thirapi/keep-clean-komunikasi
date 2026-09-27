@@ -40,6 +40,7 @@ describe("SendMessageUseCase", () => {
   const mockPushRepo = {
     saveSubscription: vi.fn(),
     getSubscriptionsByUserId: vi.fn().mockResolvedValue([]),
+    getSubscriptionsByUserIds: vi.fn().mockResolvedValue([]),
     deleteSubscription: vi.fn(),
   } as unknown as any
 
@@ -64,6 +65,7 @@ describe("SendMessageUseCase", () => {
     })
     vi.mocked(mockRoomRepo.getOtherParticipants).mockResolvedValue([])
     vi.mocked(mockPusher.trigger).mockResolvedValue(undefined as any)
+    vi.mocked(mockPushRepo.getSubscriptionsByUserIds).mockResolvedValue([])
   })
 
   const createUseCase = () => new SendMessageUseCase(mockRepo, mockRoomRepo, mockPusher, mockNotifier, mockPushRepo, mockWebPushService)

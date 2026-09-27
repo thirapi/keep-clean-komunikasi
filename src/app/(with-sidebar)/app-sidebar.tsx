@@ -24,12 +24,27 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
 import { pusher } from "@/lib/pusher/pusher.client";
-import { CreateChannelDialog } from "./create-channel-dialog";
-import { ExploreChannelsDialog } from "./explore-channels-dialog";
-import { SearchUserDialog } from "./search-user-dialog";
 import { useUnread } from "@/components/unread-provider";
 import { Group, Panel } from "react-resizable-panels";
-import { MessageSearch } from "@/components/message-search";
+import dynamic from "next/dynamic";
+// Dialogs are mounted on every route via the sidebar layout but only opened on
+// demand, so they are split out of the eager client chunk.
+const CreateChannelDialog = dynamic(
+  () => import("./create-channel-dialog").then((m) => m.CreateChannelDialog),
+  { ssr: false },
+);
+const ExploreChannelsDialog = dynamic(
+  () => import("./explore-channels-dialog").then((m) => m.ExploreChannelsDialog),
+  { ssr: false },
+);
+const SearchUserDialog = dynamic(
+  () => import("./search-user-dialog").then((m) => m.SearchUserDialog),
+  { ssr: false },
+);
+const MessageSearch = dynamic(
+  () => import("@/components/message-search").then((m) => m.MessageSearch),
+  { ssr: false },
+);
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,

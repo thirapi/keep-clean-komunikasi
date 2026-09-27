@@ -12,15 +12,17 @@ export class InviteToRoomUseCase {
     roomId: string,
     query: string
   ): Promise<{ id: string; username: string; avatar: string }[]> {
-    const room = await this.roomRepository.getRoomById(roomId);
-    if (!room) throw new Error("Channel tidak ditemukan");
+    // Membership set only: getRoomById fanned out over rooms -> participants ->
+    // users -> userRoles -> roles on every keystroke of the invite search.
+    const [participantIds, users] = await Promise.all([
+      this.roomRepository.getParticipantIds(roomId),
+      this.userRepository.searchUsers(query, 10),
+    ]);
 
-    const participantIds = new Set(room.participants.map((p) => p.user.id));
-
-    const users = await this.userRepository.searchUsers(query, 10);
+    const existing = new Set(participantIds);
 
     // Filter out users already in the room
-    return users.filter((u) => !participantIds.has(u.id));
+    return users.filter((u) => !existing.has(u.id));
   }
 
   async execute(

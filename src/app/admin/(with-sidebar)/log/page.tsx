@@ -8,8 +8,11 @@ export default async function UserPage() {
   const isAdmin = await adminGuard();
   if (!isAdmin) redirect("/unauthorized");
 
-  const sessions = await getAllSessionsAction();
-  const activityLogs = await getAllActivityLogsAction();
+  // Independent reads — the two admin tables have no data dependency.
+  const [sessions, activityLogs] = await Promise.all([
+    getAllSessionsAction(),
+    getAllActivityLogsAction(),
+  ]);
 
   return (
     <DataTableWrapper

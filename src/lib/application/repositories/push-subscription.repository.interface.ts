@@ -11,6 +11,8 @@ export interface IPushSubscriptionRepository {
   ): Promise<void>;
   
   getSubscriptionsByUserId(userId: string): Promise<any[]>;
-  
+
+  getSubscriptionsByUserIds(userIds: string[]): Promise<any[]>;
+
   deleteSubscription(endpoint: string): Promise<void>;
 }
