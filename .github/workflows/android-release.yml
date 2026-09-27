@@ -88,11 +88,13 @@ jobs:
             -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
           echo "keystore verified"
 
-      - name: Set up Java and Android SDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # @capacitor/android compiles with JavaVersion.VERSION_21, so a lower
+          # JDK fails with a bare "invalid source release: 21" inside Gradle.
+          java-version: "21"
 
       # The runner image already ships a working Android SDK at
       # /usr/local/lib/android/sdk and puts it on PATH. Do not export
@@ -108,17 +110,25 @@ jobs:
           echo "SDK root: ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-unknown}}"
           sdkmanager --list_installed 2>/dev/null | head -20 || true
 
-      - name: Install SDK packages required by compileSdk 36
+      - name: Install SDK packages required by the project
         run: |
-          set +e
-          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools" 2>&1 | tail -5
-          set -e
-          # Verify rather than trust the install: Gradle's error for a missing
-          # platform is far less obvious than this one.
+          set -euo pipefail
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
-          test -d "$SDK/platforms/android-36"  || { echo "::error::android-36 platform missing at $SDK/platforms"; exit 1; }
-          test -d "$SDK/build-tools/36.0.0"  || { echo "::error::build-tools 36.0.0 missing at $SDK/build-tools"; exit 1; }
-          echo "SDK packages verified"
+          # Single source of truth: android/variables.gradle. Repeating the
+          # number here is exactly how the Node and Java pins drifted out of
+          # sync with the project.
+          COMPILE_SDK=$(sed -n "s/.*compileSdkVersion *= *\([0-9]*\).*/\1/p" \
+            android/variables.gradle | head -1)
+          [ -n "$COMPILE_SDK" ] || { echo "::error::could not read compileSdkVersion from android/variables.gradle"; exit 1; }
+          echo "compileSdkVersion=$COMPILE_SDK"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          if [ ! -d "$SDK/platforms/android-$COMPILE_SDK" ]; then
+            echo "installing platform android-$COMPILE_SDK"
+            yes | sdkmanager "platforms;android-$COMPILE_SDK" "platform-tools" || true
+          fi
+          test -d "$SDK/platforms/android-$COMPILE_SDK" \
+            || { echo "::error::platforms/android-$COMPILE_SDK missing under $SDK"; exit 1; }
+          echo "platform android-$COMPILE_SDK verified"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -147,8 +157,13 @@ jobs:
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          # Do not hardcode a build-tools version: the project pins none, so pick
+          # the newest one present rather than guessing a directory name.
+          APKSIGNER=$(find "$SDK/build-tools" -name apksigner -type f | sort -V | tail -1)
+          [ -n "$APKSIGNER" ] || { echo "::error::apksigner not found under $SDK/build-tools"; exit 1; }
+          echo "using $APKSIGNER"
           # Fail loudly rather than shipping an APK that could never be updated.
-          "$SDK/build-tools/36.0.0/apksigner" verify --print-certs "$APK"
+          "$APKSIGNER" verify --print-certs "$APK"
           VERSION=$(node -p "require('./package.json').version")
           OUT="Komunikasi-$VERSION.apk"
           cp "$APK" "$OUT"
