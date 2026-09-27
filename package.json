@@ -14,7 +14,13 @@
     "db:reset": "tsx --env-file=.env src/lib/infrastructure/drizzle/reset.ts",
     "db:seed": "tsx --env-file=.env src/lib/infrastructure/drizzle/seed.ts",
     "test": "vitest",
-    "dev:clean": "npm run db:reset && npm run db:push && npm run db:seed && npm run dev"
+    "dev:clean": "npm run db:reset && npm run db:push && npm run db:seed && npm run dev",
+    "measure:bundle": "tsx scripts/measure-bundle.ts",
+    "measure:sidebar": "tsx scripts/measure-sidebar-queries.ts",
+    "verify:sidebar": "tsx scripts/verify-sidebar-query.ts",
+    "measure:markdown": "tsx scripts/measure-markdown-pipeline.ts",
+    "measure:password": "tsx scripts/measure-password-hashing.ts",
+    "bench:content": "vitest bench --run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1040.0",
