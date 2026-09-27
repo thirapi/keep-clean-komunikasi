@@ -122,6 +122,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # android/.gitignore excludes capacitor-cordova-android-plugins because
+      # Capacitor regenerates it, yet android/settings.gradle includes that
+      # project unconditionally. A fresh clone therefore cannot run
+      # assembleRelease until this has run. The app ships no web bundle (the
+      # WebView is pointed at the live URL), so this only restores the plugin
+      # scaffolding and takes well under a second.
+      - name: Sync Capacitor Android plugins
+        run: npx cap sync android
+
       - name: Build signed release APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
