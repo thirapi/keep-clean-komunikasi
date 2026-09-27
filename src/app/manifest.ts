@@ -7,6 +7,20 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Komunikasi",
     description: "Platform pesan instan modern untuk kolaborasi tim.",
     icons: [
+      // Light-background maskable, for launchers in light mode. The mark itself
+      // is near-white, so this variant is inverted and the background is light.
+      {
+        purpose: "maskable",
+        sizes: "512x512",
+        src: "/icons/maskable_icon_light_x512.png",
+        type: "image/png",
+      },
+      {
+        purpose: "maskable",
+        sizes: "192x192",
+        src: "/icons/maskable_icon_light_x192.png",
+        type: "image/png",
+      },
       {
         purpose: "maskable",
         sizes: "1024x1024",
