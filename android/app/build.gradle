@@ -1,4 +1,8 @@
 apply plugin: 'com.android.application'
+// Reads android/app/google-services.json and generates the Firebase config the
+// PushNotifications plugin needs at runtime. Without this the file is ignored
+// and FCM never registers.
+apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace = "qzz.io.komunikasi"
