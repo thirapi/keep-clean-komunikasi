@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { debounce } from "@/lib/debounce";
-import { pusher } from "@/lib/pusher/pusher.client";
+import { getPusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt, editMessageAction, toggleReactionAction } from "../messages.action";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -430,7 +430,7 @@ export function ChatRoom({
   }, [isMobile]);
 
   useEffect(() => {
-    const chatChannel = pusher.subscribe(`chat-${roomData.id}`);
+    const chatChannel = getPusher().subscribe(`chat-${roomData.id}`);
     chatChannel.bind("new-message", (msg: MessageWithUserDTO) =>
       handleNewMessage(msg),
     );
@@ -505,14 +505,14 @@ export function ChatRoom({
       });
     });
     const handleConnected = () => syncMessages();
-    pusher.connection.bind("connected", handleConnected);
+    getPusher().connection.bind("connected", handleConnected);
     const handleFocus = () => syncMessages();
     window.addEventListener("focus", handleFocus);
 
     return () => {
       chatChannel.unbind_all();
       chatChannel.unsubscribe();
-      pusher.connection.unbind("connected", handleConnected);
+      getPusher().connection.unbind("connected", handleConnected);
       window.removeEventListener("focus", handleFocus);
     };
   }, [roomData.id, handleNewMessage, syncMessages]);

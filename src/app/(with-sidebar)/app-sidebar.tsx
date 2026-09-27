@@ -23,7 +23,7 @@ import K from "@/components/icons/k";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createRoom } from "./channels/[roomId]/room.action";
 import { toast } from "sonner";
-import { pusher } from "@/lib/pusher/pusher.client";
+import { getPusher } from "@/lib/pusher/pusher.client";
 import { useUnread } from "@/components/unread-provider";
 import { Group, Panel } from "react-resizable-panels";
 import dynamic from "next/dynamic";

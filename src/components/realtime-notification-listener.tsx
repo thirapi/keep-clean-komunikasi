@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { pusher } from "@/lib/pusher/pusher.client";
+import { getPusher } from "@/lib/pusher/pusher.client";
 import { toast } from "sonner";
 import { requestNotificationPermission } from "@/utils/notifications";
 import { usePathname, useRouter } from "next/navigation";
@@ -46,7 +46,7 @@ export function RealtimeNotificationListener({ user }: Props) {
   useEffect(() => {
     if (!user.id) return;
 
-    const channel = pusher.subscribe(`user-${user.id}`);
+    const channel = getPusher().subscribe(`user-${user.id}`);
 
     // CHAT: New Message
     channel.bind("new-message-notification", (data: any) => {
@@ -119,7 +119,7 @@ export function RealtimeNotificationListener({ user }: Props) {
 
     return () => {
       channel.unbind_all();
-      pusher.unsubscribe(`user-${user.id}`);
+      getPusher().unsubscribe(`user-${user.id}`);
     };
   }, [user.id, markAsUnread, markAsRead, router]);
 
