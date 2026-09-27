@@ -1,0 +1,130 @@
+name: Android release
+
+# Tag a version and this builds the signed APK and attaches it to the GitHub
+# Release, so every release has a downloadable artifact.
+#
+#   git tag -a v1.0.0 -m "First release" && git push origin v1.0.0
+#
+# One-time setup (Settings > Secrets and variables > Actions), all required:
+#
+#   ANDROID_KEYSTORE_BASE64   base64 of the .jks, WITHOUT line breaks:
+#                               base64 -w0 komunikasi-release.jks
+#   ANDROID_KEYSTORE_PASSWORD password of the keystore
+#   ANDROID_KEY_ALIAS        key alias, e.g. komunikasi
+#   ANDROID_KEY_PASSWORD     key password
+#
+# The keystore is the app's permanent identity. If these secrets are lost, the
+# app can never be updated again — Android rejects updates signed with a
+# different key. There is no recovery.
+#
+# Bumping package.json's version changes both versionName and versionCode
+# (derived, not hand-set), so a release cannot silently reuse a versionCode.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build signed APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p android
+          echo "$KEYSTORE_B64" | base64 -d > android/release.jks
+          umask 077
+          cat > android/keystore.properties <<EOF
+          storeFile=release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+          # The key must actually open with these credentials, otherwise the
+          # build fails deep inside Gradle with an unhelpful message.
+          keytool -list -keystore android/release.jks \
+            -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "keystore verified"
+
+      - name: Set up Java and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Collect and verify the APK
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          # Fail loudly rather than shipping an APK that could never be updated.
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK"
+          VERSION=$(node -p "require('./package.json').version")
+          OUT="Komunikasi-$VERSION.apk"
+          cp "$APK" "$OUT"
+          sha256sum "$OUT" > "$OUT.sha256"
+          echo "ASSET_NAME=$OUT" >> "$GITHUB_ENV"
+          echo "prepared $OUT"
+
+      - name: Publish to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Attach to an existing release when the tag already has one,
+          # otherwise create it from the tag with auto-generated notes.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "release $TAG exists, attaching assets"
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+            echo "created release $TAG"
+          fi
+          gh release upload "$TAG" "$ASSET_NAME" "$ASSET_NAME.sha256" --clobber
+          echo "uploaded to release $TAG"
