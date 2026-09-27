@@ -4,6 +4,28 @@ apply plugin: 'com.android.application'
 // and FCM never registers.
 apply plugin: 'com.google.gms.google-services'
 
+// Read the version from package.json instead of hardcoding it here. The web app
+// shows the same string (src/lib/version.ts), and Play Store rejects an upload
+// whose versionCode has not increased — so both are derived from one field
+// rather than kept in sync by hand.
+def appPackage = new groovy.json.JsonSlurper().parseText(
+    file("${rootDir}/../package.json").text
+)
+def appVersion = appPackage.version as String
+def versionParts = appVersion.tokenize('.')
+if (versionParts.size() < 3 || !versionParts[0].isInteger() ||
+        !versionParts[1].isInteger() || !versionParts[2].isInteger()) {
+    throw new GradleException(
+        "package.json version '${appVersion}' is not major.minor.patch; " +
+        "versionCode is derived from it and cannot be computed."
+    )
+}
+// major*10000 + minor*100 + patch
+def appVersionCode =
+    (versionParts[0] as Integer) * 10000 +
+    (versionParts[1] as Integer) * 100 +
+    (versionParts[2] as Integer)
+
 android {
     namespace = "qzz.io.komunikasi"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -11,8 +33,8 @@ android {
         applicationId "qzz.io.komunikasi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -20,10 +42,32 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Credentials live in android/keystore.properties, which is
+            // gitignored. Produced by `npm run android:keystore`, or supplied
+            // from CI secrets on a tag build.
+            def props = new Properties()
+            def propsFile = rootProject.file('keystore.properties')
+            if (propsFile.exists()) {
+                propsFile.withInputStream { props.load(it) }
+            }
+            if (props['storeFile']) {
+                storeFile rootProject.file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Falls back to unsigned when no keystore is configured, so a plain
+            // `assembleRelease` still yields an APK for local testing instead of
+            // failing the build.
+            signingConfig signingConfigs.release.storeFile ? signingConfigs.release : null
         }
     }
 }

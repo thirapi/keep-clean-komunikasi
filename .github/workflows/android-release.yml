@@ -1,0 +1,189 @@
+name: Android release
+
+# Tag a version and this builds the signed APK and attaches it to the GitHub
+# Release, so every release has a downloadable artifact.
+#
+#   git tag -a v1.0.0 -m "First release" && git push origin v1.0.0
+#
+# One-time setup (Settings > Secrets and variables > Actions), all required:
+#
+#   ANDROID_KEYSTORE_BASE64   base64 of the .jks, WITHOUT line breaks:
+#                               base64 -w0 komunikasi-release.jks
+#   ANDROID_KEYSTORE_PASSWORD password of the keystore
+#   ANDROID_KEY_ALIAS        key alias, e.g. komunikasi
+#   ANDROID_KEY_PASSWORD     key password
+#
+# The keystore is the app's permanent identity. If these secrets are lost, the
+# app can never be updated again — Android rejects updates signed with a
+# different key. There is no recovery.
+#
+# Bumping package.json's version changes both versionName and versionCode
+# (derived, not hand-set), so a release cannot silently reuse a versionCode.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build signed APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 20 is below the Capacitor CLI's >=22 floor.
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Fail with a name, not a bare "exit code 1". These four are set once
+          # under Settings > Secrets and variables > Actions; without this check
+          # the step dies inside `base64 -d` with no hint about what is missing.
+          MISSING=""
+          [ -n "$KEYSTORE_B64" ]   || MISSING="$MISSING ANDROID_KEYSTORE_BASE64"
+          [ -n "$STORE_PASSWORD" ] || MISSING="$MISSING ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ]      || MISSING="$MISSING ANDROID_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ]   || MISSING="$MISSING ANDROID_KEY_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing repository secret(s):$MISSING"
+            echo "Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mkdir -p android
+          echo "$KEYSTORE_B64" | base64 -d > android/release.jks
+          umask 077
+          cat > android/keystore.properties <<EOF
+          storeFile=release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+          # The key must actually open with these credentials, otherwise the
+          # build fails deep inside Gradle with an unhelpful message.
+          keytool -list -keystore android/release.jks \
+            -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "keystore verified"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # @capacitor/android compiles with JavaVersion.VERSION_21, so a lower
+          # JDK fails with a bare "invalid source release: 21" inside Gradle.
+          java-version: "21"
+
+      # The runner image already ships a working Android SDK at
+      # /usr/local/lib/android/sdk and puts it on PATH. Do not export
+      # ANDROID_HOME to an empty directory: that hides the SDK and sdkmanager
+      # then vanishes. android-actions/setup-android was also tried and its
+      # licence step exits 1 on this image, so licences are accepted here.
+      - name: Accept Android SDK licences
+        run: |
+          set +e
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          set -e
+          echo "licences accepted"
+          echo "SDK root: ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-unknown}}"
+          sdkmanager --list_installed 2>/dev/null | head -20 || true
+
+      - name: Install SDK packages required by the project
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          # Single source of truth: android/variables.gradle. Repeating the
+          # number here is exactly how the Node and Java pins drifted out of
+          # sync with the project.
+          COMPILE_SDK=$(sed -n "s/.*compileSdkVersion *= *\([0-9]*\).*/\1/p" \
+            android/variables.gradle | head -1)
+          [ -n "$COMPILE_SDK" ] || { echo "::error::could not read compileSdkVersion from android/variables.gradle"; exit 1; }
+          echo "compileSdkVersion=$COMPILE_SDK"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          if [ ! -d "$SDK/platforms/android-$COMPILE_SDK" ]; then
+            echo "installing platform android-$COMPILE_SDK"
+            yes | sdkmanager "platforms;android-$COMPILE_SDK" "platform-tools" || true
+          fi
+          test -d "$SDK/platforms/android-$COMPILE_SDK" \
+            || { echo "::error::platforms/android-$COMPILE_SDK missing under $SDK"; exit 1; }
+          echo "platform android-$COMPILE_SDK verified"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # android/.gitignore excludes capacitor-cordova-android-plugins because
+      # Capacitor regenerates it, yet android/settings.gradle includes that
+      # project unconditionally. A fresh clone therefore cannot run
+      # assembleRelease until this has run. The app ships no web bundle (the
+      # WebView is pointed at the live URL), so this only restores the plugin
+      # scaffolding and takes well under a second.
+      - name: Sync Capacitor Android plugins
+        run: |
+          # cap sync writes capacitor.config.json into assets/, and that
+          # directory is generated rather than committed, so a fresh clone
+          # fails with ENOENT unless it exists first.
+          mkdir -p android/app/src/main/assets
+          npx cap sync android
+
+      - name: Build signed release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Collect and verify the APK
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          # Do not hardcode a build-tools version: the project pins none, so pick
+          # the newest one present rather than guessing a directory name.
+          APKSIGNER=$(find "$SDK/build-tools" -name apksigner -type f | sort -V | tail -1)
+          [ -n "$APKSIGNER" ] || { echo "::error::apksigner not found under $SDK/build-tools"; exit 1; }
+          echo "using $APKSIGNER"
+          # Fail loudly rather than shipping an APK that could never be updated.
+          "$APKSIGNER" verify --print-certs "$APK"
+          VERSION=$(node -p "require('./package.json').version")
+          OUT="Komunikasi-$VERSION.apk"
+          cp "$APK" "$OUT"
+          sha256sum "$OUT" > "$OUT.sha256"
+          echo "ASSET_NAME=$OUT" >> "$GITHUB_ENV"
+          echo "prepared $OUT"
+
+      - name: Publish to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Attach to an existing release when the tag already has one,
+          # otherwise create it from the tag with auto-generated notes.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "release $TAG exists, attaching assets"
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+            echo "created release $TAG"
+          fi
+          gh release upload "$TAG" "$ASSET_NAME" "$ASSET_NAME.sha256" --clobber
+          echo "uploaded to release $TAG"
