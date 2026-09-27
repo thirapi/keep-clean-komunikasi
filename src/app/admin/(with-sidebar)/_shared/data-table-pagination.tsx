@@ -12,10 +12,15 @@ import {
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
+  /** Page-size choices; defaults to the list used by the log table. */
+  pageSizeOptions?: number[];
 }
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 15, 20, 30, 40, 50];
 
 export function DataTablePagination<TData>({
   table,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">
@@ -36,7 +41,7 @@ export function DataTablePagination<TData>({
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {pageSizeOptions.map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>

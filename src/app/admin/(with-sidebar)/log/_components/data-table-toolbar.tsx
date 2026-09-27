@@ -6,7 +6,7 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { DataTableViewOptions } from "./data-table-view-options";
+import { DataTableViewOptions } from "@/app/admin/(with-sidebar)/_shared/data-table-view-options";
 import Link from "next/link";
 
 interface DataTableToolbarProps<TData> {
