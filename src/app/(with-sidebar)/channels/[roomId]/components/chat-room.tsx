@@ -25,6 +25,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePresence } from "@/components/presence-provider";
 import { useUnread } from "@/components/unread-provider";
 
+/**
+ * Ceiling on how many messages stay mounted at once. Pagination still works
+ * past this point because `loadMoreMessages` pages from the oldest *mounted*
+ * message, so trimming older rows does not strand the user at the top.
+ */
+const MAX_MOUNTED_MESSAGES = 500;
+
 interface ChatRoomProps {
   userId: string;
   roomData: RoomWithParticipantsDTO;
@@ -48,8 +55,7 @@ export function ChatRoom({
   user,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
-  const [localRoomData, setLocalRoomData] = useState(roomData);
-  const { onlineUserIds } = usePresence();
+  const [localRoomData, setLocalRoomData] = useState(roomData);  const { onlineUserIds } = usePresence();
   const { markAsRead: markSidebarAsRead } = useUnread();
   const [showMembers, setShowMembers] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -300,7 +306,9 @@ export function ChatRoom({
           nextMessages = [...prev];
           nextMessages[existingIndex] = { ...msg, isOptimistic: false };
         } else {
-          nextMessages = [...prev, msg];
+          // Keep the append path bounded too, so a long-lived tab cannot grow
+          // the mounted list without limit either.
+          nextMessages = [...prev, msg].slice(-MAX_MOUNTED_MESSAGES);
         }
 
         if (!msg.isOptimistic) {
@@ -392,7 +400,17 @@ export function ChatRoom({
       setMessages((prev) => {
         const prevIds = new Set(prev.map(m => m.id));
         const nonDuplicates = response.data!.filter(m => !prevIds.has(m.id));
-        return [...nonDuplicates, ...prev];
+        // Bound the mounted window. Every extra page prepends another 50 rows
+        // with no ceiling, so scrolling up repeatedly used to grow the list
+        // without limit and mount one MessageItem per row.
+        //
+        // A hard windowing library was deliberately not used here: the chat
+        // viewport relies on `flex-col-reverse` so the browser anchors the
+        // newest message at scrollTop 0 with no JS measurement
+        // (docs/column-reverse-architecture.md). A virtualiser would need
+        // absolute positioning plus JS scroll math, reintroducing the
+        // scroll-flash that architecture exists to avoid.
+        return [...nonDuplicates, ...prev].slice(-MAX_MOUNTED_MESSAGES);
       });
     }
     setIsLoadingMore(false);
