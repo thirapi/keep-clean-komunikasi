@@ -46,7 +46,6 @@ the tooling committed alongside it.
 
 Measurement committed so the numbers below can be reproduced, not taken on
 trust.
-
 - `measure:bundle` — initial-load payload per route, read from the
   client-reference manifest's `async` flag, so it reports what a browser
   actually downloads rather than total static output.
@@ -54,6 +53,22 @@ trust.
   correctness assertions for the sidebar projection against a real Postgres.
 - `measure:markdown`, `measure:password` — per-plugin and per-backend cost.
 - `bench:content` — CPU benchmarks for the message rendering path.
+
+#### Versioning
+
+- Single source of truth: `package.json` `version`. `src/lib/version.ts` reads
+  it for the app, and `android/app/build.gradle` reads the same field for
+  `versionName`.
+- `versionCode` is computed, not hand-maintained:
+  `major * 10000 + minor * 100 + patch`. Play Store rejects an upload whose
+  versionCode has not increased, so a forgotten bump used to block releases.
+  Verified by building `1.0.0` and `1.0.1` and reading the resulting APKs.
+- The Gradle build fails loudly if `package.json` is not `major.minor.patch`,
+  since `versionCode` cannot be derived from anything else.
+- Settings gains an **About** section showing the version, the build number and
+  whether the app is running in the native shell or a browser.
+- Covered by `src/lib/__tests__/version.test.ts`, including a check that
+  successive releases always produce a strictly increasing code.
 
 #### Documentation
 

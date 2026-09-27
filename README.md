@@ -147,6 +147,27 @@ $ npm run cap:run:android
 Building an APK needs the Android SDK and a JDK — **not** macOS or Xcode. Full
 setup in [`docs/native-app.md`](docs/native-app.md).
 
+### Versioning
+
+`package.json` holds the single version string. The app reads it through
+`src/lib/version.ts`; the Android build reads the same field for `versionName`.
+
+`versionCode` is **derived**, never hand-maintained:
+
+```console
+versionCode = major × 10000 + minor × 100 + patch
+
+1.0.0 → 10000      1.0.1 → 10001      1.2.3 → 10203      2.0.0 → 20000
+```
+
+That matters because Play Store rejects an upload whose `versionCode` has not
+increased — a forgotten bump silently blocks a release. The Gradle build also
+fails loudly if `package.json` is not `major.minor.patch`, since the code
+cannot be derived from anything else.
+
+To ship a new version: bump `package.json`, rebuild, tag. Settings → About
+shows the version and build number, and whether the app is running natively.
+
 ---
 
 ## Push notifications

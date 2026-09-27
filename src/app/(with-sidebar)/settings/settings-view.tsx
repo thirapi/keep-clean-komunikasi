@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { CaretLeft, Camera, CircleNotch, Sparkle, Key, WarningCircle, User, Shield, CaretRight } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeft, Camera, CircleNotch, Sparkle, Key, WarningCircle, User, Shield, CaretRight, Info } from "@phosphor-icons/react/dist/ssr";
 import { updateUserAction, changePasswordAction } from "../user.action";
 import { uploadFileAction } from "../channels/[roomId]/messages.action";
 import { toast } from "sonner";
@@ -13,11 +13,14 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { APP_VERSION, APP_VERSION_CODE } from "@/lib/version";
+import { isNative, platform } from "@/lib/native/platform";
 
 const sections = [
     { id: "profile", label: "Profile", icon: User },
     { id: "security", label: "Security", icon: Shield },
     { id: "appearance", label: "Appearance", icon: PaintbrushIcon },
+    { id: "about", label: "About", icon: Info },
 ];
 
 function PaintbrushIcon(props: any) {
@@ -202,6 +205,65 @@ function SecurityForm({ user }: { user: NonNullable<SettingsViewProps["user"]> }
     );
 }
 
+function AboutRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between py-3">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="text-sm font-medium tabular-nums">{value}</span>
+        </div>
+    );
+}
+
+function AboutSection() {
+    // Resolved at render rather than module scope so the Capacitor global is
+    // already present; in a browser tab this reports "Web".
+    const [runtime, setRuntime] = React.useState("Web");
+    React.useEffect(() => {
+        setRuntime(
+            isNative() ? `Android (${platform()})` : "Web",
+        );
+    }, []);
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col items-center text-center gap-3 pt-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src="/icons/maskable_icon.png"
+                    alt="Komunikasi"
+                    width={72}
+                    height={72}
+                    className="rounded-2xl"
+                />
+                <div className="space-y-1">
+                    <h3 className="font-bold text-lg">Komunikasi</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Versi {APP_VERSION} (build {APP_VERSION_CODE})
+                    </p>
+                </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card px-4 divide-y divide-border">
+                <AboutRow label="Versi" value={APP_VERSION} />
+                <AboutRow label="Build" value={String(APP_VERSION_CODE)} />
+                <AboutRow label="Platform" value={runtime} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2 text-center">
+                <Link
+                    href="/CHANGELOG.md"
+                    className="text-sm text-primary hover:underline font-medium"
+                >
+                    Catatan rilis
+                </Link>
+                <p className="text-xs text-muted-foreground">
+                    Lisensi privately. All rights reserved.
+                </p>
+            </div>
+        </div>
+    );
+}
+
 export default function SettingsView({ user }: SettingsViewProps) {
     const [selectedSection, setSelectedSection] = React.useState<string | null>(null);
 
@@ -239,6 +301,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
                                 <Button variant="secondary" disabled>Coming Soon</Button>
                             </div>
                         )}
+                        {selectedSection === "about" && <AboutSection />}
                     </div>
                 </ScrollArea>
             </div>
