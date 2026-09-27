@@ -57,3 +57,7 @@ next-env.d.ts
 
 # local build artifacts (APK)
 build-artifacts/
+
+# Firebase config (contains API key; shipped as compiled resources instead)
+android/app/google-services.json
+android/app/google-services.json.*
