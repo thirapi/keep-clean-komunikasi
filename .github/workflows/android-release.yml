@@ -93,31 +93,32 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Android SDK packages
-        env:
-          ANDROID_HOME: ${{ runner.temp }}/android-sdk
-        run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      # The runner image already ships the Android SDK and puts it on PATH.
+      # Pointing ANDROID_HOME at an empty directory hides it, and sdkmanager
+      # then disappears with a bare "command not found".
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # Without this the build fails on an unaccepted SDK licence.
+          accept-android-sdk-licenses: true
+
+      - name: Install SDK packages required by compileSdk 36
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build signed release APK
         working-directory: android
-        env:
-          ANDROID_HOME: ${{ runner.temp }}/android-sdk
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Collect and verify the APK
-        env:
-          ANDROID_HOME: ${{ runner.temp }}/android-sdk
         run: |
           set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
           # Fail loudly rather than shipping an APK that could never be updated.
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK"
+          apksigner verify --print-certs "$APK"
           VERSION=$(node -p "require('./package.json').version")
           OUT="Komunikasi-$VERSION.apk"
           cp "$APK" "$OUT"
