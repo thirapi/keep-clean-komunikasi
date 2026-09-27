@@ -23,14 +23,21 @@ export default async function layout({
 }) {
   const sessionData = await getUserSession();
   const userId = sessionData?.user?.id;
-  const effectiveUserId = await getEffectiveUserId(userId || "");
 
-  const sidebarData = effectiveUserId ? await getSidebarData(effectiveUserId) : { data: { channels: [], directMessages: [] } };
+  // getEffectiveUserId, the profile lookup and the role lookup all depend only
+  // on the session, so they run concurrently. Only the sidebar data needs the
+  // resolved effective user id, so it stays one level deeper.
+  const [effectiveUserId, userInfo, userRoles] = await Promise.all([
+    getEffectiveUserId(userId || ""),
+    sidaBarUserInfo(),
+    getUserWithRolesFromSession(),
+  ]);
+
+  const sidebarData = effectiveUserId
+    ? await getSidebarData(effectiveUserId)
+    : { data: { channels: [], directMessages: [] } };
   const directRooms = sidebarData.data?.directMessages ?? [];
   const groupRooms = sidebarData.data?.channels ?? [];
-
-  const userInfo = await sidaBarUserInfo();
-  const userRoles = await getUserWithRolesFromSession();
 
   const user = userId ? {
     id: userId,

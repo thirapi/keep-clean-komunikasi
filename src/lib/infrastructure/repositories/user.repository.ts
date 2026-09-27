@@ -47,6 +47,18 @@ export class UserRepository implements IUserRepository {
   } | null> {
     const user = await this.client.query.users.findFirst({
       where: eq(users.username, username),
+      // `password` (bcrypt hash) is never read on this path — exclude it so the
+      // hash is not transferred off Postgres on every authenticated request.
+      columns: {
+        id: true,
+        username: true,
+        name: true,
+        avatar: true,
+        bio: true,
+        banner: true,
+        customStatus: true,
+        createdAt: true,
+      },
       with: {
         userRoles: {
           with: {
@@ -162,6 +174,12 @@ export class UserRepository implements IUserRepository {
     { id: string; username: string; name?: string | null; avatar: string; roles: { id: string; name: string }[] }[]
   > {
     const allUsers = await this.client.query.users.findMany({
+      columns: {
+        id: true,
+        username: true,
+        name: true,
+        avatar: true,
+      },
       with: {
         userRoles: {
           with: {

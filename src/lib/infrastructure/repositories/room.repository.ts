@@ -6,6 +6,24 @@ import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { createId } from "@paralleldrive/cuid2";
 import { avatarService } from "@/lib/infrastructure/services/avatar.service";
 
+/**
+ * Column subset for a room participant's user row. The relational queries below
+ * fan out over every participant of every room, so leaving `password` in the
+ * default selection ships a bcrypt hash off Postgres for each of them and then
+ * throws it away during DTO mapping. Every `participants -> user` selection in
+ * this file uses this subset.
+ */
+const PARTICIPANT_USER_COLUMNS = {
+  id: true,
+  username: true,
+  name: true,
+  avatar: true,
+  bio: true,
+  banner: true,
+  customStatus: true,
+  createdAt: true,
+} as const;
+
 export class RoomRepository implements IRoomRepository {
   constructor(private client: typeof db) { }
 
@@ -16,6 +34,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {
@@ -92,6 +111,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {
@@ -280,6 +300,7 @@ export class RoomRepository implements IRoomRepository {
           participants: {
             with: {
               user: {
+                columns: PARTICIPANT_USER_COLUMNS,
                 with: {
                   userRoles: {
                     with: {
@@ -343,6 +364,7 @@ export class RoomRepository implements IRoomRepository {
         participants: {
           with: {
             user: {
+              columns: PARTICIPANT_USER_COLUMNS,
               with: {
                 userRoles: {
                   with: {

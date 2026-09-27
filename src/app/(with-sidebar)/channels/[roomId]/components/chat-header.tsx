@@ -13,8 +13,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { RoomDetailDialog } from "./room-detail-dialog";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// 800-line dialog pulling in Tabs, ScrollArea, AlertDialog, Switch and the
+// image lightbox. It only renders when room details are opened, so it is split
+// out of the eager chat header chunk.
+const RoomDetailDialog = dynamic(
+  () => import("./room-detail-dialog").then((m) => m.RoomDetailDialog),
+  { ssr: false },
+);
 
 interface ChatHeaderProps {
   roomData: RoomWithParticipantsDTO;

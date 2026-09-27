@@ -1,5 +1,5 @@
 // src/lib/infrastructure/cache/client-cache.ts
-import Dexie, { type EntityTable } from 'dexie';
+import type { EntityTable } from 'dexie';
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 
 export interface RoomMetadata {
@@ -9,51 +9,93 @@ export interface RoomMetadata {
   lastReadAt: string | null;
 }
 
-export class KomunikasiDB extends Dexie {
-  messages!: EntityTable<MessageWithUserDTO, 'id'>;
-  roomMetadata!: EntityTable<RoomMetadata, 'roomId'>;
-
-  constructor() {
-    super('KomunikasiClientDB');
-    this.version(1).stores({
-      messages: 'id, roomId, createdAt',
-      roomMetadata: 'roomId'
-    });
-  }
+export interface ChatCacheDb {
+  messages: EntityTable<MessageWithUserDTO, 'id'>;
+  roomMetadata: EntityTable<RoomMetadata, 'roomId'>;
 }
 
-export const db = new KomunikasiDB();
+const DB_NAME = 'KomunikasiClientDB';
+const MAX_CACHED_ROOMS = 20;
+const MAX_MESSAGES_PER_ROOM = 50;
+
+let dbPromise: Promise<ChatCacheDb> | null = null;
+
+/**
+ * Dexie is loaded on demand so it never lands in the eager client bundle.
+ * Only the IndexedDB-backed paths below pay for it.
+ */
+function getDb(): Promise<ChatCacheDb> {
+  if (dbPromise === null) {
+    dbPromise = import('dexie').then(({ default: Dexie }) => {
+      class KomunikasiDB extends Dexie {
+        messages!: EntityTable<MessageWithUserDTO, 'id'>;
+        roomMetadata!: EntityTable<RoomMetadata, 'roomId'>;
+
+        constructor() {
+          super(DB_NAME);
+          this.version(1).stores({
+            messages: 'id, roomId, createdAt',
+            roomMetadata: 'roomId'
+          });
+        }
+      }
+      return new KomunikasiDB() as unknown as ChatCacheDb;
+    });
+  }
+  return dbPromise;
+}
+
+/** Oldest-inserted key first, so we can evict the least recently warmed room. */
+function oldestKey<V>(map: Map<string, V>) {
+  for (const key of map.keys()) return key;
+  return null;
+}
 
 class ClientChatCache {
   private memMessages = new Map<string, MessageWithUserDTO[]>();
   private memRooms = new Map<string, any>();
   private memLastRead = new Map<string, { id: string | null; at: Date | null }>();
 
-  constructor() { }
+  private evictIfNeeded() {
+    if (this.memRooms.size <= MAX_CACHED_ROOMS) return;
+    const key = oldestKey(this.memRooms);
+    if (key === null) return;
+    this.memRooms.delete(key);
+    this.memMessages.delete(key);
+    this.memLastRead.delete(key);
+  }
 
   getMessagesSync(roomId: string) { return this.memMessages.get(roomId); }
   getRoomSync(roomId: string) { return this.memRooms.get(roomId); }
   getLastReadSync(roomId: string) { return this.memLastRead.get(roomId) || { id: null, at: null }; }
 
+  private pruneExcess(allMsgs: MessageWithUserDTO[]) {
+    const optimistics = allMsgs.filter(m => m.id.startsWith('optimistic-') || m.isOptimistic);
+    const validMsgs = allMsgs.filter(m => !m.id.startsWith('optimistic-') && !m.isOptimistic);
+    const toDeleteIds = optimistics.map(m => m.id);
+    let limited = validMsgs;
+
+    if (validMsgs.length > MAX_MESSAGES_PER_ROOM) {
+      const excess = validMsgs.slice(0, validMsgs.length - MAX_MESSAGES_PER_ROOM);
+      toDeleteIds.push(...excess.map(m => m.id));
+      limited = validMsgs.slice(validMsgs.length - MAX_MESSAGES_PER_ROOM);
+    }
+
+    return { toDeleteIds, limited };
+  }
+
   async setMessages(roomId: string, messages: MessageWithUserDTO[]) {
     if (typeof window === "undefined" || !messages || messages.length === 0) return;
     try {
-      const limited = messages.slice(-50);
+      const db = await getDb();
+      const limited = messages.slice(-MAX_MESSAGES_PER_ROOM);
       this.memMessages.set(roomId, limited);
+      this.evictIfNeeded();
       await db.messages.bulkPut(limited); // Will update existing, insert new
 
-      // Purge leftovers and enforce 50 limit
+      // Purge leftovers and enforce the per-room limit
       const allMsgs = await db.messages.where('roomId').equals(roomId).sortBy('createdAt');
-      const toDeleteIds: string[] = [];
-
-      const optimistics = allMsgs.filter(m => m.id.startsWith('optimistic-') || m.isOptimistic);
-      toDeleteIds.push(...optimistics.map(m => m.id));
-
-      const validMsgs = allMsgs.filter(m => !m.id.startsWith('optimistic-') && !m.isOptimistic);
-      if (validMsgs.length > 50) {
-        const excess = validMsgs.slice(0, validMsgs.length - 50);
-        toDeleteIds.push(...excess.map(m => m.id));
-      }
+      const { toDeleteIds } = this.pruneExcess(allMsgs);
 
       if (toDeleteIds.length > 0) {
         await db.messages.bulkDelete(toDeleteIds);
@@ -66,29 +108,17 @@ class ClientChatCache {
   async mergeMessages(roomId: string, newMessages: MessageWithUserDTO[]) {
     if (typeof window === "undefined" || !newMessages || newMessages.length === 0) return;
     try {
+      const db = await getDb();
       // Just put them, since Dexie stores the source of truth individually per id
       await db.messages.bulkPut(newMessages);
 
-      // Now enforce the 50 limit by querying locally
+      // Now enforce the per-room limit by querying locally
       const allMsgs = await db.messages
         .where('roomId')
         .equals(roomId)
         .sortBy('createdAt');
 
-      let limited = allMsgs;
-      const toDeleteIds: string[] = [];
-
-      const optimistics = allMsgs.filter(m => m.id.startsWith('optimistic-') || m.isOptimistic);
-      toDeleteIds.push(...optimistics.map(m => m.id));
-
-      const validMsgs = allMsgs.filter(m => !m.id.startsWith('optimistic-') && !m.isOptimistic);
-      if (validMsgs.length > 50) {
-        const excess = validMsgs.slice(0, validMsgs.length - 50);
-        toDeleteIds.push(...excess.map(m => m.id));
-        limited = validMsgs.slice(validMsgs.length - 50);
-      } else {
-        limited = validMsgs;
-      }
+      const { toDeleteIds, limited } = this.pruneExcess(allMsgs);
 
       if (toDeleteIds.length > 0) {
         await db.messages.bulkDelete(toDeleteIds);
@@ -103,6 +133,7 @@ class ClientChatCache {
   async removeMessage(roomId: string, messageId: string) {
     if (typeof window === "undefined") return;
     try {
+      const db = await getDb();
       await db.messages.delete(messageId);
       const cached = this.memMessages.get(roomId);
       if (cached) {
@@ -116,7 +147,9 @@ class ClientChatCache {
   async setRoom(roomId: string, roomData: any) {
     if (typeof window === "undefined") return;
     try {
+      const db = await getDb();
       this.memRooms.set(roomId, roomData);
+      this.evictIfNeeded();
       const existing = await db.roomMetadata.get(roomId);
       await db.roomMetadata.put({
         roomId,
@@ -132,8 +165,9 @@ class ClientChatCache {
   async setLastRead(roomId: string, messageId: string | null, lastReadAt?: Date | null) {
     if (typeof window === "undefined") return;
     try {
+      const db = await getDb();
       const existing = await db.roomMetadata.get(roomId);
-      
+
       // Harden against race conditions: only update if the new timestamp is newer than existing
       if (existing?.lastReadAt && lastReadAt) {
         const existingDate = new Date(existing.lastReadAt);
@@ -159,6 +193,7 @@ class ClientChatCache {
     if (typeof window === "undefined") return undefined;
     if (this.memMessages.has(roomId)) return this.memMessages.get(roomId);
     try {
+      const db = await getDb();
       const msgs = await db.messages.where('roomId').equals(roomId).sortBy('createdAt');
       if (msgs.length > 0) {
         this.memMessages.set(roomId, msgs);
@@ -175,6 +210,7 @@ class ClientChatCache {
     if (typeof window === "undefined") return undefined;
     if (this.memRooms.has(roomId)) return this.memRooms.get(roomId);
     try {
+      const db = await getDb();
       const meta = await db.roomMetadata.get(roomId);
       if (meta?.roomData) {
         this.memRooms.set(roomId, meta.roomData);
@@ -191,6 +227,7 @@ class ClientChatCache {
     if (typeof window === "undefined") return { id: null, at: null };
     if (this.memLastRead.has(roomId)) return this.memLastRead.get(roomId)!;
     try {
+      const db = await getDb();
       const meta = await db.roomMetadata.get(roomId);
       const res = {
         id: meta?.lastReadId || null,
@@ -207,6 +244,7 @@ class ClientChatCache {
   async invalidate(roomId: string) {
     if (typeof window === "undefined") return;
     try {
+      const db = await getDb();
       this.memMessages.delete(roomId);
       this.memRooms.delete(roomId);
       this.memLastRead.delete(roomId);

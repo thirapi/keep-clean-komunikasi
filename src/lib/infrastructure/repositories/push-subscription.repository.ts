@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/infrastructure/drizzle/schema";
 import { IPushSubscriptionRepository } from "@/lib/application/repositories/push-subscription.repository.interface";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export class PushSubscriptionRepository implements IPushSubscriptionRepository {
@@ -52,6 +52,14 @@ export class PushSubscriptionRepository implements IPushSubscriptionRepository {
       .select()
       .from(pushSubscriptions)
       .where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async getSubscriptionsByUserIds(userIds: string[]): Promise<any[]> {
+    if (userIds.length === 0) return [];
+    return db
+      .select()
+      .from(pushSubscriptions)
+      .where(inArray(pushSubscriptions.userId, userIds));
   }
 
   async deleteSubscription(endpoint: string): Promise<void> {

@@ -189,10 +189,15 @@ export const getUserSession = cache(async (): Promise<SessionDTO | null> => {
   }
 });
 
+const getUserWithRolesForSession = cache(async () => {
+  const session = await getUserSession();
+  return getUserWithRolesController(session);
+});
+
 export const sidaBarUserInfo = async () => {
   const session = await getUserSession();
 
-  const userData = await getUserWithRolesController(session);
+  const userData = await getUserWithRolesForSession();
 
   const getRolesAsString = (roles: { id: string; name: string }[]): string => {
     return roles.map((role) => role.name).join(", ");
@@ -221,8 +226,7 @@ export const sidaBarUserInfo = async () => {
 };
 
 export const getUserWithRolesFromSession = async () => {
-  const session = await getUserSession();
-  const userWithRoles = await getUserWithRolesController(session);
+  const userWithRoles = await getUserWithRolesForSession();
 
   return userWithRoles;
 };

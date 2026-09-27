@@ -263,7 +263,12 @@ export const updateLastReadAt = async (
 
     await updateLastReadAtController(userId, roomId, messageId, lastReadAt);
 
-    revalidatePath("/(with-sidebar)", "layout");
+    // No revalidatePath here on purpose: read state is a hot, throttled path
+    // (every viewport intersection, own-message receipt, visibilitychange and
+    // unmount). Revalidating the whole (with-sidebar) layout re-ran the entire
+    // server tree per event. Per docs/mark-as-read.md the authoritative sync is
+    // the `room-marked-read` Pusher broadcast from the use case plus the local
+    // UnreadProvider update, so the sidebar never depends on this revalidation.
 
     return {
       status: "success",

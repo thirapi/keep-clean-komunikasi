@@ -14,8 +14,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { searchMessagesAction } from "@/app/(with-sidebar)/channels/[roomId]/messages.action";
 import { MessageWithUserDTO } from "@/lib/entities/models/message.model";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { format } from "date-fns/format";
+import { id } from "date-fns/locale/id";
 
 interface MessageSearchProps {
   isOpen: boolean;

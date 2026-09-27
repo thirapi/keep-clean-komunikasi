@@ -11,7 +11,14 @@ export class SessionRepository implements ISessionRepository {
     const allSessions = await this.client.query.sessions.findMany({
       orderBy: [desc(sessions.createdAt)],
       with: {
-        user: true,
+        // The session log renders only the owner's username — do not ship the
+        // bcrypt `password` column with every session row.
+        user: {
+          columns: {
+            id: true,
+            username: true,
+          },
+        },
       },
     });
     return allSessions as unknown as SessionLogRecord[];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { debounce } from "lodash";
+import { debounce } from "@/lib/debounce";
 import { pusher } from "@/lib/pusher/pusher.client";
 import { getMessage, updateLastReadAt, editMessageAction, toggleReactionAction } from "../messages.action";
 import { useRouter } from "next/navigation";
@@ -112,10 +112,21 @@ export function ChatRoom({
 
   useEffect(() => {
     messagesRef.current = messages;
-    import("@/lib/infrastructure/cache/client-cache").then((m) => {
-      const persistedMsgs = messages.filter(msg => !msg.isOptimistic);
-      m.clientChatCache.setMessages(localRoomData.id, persistedMsgs);
-    });
+  }, [messages]);
+
+  // Reconciliation backstop for IndexedDB. Incremental appends are already
+  // persisted by mergeMessages in handleNewMessage, so this is debounced to
+  // collapse bursts (and "load more" prepending) into a single write instead
+  // of a full-table rewrite on every single message.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import("@/lib/infrastructure/cache/client-cache").then((m) => {
+        const persistedMsgs = messages.filter(msg => !msg.isOptimistic);
+        m.clientChatCache.setMessages(localRoomData.id, persistedMsgs);
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [messages, localRoomData.id]);
 
   useEffect(() => {
@@ -363,7 +374,7 @@ export function ChatRoom({
     }
   }, [roomData.id, handleNewMessage]);
 
-  const loadMoreMessages = async () => {
+  const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
     const viewport = viewportRef.current;
@@ -385,7 +396,7 @@ export function ChatRoom({
       });
     }
     setIsLoadingMore(false);
-  };
+  }, [isLoadingMore, hasMore, messages, roomData.id]);
 
   useScrollToInitial(messages, unreadRef, bottomRef);
   useAutoScroll(messages, userId, isAtBottom, bottomRef);
@@ -500,6 +511,26 @@ export function ChatRoom({
     setReplyingTo(null);
   }, []);
 
+  const handleReply = useCallback((message: MessageWithUserDTO) => {
+    setReplyingTo(message);
+  }, []);
+
+  const handleStartEdit = useCallback((message: MessageWithUserDTO) => {
+    setEditingMessageId(message.id);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null);
+  }, []);
+
+  const handleToggleMembers = useCallback(() => {
+    setShowMembers((prev) => !prev);
+  }, []);
+
+  const handleUpdateRoom = useCallback((data: Partial<RoomWithParticipantsDTO>) => {
+    setLocalRoomData((prev) => ({ ...prev, ...data }));
+  }, []);
+
   const handleSaveEdit = useCallback(async (messageId: string, content: string) => {
     const response = await editMessageAction(userId, messageId, content);
     if (response.status === "success" && response.data) {
@@ -575,13 +606,11 @@ export function ChatRoom({
       <ChatHeader
         roomData={localRoomData}
         currentUserId={userId}
-        onToggleMembers={() => setShowMembers((prev) => !prev)}
+        onToggleMembers={handleToggleMembers}
         onToggleSearch={() => setIsSearchOpen(true)}
         membersVisible={showMembers}
         onlineUserIds={onlineUserIds}
-        onUpdateRoom={(data) =>
-          setLocalRoomData((prev) => ({ ...prev, ...data }))
-        }
+        onUpdateRoom={handleUpdateRoom}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -592,10 +621,10 @@ export function ChatRoom({
               bottomRef={bottomRef}
               unreadRef={unreadRef}
               onlineUserIds={onlineUserIds}
-              onReply={(message) => setReplyingTo(message)}
-              onStartEdit={(message) => setEditingMessageId(message.id)}
+              onReply={handleReply}
+              onStartEdit={handleStartEdit}
               onSaveEdit={handleSaveEdit}
-              onCancelEdit={() => setEditingMessageId(null)}
+              onCancelEdit={handleCancelEdit}
               onToggleReaction={handleToggleReaction}
               editingMessageId={editingMessageId}
               lastReadMessageId={lastReadIdState}

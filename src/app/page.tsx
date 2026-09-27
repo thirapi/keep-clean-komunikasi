@@ -1,7 +1,6 @@
 import { ModeToggle } from "@/components/landingpage/mode-toggle";
 import { AnimateInView } from "@/components/landingpage/animate-in-view";
 import K from "@/components/icons/k";
-import { GravityBackground } from "@/components/landingpage/gravity-background";
 import { getUserSession } from "@/app/auth.action";
 import { redirect } from "next/navigation";
 import { InteractiveText } from "@/components/landingpage/interactive-text";

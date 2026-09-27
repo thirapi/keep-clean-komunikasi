@@ -37,7 +37,14 @@ export class DrizzleActivityLogRepository implements IActivityLogRepository {
         const result = await db.query.activityLogs.findMany({
             orderBy: [desc(activityLogs.createdAt)],
             with: {
-                user: true
+                // The admin log only renders the author's id/username — do not
+                // ship the bcrypt `password` column with every log row.
+                user: {
+                    columns: {
+                        id: true,
+                        username: true,
+                    },
+                }
             }
         });
         return result as any;

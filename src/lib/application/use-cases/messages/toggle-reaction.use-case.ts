@@ -10,13 +10,13 @@ export class ToggleReactionUseCase {
   ) {}
 
   async execute(userId: string, messageId: string, emoji: string) {
-    const message = await this.messageRepository.getMessageById(messageId);
-    if (!message) throw new Error("Pesan tidak ditemukan");
+    const roomId = await this.messageRepository.getRoomIdByMessageId(messageId);
+    if (!roomId) throw new Error("Pesan tidak ditemukan");
 
     const result = await this.reactionRepository.toggleReaction(userId, messageId, emoji);
 
     // Broadcast realtime event
-    await this.pusherService.trigger(`chat-${message.roomId}`, "message-reaction", {
+    await this.pusherService.trigger(`chat-${roomId}`, "message-reaction", {
       messageId,
       userId,
       emoji,

@@ -4,7 +4,6 @@ import { ChatRoomClientWrapper } from "@/app/(with-sidebar)/channels/[roomId]/co
 import { getUserSession } from "@/app/auth.action";
 import { AnimatedUsername } from "@/components/landingpage/animated-username";
 import Link from "next/link";
-import ColorBends from "./ColorBends";
 
 export default async function ChatPage({
   params,

@@ -8,15 +8,123 @@ import { RoomWithParticipantsDTO } from "@/lib/entities/models/room.model";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { XEmbed } from "@/components/ui/x-embed";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { MentionTextarea } from "@/components/ui/mention-textarea";
-import { EmojiPickerComponent } from "@/components/emoji-picker/emoji-picker";
 import { useEmojis } from "@/components/emoji-provider";
 import { parseFediverseContent } from "@/lib/fediverse-content-parser";
+import dynamic from "next/dynamic";
+
+// The emoji picker pulls in the `frimousse` dataset and the inline editor pulls
+// in the whole Lexical runtime. Neither is needed to render a message, so both
+// are split out of the eager chat chunk and fetched on first interaction.
+const EmojiPickerComponent = dynamic(
+  () =>
+    import("@/components/emoji-picker/emoji-picker").then(
+      (m) => m.EmojiPickerComponent,
+    ),
+  { ssr: false },
+);
+const MentionTextarea = dynamic(
+  () =>
+    import("@/components/ui/mention-textarea").then((m) => m.MentionTextarea),
+  { ssr: false },
+);
 
 // Module-level constants — compiled once, not on every render
 import { extractUrls } from "@/lib/extract-urls";
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const X_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
+const IMAGE_REGEX = /\.(jpg|jpeg|png|webp|gif|svg)$/i;
+const VIDEO_REGEX = /\.(mp4|webm|ogg)$/i;
+const LEADING_DIGITS_REGEX = /^\d+-/;
+const WHITESPACE_REGEX = /\s/g;
+const CUSTOM_EMOJI_ONLY_REGEX = /^(:[a-zA-Z0-9_-]+:)+$/;
+const EXTENDED_PICTOGRAPHIC_REGEX = /\p{Extended_Pictographic}/u;
+
+const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
+const REHYPE_PLUGINS = [rehypeRaw];
+
+const MARKDOWN_CODE_COMPONENTS = {
+  pre: ({ children }: any) => {
+    const codeElement = React.Children.only(children);
+    const codeContent = String(codeElement.props.children).replace(/\n$/, "");
+
+    return (
+      <div className="group/code relative my-3 w-full max-w-full min-w-0 overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
+        {/* Code */}
+        <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 min-w-0">
+          {/* Copy Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="
+                    absolute right-3 top-3
+                    h-7 w-7 rounded-md
+                    border border-border/40
+                    bg-background/70 backdrop-blur-sm
+                    text-muted-foreground/60
+                    opacity-0 transition-all duration-200
+                    group-hover/code:opacity-100
+                    hover:bg-black/5 hover:text-foreground
+                    dark:hover:bg-white/5
+                  "
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(codeContent);
+              toast.success("Kode disalin!");
+            }}
+          >
+            <Copy weight="duotone" className="h-3.5 w-3.5" />
+          </Button>
+
+          {children}
+        </pre>
+      </div>
+    );
+  },
+  code: ({ node, className, children, ...props }: any) => {
+    const isBlock = !!className;
+
+    // Block code
+    if (isBlock) {
+      return (
+        <code
+          className={cn(
+            "block whitespace-pre-wrap break-all md:whitespace-pre md:break-normal font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+
+    // Inline code
+    // Restore our multiline \n placeholder
+    let inlineContent = children;
+    if (typeof inlineContent === "string") {
+      inlineContent = inlineContent.replace(/\uE000/g, "\n");
+    } else if (Array.isArray(inlineContent)) {
+      inlineContent = inlineContent.map((child: any) =>
+        typeof child === "string" ? child.replace(/\uE000/g, "\n") : child
+      );
+    }
+
+    return (
+      <code
+        className="
+                mx-0.5 break-words whitespace-pre-wrap rounded-xs
+                bg-[#F8F8F8] dark:bg-[#2D2D2D]
+                px-[5px] py-[1.5px]
+                font-mono text-[12px] font-medium
+                text-[#E01E5A] dark:text-[#FF7B72]
+              "
+        {...props}
+      >
+        {inlineContent}
+      </code>
+    );
+  },
+};
 import { ArrowBendUpLeft, ChatTeardropText, File, DownloadSimple, ArrowSquareOut, Trash, Copy, PencilSimple, Check, X, Smiley, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -26,7 +134,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback, memo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
@@ -57,7 +165,38 @@ function truncate(str: string, max = 100) {
   return str.length > max ? str.slice(0, max) + "..." : str;
 }
 
-export function MessageItem({
+const STATIC_MARKDOWN_COMPONENTS = {
+  p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
+  ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
+  li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{children}</li>,
+  h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{children}</h3>,
+  hr: () => <hr className="my-4 border-border/20" />,
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-3 rounded-lg border border-border/50">
+      <table className="w-full text-sm border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
+  th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{children}</th>,
+  td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{children}</td>,
+  strong: ({ children }: any) => <strong>{children}</strong>,
+  em: ({ children }: any) => <em>{children}</em>,
+  del: ({ children }: any) => <del>{children}</del>,
+  img: ({ node, ...props }: any) => (
+    <img
+        {...props}
+        className={cn(
+            props.className,
+            props.className?.includes('fediverse-emoji') && "inline-block h-[1.4em] w-[1.4em] align-text-bottom mx-0.5"
+        )}
+    />
+  ),
+};
+
+export function MessageItemComponent({
   message,
   onlineUserIds,
   onReply,
@@ -176,7 +315,7 @@ export function MessageItem({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [mobileActionOpen, setMobileActionOpen] = useState(false);
 
-  const handleStartDM = async (targetUserId: string) => {
+  const handleStartDM = useCallback(async (targetUserId: string) => {
     if (targetUserId === currentUserId) return;
 
     const response = await createRoom(currentUserId, targetUserId);
@@ -185,7 +324,7 @@ export function MessageItem({
     } else {
       toast.error(response.error?.message || "Gagal membuat percakapan");
     }
-  };
+  }, [currentUserId, router]);
 
   const handleDelete = async () => {
     if (isDeleting) return;
@@ -262,44 +401,43 @@ export function MessageItem({
     return time;
   };
 
-  const isOnlyEmoji = (str: string) => {
+  // Custom emojis check (Misskey/Pleroma style :shortcode:)
+  // We allow multiple shortcodes but nothing else
+  const messageIsOnlyEmoji = useMemo(() => {
+    const str = message.content;
     if (!str) return false;
-    const cleanStr = str.replace(/\s/g, "");
+    const cleanStr = str.replace(WHITESPACE_REGEX, "");
     if (!cleanStr) return false;
-    
-    // Custom emojis check (Misskey/Pleroma style :shortcode:)
-    // We allow multiple shortcodes but nothing else
-    const customEmojiRegex = /^(:[a-zA-Z0-9_-]+:)+$/;
-    if (customEmojiRegex.test(cleanStr)) return true;
+    if (CUSTOM_EMOJI_ONLY_REGEX.test(cleanStr)) return true;
 
-    // Modern regex using Unicode property escapes to match all emojis, 
+    // Modern regex using Unicode property escapes to match all emojis,
     // including ZWJ sequences, modifiers, and variation selectors.
     // We filter out digits/text if they aren't part of an emoji sequence.
     const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji_Modifier_Base}|\p{Emoji_Modifier}|\p{Emoji_Component}|[\u200D\uFE0F])*$/u;
 
     // Hardening: make sure it's not JUST numbers or punctuation that happen to have emoji properties
-    const hasActualEmoji = /\p{Extended_Pictographic}/u.test(cleanStr);
+    const hasActualEmoji = EXTENDED_PICTOGRAPHIC_REGEX.test(cleanStr);
 
-    return (emojiRegex.test(cleanStr) && hasActualEmoji) || customEmojiRegex.test(cleanStr);
-  };
+    return (emojiRegex.test(cleanStr) && hasActualEmoji) || CUSTOM_EMOJI_ONLY_REGEX.test(cleanStr);
+  }, [message.content]);
 
-  const isImage = (url: string) => {
-    return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url) || url.startsWith('data:image/');
-  };
+const isImage = (url: string) => {
+    return IMAGE_REGEX.test(url) || url.startsWith('data:image/');
+};
 
-  const isVideo = (url: string) => {
-    return /\.(mp4|webm|ogg)$/i.test(url) || url.startsWith('data:video/');
-  };
+const isVideo = (url: string) => {
+    return VIDEO_REGEX.test(url) || url.startsWith('data:video/');
+};
 
-  const getFileName = (url: string) => {
+const getFileName = (url: string) => {
     try {
-      const parts = url.split('/');
-      const lastPart = parts[parts.length - 1];
-      return lastPart.replace(/^\d+-/, '');
+        const parts = url.split('/');
+        const lastPart = parts[parts.length - 1];
+        return lastPart.replace(LEADING_DIGITS_REGEX, '');
     } catch {
-      return 'Attachment';
+        return 'Attachment';
     }
-  };
+};
 
   const getProxiedUrl = (url: string) => {
     if (!url) return "";
@@ -365,7 +503,15 @@ export function MessageItem({
     return embeds;
   }, [message.content]);
 
-  const resolveMentionsForView = (content: string, emojis: { name: string; url: string }[] | null | undefined = []) => {
+  const participantsById = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const p of roomData?.participants ?? []) {
+      if (p?.user?.id) map.set(p.user.id, p);
+    }
+    return map;
+  }, [roomData?.participants]);
+
+  const resolveMentionsForView = useCallback((content: string) => {
     if (!content) return "";
     // Discord behavior: Preserve leading newlines, but trim trailing ones.
     const trimmedContent = content.replace(/\n+$/, "");
@@ -375,7 +521,7 @@ export function MessageItem({
       if (uid === "everyone") {
         resolved = "[@everyone](#mention:everyone)";
       } else {
-        const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+        const participant = participantsById.get(uid);
         resolved = participant ? `[@${participant.user.username}](#mention:${uid})` : `@${uid}`;
       }
       mentionBlocks.push(resolved);
@@ -436,7 +582,7 @@ export function MessageItem({
     });
 
     return processed;
-  };
+  }, [participantsById]);
 
   const { customEmojis } = useEmojis();
   const emojiMeta = useMemo(() => customEmojis.map(e => ({ name: e.shortcode, url: e.url })), [customEmojis]);
@@ -454,105 +600,27 @@ export function MessageItem({
     return <>{emoji}</>;
   };
 
+  const viewContent = useMemo(() => {
+    if (!message.content) return "";
+    return parseFediverseContent(resolveMentionsForView(message.content), emojiMeta);
+  }, [message.content, resolveMentionsForView, emojiMeta]);
+
   const renderContent = (content: string) => {
     if (!content) return null;
-    const viewContent = parseFediverseContent(resolveMentionsForView(content, emojiMeta), emojiMeta);
 
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
-        rehypePlugins={[rehypeRaw]}
-        components={{
-          ...markdownComponents,
-          pre: ({ children }: any) => {
-            const codeElement = React.Children.only(children);
-            const codeContent = String(codeElement.props.children).replace(/\n$/, "");
-
-            return (
-              <div className="group/code relative my-3 w-full max-w-full min-w-0 overflow-hidden rounded-xs border border-[#E1E1E1] dark:border-[#3D3D3D] bg-[#F8F8F8] dark:bg-[#2D2D2D]">
-                {/* Code */}
-                <pre className="relative overflow-x-auto p-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 min-w-0">
-                  {/* Copy Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="
-                    absolute right-3 top-3
-                    h-7 w-7 rounded-md
-                    border border-border/40
-                    bg-background/70 backdrop-blur-sm
-                    text-muted-foreground/60
-                    opacity-0 transition-all duration-200
-                    group-hover/code:opacity-100
-                    hover:bg-black/5 hover:text-foreground
-                    dark:hover:bg-white/5
-                  "
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(codeContent);
-                      toast.success("Kode disalin!");
-                    }}
-                  >
-                    <Copy weight="duotone" className="h-3.5 w-3.5" />
-                  </Button>
-
-                  {children}
-                </pre>
-              </div>
-            );
-          },
-          code: ({ node, className, children, ...props }: any) => {
-            const isBlock = !!className;
-
-            // Block code
-            if (isBlock) {
-              return (
-                <code
-                  className={cn(
-                    "block whitespace-pre-wrap break-all md:whitespace-pre md:break-normal font-mono text-[12.5px] leading-relaxed text-[#1D1C1D] dark:text-[#D1D2D3]",
-                    className
-                  )}
-                  {...props}
-                >
-                  {children}
-                </code>
-              );
-            }
-
-            // Inline code
-            // Restore our multiline \n placeholder
-            let inlineContent = children;
-            if (typeof inlineContent === "string") {
-              inlineContent = inlineContent.replace(/\uE000/g, "\n");
-            } else if (Array.isArray(inlineContent)) {
-              inlineContent = inlineContent.map((child: any) =>
-                typeof child === "string" ? child.replace(/\uE000/g, "\n") : child
-              );
-            }
-
-            return (
-              <code
-                className="
-                mx-0.5 break-words whitespace-pre-wrap rounded-xs
-                bg-[#F8F8F8] dark:bg-[#2D2D2D]
-                px-[5px] py-[1.5px]
-                font-mono text-[12px] font-medium
-                text-[#E01E5A] dark:text-[#FF7B72]
-              "
-                {...props}
-              >
-                {inlineContent}
-              </code>
-            );
-          },
-        }}
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={markdownComponentsWithOverrides}
       >
         {viewContent}
       </ReactMarkdown >
     );
   };
 
-  const markdownComponents = {
+  const markdownComponents = useMemo(() => ({
+    ...STATIC_MARKDOWN_COMPONENTS,
     a: ({ node, href, children, ...props }: any) => {
       if (href?.startsWith('#mention:')) {
         const uid = href.replace('#mention:', '');
@@ -574,7 +642,7 @@ export function MessageItem({
           );
         }
 
-        const participant = roomData?.participants?.find((p: any) => p.user.id === uid);
+        const participant = participantsById.get(uid);
 
         if (!participant) {
           return (
@@ -621,35 +689,12 @@ export function MessageItem({
         </a>
       );
     },
-    p: ({ children }: any) => <p className="mb-1 last:mb-0 leading-relaxed text-[13.5px] whitespace-pre-wrap">{children}</p>,
-    ul: ({ children }: any) => <ul className="list-disc ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal ml-5 mb-0.5 mt-0.5 space-y-px [&_p]:m-0 [&_p]:inline">{children}</ol>,
-    li: ({ children }: any) => <li className="pl-1 leading-relaxed whitespace-pre-wrap">{children}</li>,
-    h1: ({ children }: any) => <h1 className="text-lg font-black mt-4 mb-2 border-b border-border/30 pb-1 tracking-tight">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-base font-bold mt-3 mb-1.5 tracking-tight text-foreground/90">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-2 mb-1 uppercase tracking-wider text-muted-foreground">{children}</h3>,
-    hr: () => <hr className="my-4 border-border/20" />,
-    table: ({ children }: any) => (
-      <div className="overflow-x-auto my-3 rounded-lg border border-border/50">
-        <table className="w-full text-sm border-collapse">{children}</table>
-      </div>
-    ),
-    thead: ({ children }: any) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-    th: ({ children }: any) => <th className="px-4 py-2 text-left font-bold text-muted-foreground uppercase text-[11px] tracking-wider">{children}</th>,
-    td: ({ children }: any) => <td className="px-4 py-2 border-b border-border/10">{children}</td>,
-    strong: ({ children }: any) => <strong>{children}</strong>,
-    em: ({ children }: any) => <em>{children}</em>,
-    del: ({ children }: any) => <del>{children}</del>,
-    img: ({ node, ...props }: any) => (
-      <img 
-          {...props} 
-          className={cn(
-              props.className,
-              props.className?.includes('fediverse-emoji') && "inline-block h-[1.4em] w-[1.4em] align-text-bottom mx-0.5"
-          )} 
-      />
-    )
-  };
+  }), [participantsById, onlineUserIds, currentUserId, handleStartDM]);
+
+  const markdownComponentsWithOverrides = useMemo(
+    () => ({ ...markdownComponents, ...MARKDOWN_CODE_COMPONENTS }),
+    [markdownComponents],
+  );
 
   const isOnline = onlineUserIds.includes(message.userId);
   const [isHovered, setIsHovered] = useState(false);
@@ -800,7 +845,7 @@ export function MessageItem({
                 <div
                   className={cn(
                     "leading-relaxed text-foreground/90 mt-0.5 break-words min-w-0 w-full max-w-full",
-                    isOnlyEmoji(message.content) ? "text-5xl leading-none" : "text-[13.5px]",
+                    messageIsOnlyEmoji ? "text-5xl leading-none" : "text-[13.5px]",
                     "pr-10"
                   )}
                 >
@@ -899,7 +944,7 @@ export function MessageItem({
               )}>
                 {imagesAndVideos.slice(0, 4).map((item, idx) => (
                   <div
-                    key={idx}
+                    key={item.url}
                     className={cn(
                       "relative group-media cursor-zoom-in overflow-hidden aspect-square sm:aspect-auto bg-muted/30",
                       imagesAndVideos.length === 1 ? "aspect-auto min-h-[200px] max-h-[450px]" : "aspect-[4/3]",
@@ -1080,12 +1125,16 @@ export function MessageItem({
         )}
       </div>
 
-      <ImageLightbox
-        images={imagesAndVideos as any}
-        initialIndex={initialImageIndex}
-        open={lightboxOpen}
-        onOpenChange={setLightboxOpen}
-      />
+      {lightboxOpen && (
+        <ImageLightbox
+          images={imagesAndVideos as any}
+          initialIndex={initialImageIndex}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+        />
+      )}
     </div>
   );
 }
+
+export const MessageItem = memo(MessageItemComponent);
