@@ -130,7 +130,12 @@ jobs:
       # WebView is pointed at the live URL), so this only restores the plugin
       # scaffolding and takes well under a second.
       - name: Sync Capacitor Android plugins
-        run: npx cap sync android
+        run: |
+          # cap sync writes capacitor.config.json into assets/, and that
+          # directory is generated rather than committed, so a fresh clone
+          # fails with ENOENT unless it exists first.
+          mkdir -p android/app/src/main/assets
+          npx cap sync android
 
       - name: Build signed release APK
         working-directory: android
